@@ -21,6 +21,7 @@ $typedef struct{
    char  fecha_reposicion[25];
    double   saldo_exigible;
    char  motivo_corte[3];
+   char  desc_motivo_corte[51];
    char  motivo_repo[3];
    char  accion_corte[3];
    char  accion_rehab[3];

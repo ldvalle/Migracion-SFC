@@ -11,8 +11,7 @@
 		
 	Descripcion de parametros :
 		<Base de Datos> : Base de Datos <synergia>
-		
-		<Tipo Generacion>: G = Generacion; R = Regeneracion
+		<Tipo Corrida>: 0=Normal 1=Reducida
 		
 ********************************************************************************/
 #include <locale.h>
@@ -25,7 +24,7 @@
 $include "sfc_invoice.h";
 
 /* Variables Globales */
-$char	gsTipoGenera[2];
+int   giTipoCorrida;
 
 FILE	*pFileMedidorUnx;
 
@@ -67,7 +66,7 @@ double   dRecargo;
 		exit(0);
 	}
 	
-   setlocale(LC_ALL, "es_ES.UTF-8");
+   setlocale(LC_ALL, "en_US.UTF-8");
    
 	hora = time(&hora);
 	
@@ -176,9 +175,7 @@ char	* argv[];
 		return 0;
 	}
 	
-	memset(gsTipoGenera, '\0', sizeof(gsTipoGenera));
-
-	strcpy(gsTipoGenera, argv[2]);
+   giTipoCorrida=atoi(argv[2]);
 	
 	return 1;
 }
@@ -186,12 +183,13 @@ char	* argv[];
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Generación> G = Generación, R = Regeneración.\n");
+		printf("	<Tipo Corrida> 0=Normal, 1=Reducida.\n");
 }
 
 short AbreArchivos()
 {
    char  sTitulos[10000];
+   $char sFecha[9];
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
@@ -199,19 +197,18 @@ short AbreArchivos()
 	memset(sArchMedidorAux,'\0',sizeof(sArchMedidorAux));
    memset(sArchMedidorDos,'\0',sizeof(sArchMedidorDos));
 	memset(sSoloArchivoMedidor,'\0',sizeof(sSoloArchivoMedidor));
-	
+	memset(sFecha,'\0',sizeof(sFecha));
 
 	memset(sPathSalida,'\0',sizeof(sPathSalida));
 
+   FechaGeneracionFormateada(sFecha);
 	RutaArchivos( sPathSalida, "SALESF" );
-   
-strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
    
 	alltrim(sPathSalida,' ');
 
 	sprintf( sArchMedidorUnx  , "%sT1INVOICE.unx", sPathSalida );
    sprintf( sArchMedidorAux  , "%sT1INVOICE.aux", sPathSalida );
-   sprintf( sArchMedidorDos  , "%sT1INVOICE.csv", sPathSalida );
+   sprintf( sArchMedidorDos  , "%senel_care_invoice_t1_%.csv", sPathSalida, sFecha );
 
 	strcpy( sSoloArchivoMedidor, "T1INVOICE.unx");
 
@@ -221,7 +218,7 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
 		return 0;
 	}
 	
-   strcpy(sTitulos,"\"Fecha de emisión\";\"Fecha de vencimiento\";\"Fecha de segundo vencimiento\";\"Intereses\";\"Acceso a la factura\";\"Dirección factura\";\"Titular\";\"Otros cargos\";\"Suministro\";\"Saldo anterior\";\"Cantidad de productos y servicios\";\"Impuestos\";\"External ID\";\"Numero Factura\";\"Direccion Facturación (Historico)\";\"Pago\";\"Total\";\"Cargos Fijos\";\"Cargos Variables\";\"Factor Potencia\";\"Tasa Alumbrado Público\";\"Recargo\";\"Recargo Anterior\";\"Cuota convenio\";\"CNR\";\"Refacturación\";\"Ahorro %\";\"Factura Digital\"\n");
+   strcpy(sTitulos,"\"Fecha de emisión\";\"Fecha de vencimiento\";\"Fecha de segundo vencimiento\";\"Intereses\";\"Acceso a la factura\";\"Dirección factura\";\"Titular\";\"Otros cargos\";\"Suministro\";\"Saldo anterior\";\"Cantidad de productos y servicios\";\"Impuestos\";\"External ID\";\"Numero Factura\";\"Direccion Facturación (Historico)\";\"Pago\";\"Total\";\"Cargos Fijos\";\"Cargos Variables\";\"Factor Potencia\";\"Tasa Alumbrado Público\";\"Recargo\";\"Recargo Anterior\";\"Cuota convenio\";\"CNR\";\"Refacturación\";\"Ahorro %\";\"Factura Digital\";\"Moneda\";\n");
    fprintf(pFileMedidorUnx, sTitulos);
       
 	return 1;	
@@ -250,7 +247,7 @@ $char sClave[7];
      exit(1);
    }
 
-   sprintf(sCommand, "unix2dos %s > %s", sArchMedidorUnx, sArchMedidorAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchMedidorUnx, sArchMedidorAux);
 	iRcv=system(sCommand);
 
    sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchMedidorAux, sArchMedidorDos);
@@ -293,18 +290,21 @@ $char sAux[1000];
 
 	/******** Cursor CLIENTES  ****************/	
 	strcpy(sql, "SELECT c.numero_cliente FROM cliente c ");
-	
-strcat(sql, ", migra_sf ma ");
+if(giTipoCorrida==1){	
+   strcat(sql, ", migra_sf ma ");
+}   
 	
 	strcat(sql, "WHERE c.estado_cliente = 0 ");
-	strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");
-	strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");
+	strcat(sql, "AND c.tipo_sum != 5 ");
+   strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");
+	/*strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");*/
 	strcat(sql, "AND NOT EXISTS (SELECT 1 FROM clientes_ctrol_med cm ");
 	strcat(sql, "WHERE cm.numero_cliente = c.numero_cliente ");
 	strcat(sql, "AND cm.fecha_activacion < TODAY ");
 	strcat(sql, "AND (cm.fecha_desactiva IS NULL OR cm.fecha_desactiva > TODAY)) ");	
-
-strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}   
 
 	$PREPARE selClientes FROM $sql;
 	
@@ -647,14 +647,15 @@ $ClsFactura		reg;
    sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_intereses);
    
    /* Acceso a la factura (Vacio) */
-   strcat(sLinea, "\"\";");
+   strcat(sLinea, "\"http://www.edesur.com.ar/” \";");
    
    /* Dirección factura (vacio) */
    /*strcat(sLinea, "\"\";");*/
+   /*sprintf(sLinea, "%s\"%ld-2\";", sLinea, reg.numero_cliente);*/
    sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
    
    /* Titular */
-   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldARG\";", sLinea, reg.numero_cliente);
    
    /* Otros cargos */
    sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_cargos_man);
@@ -681,8 +682,8 @@ $ClsFactura		reg;
    /* Numero Factura */
    sprintf(sLinea, "%s\"%s\";", sLinea, reg.id_factura);
    
-   /* Direccion Facturación (Historico) (Vacio) */
-   strcat(sLinea, "\"\";");
+   /* Direccion Facturación (Historico) */
+   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
    
    /* Pago (vacio) */
    strcat(sLinea, "\"\";");
@@ -750,10 +751,13 @@ $ClsFactura		reg;
    
    /* Factura Digital */
    if(reg.factu_digital[0]=='S'){
-      strcat(sLinea, "\"True\"");
+      strcat(sLinea, "\"True\";");
    }else{
-      strcat(sLinea, "\"False\"");
+      strcat(sLinea, "\"False\";");
    }
+
+   /* Moneda */
+   strcat(sLinea, "\"ARS\";");
 
 	strcat(sLinea, "\n");
 	

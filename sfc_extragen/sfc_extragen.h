@@ -27,10 +27,11 @@ $typedef struct{
 	char	nom_comuna[26];
 	char	nro_dir[6];
 	char	obs_dir[61];
-	int		cod_postal;
+	int	cod_postal;
 	char	piso_dir[7];
 	char	depto_dir[7];
-	char	tip_doc[7];
+	char	tip_doc[11];
+   char  tip_doc_SF[11];
 	double	nro_doc;
 	char	telefono[20];
 	char	tipo_cliente[3];
@@ -51,6 +52,7 @@ $typedef struct{
    
 	char	email_1[51];
 	char	email_2[51];
+   char	email_3[51];
 	char	electrodependiente[2];
 	char	dp_nom_calle[36];
 	char	dp_nro_dir[6];
@@ -84,6 +86,12 @@ $typedef struct{
    char  entre_calle2[26];
    char  email_contacto[101];
    char  tipoIva[3];
+   
+   double  nro_dci;
+   char  orga_dci[3];
+   long  minist_repart;
+   char  papa_t23[11];
+   
 }ClsClientes;
 
 $typedef struct{
@@ -129,6 +137,7 @@ void 	RutaArchivos( char*, char * );
 
 short   LeoCliente(ClsClientes *);
 void    InicializaCliente(ClsClientes *);
+short   PadreEnT23(ClsClientes *);
 
 void  InicializaNomencla(ClsNomencla *);
 short LeoNomencla(ClsNomencla *);
@@ -141,6 +150,7 @@ void  InicializoTelefonos(ClsTelefonos *);
 short	LeoTelefonos(ClsTelefonos *);
 short LeoTelCerta(long, ClsTeleCerta *);
 short	CargoVIP(ClsClientes *);
+short CargaDCI(ClsClientes *);
 short	CargoPostal(ClsClientes *);
 short	DatosMedidor(ClsClientes *);
 short	DatosTecnicos(ClsClientes *);

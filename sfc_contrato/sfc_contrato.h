@@ -24,11 +24,18 @@ $typedef struct{
    long  nro_beneficiario;
    char  sFechaAlta[11];      
    char  factu_digital[2];
+   char  sFechaAltaFactuDigital[11];
    char  sNombreBanco[41];
    char  codTarjetaCredito[11];
    char  nroTarjeta[21];
    char  cbu[23];
    char  codBanco[7];
+   char  codActividadEconomica[11];
+   char  tipo_titularidad[51];
+   long  minist_repart;
+   char  papa_t23[11];
+   char  sTasaAP[10];
+   char  sPatidaMuni[14];
 }ClsCliente;
 
 $typedef struct{
@@ -52,7 +59,9 @@ short LeoCliente( ClsCliente *);
 void  InicializaCliente(ClsCliente *);
 void  CargaAlta1(ClsCliente *);
 short CargaAlta2(ClsCliente *);
+void  CargaTasa(ClsCliente *);
 void  CargaFormaPago(ClsCliente *);
+short PadreEnT23(ClsCliente *);
 
 void GeneraContrato(ClsCliente);
 void GeneraLinea(ClsCliente);

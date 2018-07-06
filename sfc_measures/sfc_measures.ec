@@ -11,8 +11,7 @@
 		
 	Descripcion de parametros :
 		<Base de Datos> : Base de Datos <synergia>
-		
-		<Tipo Generacion>: G = Generacion; R = Regeneracion
+		<Tipo Corrida>: 0=Normal, 1=Reducida
 		<Archivos Genera> 0=Todos, 1=Measures, 2=Consumos
 ********************************************************************************/
 #include <locale.h>
@@ -25,7 +24,7 @@
 $include "sfc_measures.h";
 
 /* Variables Globales */
-$char	gsTipoGenera[2];
+int   giTipoCorrida;
 int   gsArchivoGenera;
 
 FILE	*pFileMedidorUnx;
@@ -39,6 +38,7 @@ char	sSoloArchivoMedidor[100];
 char	sArchConsumoUnx[100];
 char	sArchConsumoAux[100];
 char	sArchConsumoDos[100];
+char	sArchConsumoDos2[100];
 char	sSoloArchivoConsumo[100];
 
 char	sArchLog[100];
@@ -72,7 +72,7 @@ $long lNroCliente;
 		exit(0);
 	}
 	
-   setlocale(LC_ALL, "es_ES.UTF-8");
+   setlocale(LC_ALL, "en_US.UTF-8");
    
 	hora = time(&hora);
 	
@@ -109,26 +109,32 @@ $long lNroCliente;
    	$OPEN curLecturas USING :lNroCliente;
    
    	while(LeoLecturas(&regLectura)){
-   		if (!GenerarPlano(fp, regLectura, "A")){
-            printf("Fallo GenearPlano\n");
-   			exit(1);	
-   		}
-   		if (!GenerarPlanoConsumo(pFileConsumoUnx, regLectura, "A")){
-            printf("Fallo GenearPlano Consumo\n");
-   			exit(1);	
-   		}
-         
+         if(gsArchivoGenera==0 || gsArchivoGenera==1){
+      		if (!GenerarPlano(fp, regLectura, "A")){
+               printf("Fallo GenearPlano\n");
+      			exit(1);	
+      		}
+         }
+         if(gsArchivoGenera==0 || gsArchivoGenera==2){
+      		if (!GenerarPlanoConsumo(pFileConsumoUnx, regLectura, "A")){
+               printf("Fallo GenearPlano Consumo\n");
+      			exit(1);	
+      		}
+         }
    		if(regLectura.tipo_medidor[0]=='R'){
             if(LeoReactiva(&regLectura)){
-         		if (!GenerarPlano(fp, regLectura, "R")){
-                  printf("Fallo GenearPlano\n");
-         			exit(1);	
-         		}
-         		if (!GenerarPlanoConsumo(pFileConsumoUnx, regLectura, "R")){
-                  printf("Fallo GenearPlano Consumo\n");
-         			exit(1);	
-         		}
-               
+               if(gsArchivoGenera==0 || gsArchivoGenera==1){
+            		if (!GenerarPlano(fp, regLectura, "R")){
+                     printf("Fallo GenearPlano\n");
+            			exit(1);	
+            		}
+               }
+               if(gsArchivoGenera==0 || gsArchivoGenera==2){
+            		if (!GenerarPlanoConsumo(pFileConsumoUnx, regLectura, "R")){
+                     printf("Fallo GenearPlano Consumo\n");
+            			exit(1);	
+            		}
+               }
             }         
          }			
    		
@@ -139,7 +145,7 @@ $long lNroCliente;
    }
    			
    $CLOSE curClientes;      
-   
+
 	CerrarArchivos();
 
 	FormateaArchivos();
@@ -147,6 +153,7 @@ $long lNroCliente;
 	$CLOSE DATABASE;
 
 	$DISCONNECT CURRENT;
+
 
 	/* ********************************************
 				FIN AREA DE PROCESO
@@ -191,10 +198,7 @@ char	* argv[];
 		MensajeParametros();
 		return 0;
 	}
-	
-	memset(gsTipoGenera, '\0', sizeof(gsTipoGenera));
-
-	strcpy(gsTipoGenera, argv[2]);
+   giTipoCorrida=atoi(argv[2]);
    gsArchivoGenera=atoi(argv[3]);
 	
 	return 1;
@@ -203,13 +207,14 @@ char	* argv[];
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Generación> G = Generación, R = Regeneración.\n");
+		printf("	<Tipo Corrida> 0=Normal, 1=Reducida.\n");
       printf("	<Archivos Genera> 0=Todos, 1=Measures, 2=Consumos.\n");
 }
 
 short AbreArchivos()
 {
    char  sTitulos[10000];
+   $char sFecha[9];
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
@@ -223,24 +228,27 @@ short AbreArchivos()
    memset(sArchConsumoDos,'\0',sizeof(sArchConsumoDos));
 	memset(sSoloArchivoConsumo,'\0',sizeof(sSoloArchivoConsumo));
 
+   memset(sFecha,'\0',sizeof(sFecha));
 	memset(sPathSalida,'\0',sizeof(sPathSalida));
 
-	RutaArchivos( sPathSalida, "SALESF" );
+   FechaGeneracionFormateada(sFecha);
    
-strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
+	RutaArchivos( sPathSalida, "SALESF" );
    
 	alltrim(sPathSalida,' ');
 
 	sprintf( sArchMedidorUnx  , "%sT1MEASURES.unx", sPathSalida );
    sprintf( sArchMedidorAux  , "%sT1MEASURES.aux", sPathSalida );
-   sprintf( sArchMedidorDos  , "%sT1MEASURES.csv", sPathSalida );
+   sprintf( sArchMedidorDos  , "%senel_care_measures_counters_t1_%s.csv", sPathSalida, sFecha);
 
 	strcpy( sSoloArchivoMedidor, "T1MEASURES.unx");
 
 	sprintf( sArchConsumoUnx  , "%sT1CONSUMOS.unx", sPathSalida );
    sprintf( sArchConsumoAux  , "%sT1CONSUMOS.aux", sPathSalida );
-   sprintf( sArchConsumoDos  , "%sT1CONSUMOS.csv", sPathSalida );
+   sprintf( sArchConsumoDos  , "%senel_care_consumption_t1_%s.csv", sPathSalida, sFecha);
 
+   /*sprintf( sArchConsumoDos2  , "%sT1CONSUMOS2.csv", sPathSalida );*/
+   
 	strcpy( sSoloArchivoConsumo, "T1CONSUMOS.unx");
 
    switch(gsArchivoGenera){
@@ -251,7 +259,7 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
       		return 0;
       	}
 	
-         strcpy(sTitulos,"\"Suministro\";\"Fecha Evento\";\"Evento Medicion\";\"Tipo de Medida\";\"Numero Medidor\";\"Constante\";\"Consumo\";\"Lectura\";\"Lectura Terreno\";\"Clave Medicion\";\"Irregularidad de Lectura\";\"Caso de Atencion\";\"Factura\";\"External ID\";\"Fecha Proxima Lectura\"\n");
+         strcpy(sTitulos,"\"Suministro\";\"Fecha Evento\";\"Evento Medicion\";\"Tipo de Medida\";\"Numero Medidor\";\"Constante\";\"Consumo\";\"Lectura\";\"Lectura Terreno\";\"Clave Medicion\";\"Irregularidad de Lectura\";\"Caso de Atencion\";\"Factura\";\"External ID\";\"Fecha Proxima Lectura\";\"CreatedByClient\";\n");
          fprintf(pFileMedidorUnx, sTitulos);
          /* ---------------- */
       	pFileConsumoUnx=fopen( sArchConsumoUnx, "w" );
@@ -260,7 +268,7 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
       		return 0;
       	}
 	
-         strcpy(sTitulos,"\"Suministro\";\"Factura\";\"Tipo de consumo\";\"Consumo facturado\";\"Clave de consumo\";\"Tipo de medida\";\"External Id\";\"Fecha del evento\"\n");
+         strcpy(sTitulos,"\"Suministro\";\"Factura\";\"Tipo de consumo\";\"Consumo facturado\";\"Clave de consumo\";\"Tipo de medida\";\"External Id\";\"Fecha del evento\";\"NÃºmero Medidor\";\"Coseno Phi\";\n");
          fprintf(pFileConsumoUnx, sTitulos);
          break;
       case 1:
@@ -270,7 +278,7 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
       		return 0;
       	}
 	
-         strcpy(sTitulos,"\"Suministro\";\"Fecha Evento\";\"Evento Medicion\";\"Tipo de Medida\";\"Numero Medidor\";\"Constante\";\"Consumo\";\"Lectura\";\"Lectura Terreno\";\"Clave Medicion\";\"Irregularidad de Lectura\";\"Caso de Atencion\";\"Factura\";\"External ID\";\"Fecha Proxima Lectura\"\n");
+         strcpy(sTitulos,"\"Suministro\";\"Fecha Evento\";\"Evento Medicion\";\"Tipo de Medida\";\"Numero Medidor\";\"Constante\";\"Consumo\";\"Lectura\";\"Lectura Terreno\";\"Clave Medicion\";\"Irregularidad de Lectura\";\"Caso de Atencion\";\"Factura\";\"External ID\";\"Fecha Proxima Lectura\";\"CreatedByClient\";\n");
          fprintf(pFileMedidorUnx, sTitulos);
 
          break;      
@@ -281,21 +289,21 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
       		return 0;
       	}
 	
-         strcpy(sTitulos,"\"Suministro\";\"Factura\";\"Tipo de consumo\";\"Consumo facturado\";\"Clave de consumo\";\"Tipo de medida\";\"External Id\";\"Fecha del evento\"\n");
+         strcpy(sTitulos,"\"Suministro\";\"Factura\";\"Tipo de consumo\";\"Consumo facturado\";\"Clave de consumo\";\"Tipo de medida\";\"External Id\";\"Fecha del evento\";\"NÃºmero Medidor\";\"Coseno Phi\";\n");
          fprintf(pFileConsumoUnx, sTitulos);
          break;   
    }
    
-   
+/*   
 	pFileMedidorUnx=fopen( sArchMedidorUnx, "w" );
 	if( !pFileMedidorUnx ){
 		printf("ERROR al abrir archivo %s.\n", sArchMedidorUnx );
 		return 0;
 	}
 	
-   strcpy(sTitulos,"\"Suministro\";\"Fecha Evento\";\"Evento Medicion\";\"Tipo de Medida\";\"Numero Medidor\";\"Constante\";\"Consumo\";\"Lectura\";\"Lectura Terreno\";\"Clave Medicion\";\"Irregularidad de Lectura\";\"Caso de Atencion\";\"Factura\";\"External ID\";\"Fecha Proxima Lectura\"\n");
+   strcpy(sTitulos,"\"Suministro\";\"Fecha Evento\";\"Evento Medicion\";\"Tipo de Medida\";\"Numero Medidor\";\"Constante\";\"Consumo\";\"Lectura\";\"Lectura Terreno\";\"Clave Medicion\";\"Irregularidad de Lectura\";\"Caso de Atencion\";\"Factura\";\"External ID\";\"Fecha Proxima Lectura\";\"CreatedByClient\";\n");
    fprintf(pFileMedidorUnx, sTitulos);
-      
+*/      
 	return 1;	
 }
 
@@ -324,7 +332,7 @@ $char sClave[7];
 
    switch(gsArchivoGenera){
       case 0:
-         sprintf(sCommand, "unix2dos %s > %s", sArchMedidorUnx, sArchMedidorAux);
+         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchMedidorUnx, sArchMedidorAux);
       	iRcv=system(sCommand);
       
          sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchMedidorAux, sArchMedidorDos);
@@ -345,8 +353,9 @@ $char sClave[7];
       
          sprintf(sCommand, "rm %s", sArchMedidorDos);
          iRcv=system(sCommand);
+         
          /* ------------- */
-         sprintf(sCommand, "unix2dos %s > %s", sArchConsumoUnx, sArchConsumoAux);
+         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchConsumoUnx, sArchConsumoAux);
       	iRcv=system(sCommand);
       
          sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchConsumoAux, sArchConsumoDos);
@@ -355,7 +364,7 @@ $char sClave[7];
       	sprintf(sCommand, "chmod 777 %s", sArchConsumoDos);
       	iRcv=system(sCommand);
      
-      	
+/*      	
       	sprintf(sCommand, "cp %s %s", sArchConsumoDos, sPathCp);
       	iRcv=system(sCommand);
         
@@ -367,10 +376,10 @@ $char sClave[7];
       
          sprintf(sCommand, "rm %s", sArchConsumoDos);
          iRcv=system(sCommand);
-         
+*/         
          break;               
       case 1:
-         sprintf(sCommand, "unix2dos %s > %s", sArchMedidorUnx, sArchMedidorAux);
+         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchMedidorUnx, sArchMedidorAux);
       	iRcv=system(sCommand);
       
          sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchMedidorAux, sArchMedidorDos);
@@ -394,16 +403,17 @@ $char sClave[7];
 
          break;      
       case 2:
-         sprintf(sCommand, "unix2dos %s > %s", sArchConsumoUnx, sArchConsumoAux);
+         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchConsumoUnx, sArchConsumoAux);
+         /*sprintf(sCommand, "sed 's/$/\r/' < %s > %s", sArchConsumoUnx, sArchConsumoAux);*/
       	iRcv=system(sCommand);
       
          sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchConsumoAux, sArchConsumoDos);
          iRcv=system(sCommand);
-         
+
       	sprintf(sCommand, "chmod 777 %s", sArchConsumoDos);
       	iRcv=system(sCommand);
      
-      	
+/*      	
       	sprintf(sCommand, "cp %s %s", sArchConsumoDos, sPathCp);
       	iRcv=system(sCommand);
         
@@ -415,7 +425,7 @@ $char sClave[7];
       
          sprintf(sCommand, "rm %s", sArchConsumoDos);
          iRcv=system(sCommand);
-   
+*/   
          break;   
    }
 
@@ -441,18 +451,20 @@ $char sAux[1000];
 
 	/******** Cursor CLIENTES  ****************/	
 	strcpy(sql, "SELECT c.numero_cliente FROM cliente c ");
-	
-strcat(sql, ", migra_sf ma ");
+if(giTipoCorrida==1){	
+   strcat(sql, ", migra_sf ma ");
+}   
 	
 	strcat(sql, "WHERE c.estado_cliente = 0 ");
-	strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");
-	strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");
+   strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");
+	/*strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");*/
 	strcat(sql, "AND NOT EXISTS (SELECT 1 FROM clientes_ctrol_med cm ");
 	strcat(sql, "WHERE cm.numero_cliente = c.numero_cliente ");
 	strcat(sql, "AND cm.fecha_activacion < TODAY ");
 	strcat(sql, "AND (cm.fecha_desactiva IS NULL OR cm.fecha_desactiva > TODAY)) ");	
-
-strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}
 
 	$PREPARE selClientes FROM $sql;
 	
@@ -471,7 +483,8 @@ strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 	strcat(sql, "h2.indica_refact, ");
    strcat(sql, "TO_CHAR(h2.fecha_facturacion, '%Y-%m-%d'), ");
 	strcat(sql, "h.numero_medidor, ");
-	strcat(sql, "h.marca_medidor ");
+	strcat(sql, "h.marca_medidor, ");
+   strcat(sql, "h2.coseno_phi ");
 	strcat(sql, "FROM hislec h, hisfac h2 ");
 	strcat(sql, "WHERE h.numero_cliente = ? ");
 	strcat(sql, "AND h.fecha_lectura >= TODAY - 365 ");
@@ -622,7 +635,8 @@ $ClsLectura *regLec;
       :regLec->indica_refact,
       :regLec->fecha_facturacion,
       :regLec->numero_medidor,
-      :regLec->marca_medidor;
+      :regLec->marca_medidor,
+      :regLec->coseno_phi;
 	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
@@ -679,6 +693,7 @@ $ClsLectura	*regLec;
    memset(regLec->marca_medidor, '\0', sizeof(regLec->marca_medidor));
    memset(regLec->modelo_medidor, '\0', sizeof(regLec->modelo_medidor));
    memset(regLec->tipo_medidor, '\0', sizeof(regLec->tipo_medidor));
+   rsetnull(CDOUBLETYPE, (char *) &(regLec->coseno_phi));
 }
 
 void InicializaLectuReac(regLec)
@@ -735,7 +750,8 @@ FILE 				*fp;
 $ClsLectura		regLec;
 char           sTipo[2];
 {
-	char	sLinea[1000];	
+	char	sLinea[1000];
+   int   iRcv;	
 
 	memset(sLinea, '\0', sizeof(sLinea));
 	
@@ -759,7 +775,7 @@ char           sTipo[2];
    sprintf(sLinea, "%s\"%ld%s%s\";", sLinea, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
    
    /* Constante */
-   sprintf(sLinea, "%s\"%f\";", sLinea, regLec.constante);
+   sprintf(sLinea, "%s\"%.05lf\";", sLinea, regLec.constante);
    
    
    /* Consumo */
@@ -769,10 +785,14 @@ char           sTipo[2];
    sprintf(sLinea, "%s\"%.0f\";", sLinea, regLec.lectura_facturac);
 
    /* Lectura Terreno */
-   sprintf(sLinea, "%s\"%.0f\";", sLinea, regLec.lectura_terreno);
+   if(risnull(CDOUBLETYPE, (char *)&regLec.lectura_terreno)){
+      sprintf(sLinea, "%s\"%.0f\";", sLinea, regLec.lectura_facturac);   
+   }else{
+      sprintf(sLinea, "%s\"%.0f\";", sLinea, regLec.lectura_terreno);   
+   }
    
-   /* clave Medicion (vacio) */
-   strcat(sLinea, "\"\";");
+   /* clave Medicion */
+   strcat(sLinea, "\"NORMAL READING\";");
 
    /* Irregularidad lectura (vacio) */
    strcat(sLinea, "\"\";");
@@ -787,11 +807,20 @@ char           sTipo[2];
    sprintf(sLinea, "%s\"%ld%ldAR\";", sLinea, regLec.numero_cliente, regLec.corr_facturacion);
    
    /* Fecha Prox.Lectura (vacio) */
-   strcat(sLinea, "\"\"");
+   strcat(sLinea, "\"\";");
+   
+   /* CreatedByClient */
+   strcat(sLinea, "\"False\";");
 
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);	
+	fprintf(fp, sLinea);
+   iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar lecturas\n");
+      exit(1);
+   }
+   	
 
 	
 	return 1;
@@ -802,7 +831,8 @@ FILE 				*fp;
 $ClsLectura		regLec;
 char           sTipo[2];
 {
-	char	sLinea[1000];	
+	char	sLinea[1000];
+   int   iRcv;	
 
 	memset(sLinea, '\0', sizeof(sLinea));
 	
@@ -838,11 +868,22 @@ char           sTipo[2];
    /* Fecha Facturacion */
    sprintf(sLinea, "%s\"%s\"", sLinea, regLec.fecha_facturacion);
 
+   /* Nro.de Medidor + marca + modelo */
+   sprintf(sLinea, "%s\"%ld%s%s\"", sLinea, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
+   
+   /* Coseno Phi */
+   sprintf(sLinea, "%s\"%.02f\";", sLinea, regLec.coseno_phi);
 
 	strcat(sLinea, "\n");
 	
 	fprintf(fp, sLinea);	
 
+	iRcv=fprintf(fp, sLinea);
+
+   if(iRcv < 0){
+      printf("Error al escribir Consumos\n");
+      exit(1);
+   }	
 	
 	return 1;
 }

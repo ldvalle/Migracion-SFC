@@ -1,5 +1,5 @@
-$ifndef SFCDEVICE_H;
-$define SFCDEVICE_H;
+$ifndef SFCMOVIMIENTOS_H;
+$define SFCMOVIMIENTOS_H;
 
 #include "ustring.h"
 #include "macmath.h"
@@ -16,22 +16,23 @@ $include datetime.h;
 /* Estructuras ---*/
 
 $typedef struct{
-   long	numero;
-	char	marca[4];
-	char	modelo[3];
-   char  estado[4];	
-	char	med_ubic[4]; 
-	char	med_codubic[11];
-	long	numero_cliente;
-   char	tipo_medidor[2];
-   char  estado_sfc[2];
-   
-   char  fecha_prim_insta[11];
-   char  fecha_ult_insta[11];
-   float constante;
-   int   med_anio;
-   
-}ClsMedidor;
+   long  numero_cliente;
+   int   corr_pagos;
+   long  llave;
+   char  fecha_pago[25];
+   char  fecha_actualiza[25];
+   char  tipo_pago[3];
+   char  descripcion[31];
+   char  cajero[5]; 
+   char  oficina[5];
+   char  sucursal[5];
+   double   valor_pago;
+   char  centro_emisor[3];
+   char  tipo_docto[3];
+   long  nro_docto_asociado;
+   char  tipo_mov[2];
+   char  nombre_cajero[31];
+}ClsPago;
 
 
 /* Prototipos de Funciones */
@@ -42,14 +43,13 @@ void  CreaPrepare(void);
 void 	FechaGeneracionFormateada( char *);
 void 	RutaArchivos( char*, char * );
 
-short  LeoMedidores(ClsMedidor *);
-void   InicializaMedidor(ClsMedidor *);
-short CargaEstadoSFC(ClsMedidor *);
-short	GenerarPlano(FILE *, ClsMedidor);
+short LeoCliente( long *);
+short LeoPagos(ClsPago *);
+void  InicializaPago(ClsPago *);
+
+short	GenerarPlano(FILE *, ClsPago);
 
 char 	*strReplace(char *, char *, char *);
-char	*getEmplazaSAP(char*);
-char	*getEmplazaT23(char*);
 void	CerrarArchivos(void);
 void	FormateaArchivos(void);
 

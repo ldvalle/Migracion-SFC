@@ -1,17 +1,17 @@
 /*********************************************************************************
     Proyecto: Migracion al sistema SALES-FORCES
-    Aplicacion: sfc_convenios
+    Aplicacion: sfc_device
     
 	Fecha : 03/01/2018
 
 	Autor : Lucas Daniel Valle(LDV)
 
 	Funcion del programa : 
-		Extractor que genera el archivo plano para las estructura DEVICE (medidores)
+		Extractor que genera el archivo plano para las estructura MOVIMIENTOS (pagos)
 		
 	Descripcion de parametros :
 		<Base de Datos> : Base de Datos <synergia>
-		<Tipo Corrida>: 0 = Normal; 1 = Reducida
+      <Tipo Corrida> : 0=Normal, 1=Reducida
 		
 ********************************************************************************/
 #include <locale.h>
@@ -21,15 +21,16 @@
 #include <time.h>
 #include <synmail.h>
 
-$include "sfc_convenios.h";
+$include "sfc_movimientos.h";
 
 /* Variables Globales */
 int   giTipoCorrida;
+
 FILE	*pFileUnx;
 
-char	sArchivoUnx[100];
-char	sArchivoAux[100];
-char	sArchivoDos[100];
+char	sArchUnx[100];
+char	sArchAux[100];
+char	sArchDos[100];
 char	sSoloArchivo[100];
 
 char	sArchLog[100];
@@ -44,7 +45,7 @@ long 	cantPreexistente;
 long	iContaLog;
 
 /* Variables Globales Host */
-$ClsConve	regConve;
+$ClsPago	regPago;
 
 char	sMensMail[1024];	
 
@@ -58,6 +59,8 @@ FILE	*fp;
 int		iFlagMigra=0;
 int 	iFlagEmpla=0;
 $long lNroCliente;
+long     iFactu;
+
 
 	if(! AnalizarParametros(argc, argv)){
 		exit(0);
@@ -97,16 +100,17 @@ $long lNroCliente;
    $OPEN curClientes;
 
    while(LeoCliente(&lNroCliente)){
-   	$OPEN curConve USING :lNroCliente;
+   	$OPEN curPagos USING :lNroCliente;
    
-   	while(LeoConve(&regConve)){
-   		if (!GenerarPlano(fp, regConve)){
+   	while(LeoPagos(&regPago)){
+   		if (!GenerarPlano(fp, regPago)){
             printf("Fallo GenearPlano\n");
    			exit(1);	
    		}
+   		iFactu++;
    	}
    	
-   	$CLOSE curConve;
+   	$CLOSE curPagos;
       cantProcesada++;
    }
    			
@@ -135,7 +139,7 @@ $long lNroCliente;
 	}
 */
 	printf("==============================================\n");
-	printf("CONVENIOS\n");
+	printf("MOVIMIENTOS\n");
 	printf("==============================================\n");
 	printf("Proceso Concluido.\n");
 	printf("==============================================\n");
@@ -165,14 +169,14 @@ char	* argv[];
 	}
 	
    giTipoCorrida=atoi(argv[2]);
-	
+   
 	return 1;
 }
 
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Generación> G = Generación, R = Regeneración.\n");
+      printf("	<Tipo Corrida> 0=Normal, 1=reducida.\n");
 }
 
 short AbreArchivos()
@@ -182,65 +186,64 @@ short AbreArchivos()
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
-	memset(sArchivoUnx,'\0',sizeof(sArchivoUnx));
-	memset(sArchivoAux,'\0',sizeof(sArchivoAux));
-   memset(sArchivoDos,'\0',sizeof(sArchivoDos));
+	memset(sArchUnx,'\0',sizeof(sArchUnx));
+	memset(sArchAux,'\0',sizeof(sArchAux));
+   memset(sArchDos,'\0',sizeof(sArchDos));
 	memset(sSoloArchivo,'\0',sizeof(sSoloArchivo));
 	memset(sFecha,'\0',sizeof(sFecha));
 
 	memset(sPathSalida,'\0',sizeof(sPathSalida));
 
    FechaGeneracionFormateada(sFecha);
-   
 	RutaArchivos( sPathSalida, "SALESF" );
    
 	alltrim(sPathSalida,' ');
 
-	sprintf( sArchivoUnx  , "%sT1CONVENIOS.unx", sPathSalida );
-   sprintf( sArchivoAux  , "%sT1CONVENIOS.aux", sPathSalida );
-   sprintf( sArchivoDos  , "%senel_care_agreement_t1_%s.csv", sPathSalida, sFecha);
+	sprintf( sArchUnx  , "%sT1MOVIMIENTOS.unx", sPathSalida );
+   sprintf( sArchAux  , "%sT1MOVIMIENTOS.aux", sPathSalida );
+   sprintf( sArchDos  , "%senel_care_payment_t1_%s.csv", sPathSalida, sFecha );
 
-	strcpy( sSoloArchivo, "T1CONVENIOS.unx");
+	strcpy( sSoloArchivo, "T1MOVIMIENTOS.unx");
 
-	pFileUnx=fopen( sArchivoUnx, "w" );
+	pFileUnx=fopen( sArchUnx, "w" );
 	if( !pFileUnx ){
-		printf("ERROR al abrir archivo %s.\n", sArchivoUnx );
+		printf("ERROR al abrir archivo %s.\n", sArchUnx );
 		return 0;
 	}
-	
-   strcpy(sTitulos, "\"External Id\";");
-   strcat(sTitulos, "\"Tipo\";");
-   strcat(sTitulos, "\"Opción de Convenio\";");
-   strcat(sTitulos, "\"Estado\";");
-   strcat(sTitulos, "\"Fecha inicio\";");
-   strcat(sTitulos, "\"Fecha fin\";");
-   strcat(sTitulos, "\"Deuda inicial\";");
-   strcat(sTitulos, "\"Pie\";");
-   strcat(sTitulos, "\"Deuda pendiente\";");
-   strcat(sTitulos, "\"Valor cuota\";");
-   strcat(sTitulos, "\"Valor última cuota\";");
-   strcat(sTitulos, "\"Total de cuotas\";");
-   strcat(sTitulos, "\"Cuota actual\";");
-   strcat(sTitulos, "\"Tasa\";");
-   strcat(sTitulos, "\"Contacto\";");
-   strcat(sTitulos, "\"Usuario creador\";");
-   strcat(sTitulos, "\"Usuario término\";");
-   strcat(sTitulos, "\"Total intereses\";");
-   strcat(sTitulos, "\"Impuesto interés\";");
-   strcat(sTitulos, "\"Descripcion seguro indexado\";");
-   strcat(sTitulos, "\"Compañía de seguro\";");
-   strcat(sTitulos, "\"Fecha inicio de seguro\";");
-   strcat(sTitulos, "\"Fecha término del seguro\";");
-   strcat(sTitulos, "\"Valor prima del seguro\";");
-   strcat(sTitulos, "\"Número de cuotas\";");
-   strcat(sTitulos, "\"Estado seguro\";");
-   strcat(sTitulos, "\"Fecha de baja\";");
-   strcat(sTitulos, "\"Motivo de baja\";");
+
+   strcpy(sTitulos,"\"Cuenta\";");
    strcat(sTitulos, "\"Suministro\";");
-   strcat(sTitulos, "\"Cuenta\";");
-   strcat(sTitulos, "\"Company\"");
+   strcat(sTitulos, "\"Tipo de movimiento\";");
+   strcat(sTitulos, "\"Número documento\";");
+   strcat(sTitulos, "\"Fecha de movimiento\";");
+   strcat(sTitulos, "\"Fecha de vencimiento\";");
+   strcat(sTitulos, "\"Monto de evento\";");
+   strcat(sTitulos, "\"Deuda\";");
+   strcat(sTitulos, "\"Tipo de documento\";");
+   strcat(sTitulos, "\"Numero interno documento\";");
+   strcat(sTitulos, "\"Sentido\";");
+   strcat(sTitulos, "\"External Id\";");
+   strcat(sTitulos, "\"Factura\";");
+   strcat(sTitulos, "\"Monto energía\";");
+   strcat(sTitulos, "\"Monto convenio energía\";");
+   strcat(sTitulos, "\"Monto productos y servicios\";");
+   strcat(sTitulos, "\"Saldo actual\";");
+   strcat(sTitulos, "\"Fecha ingreso de pago\";");
+   strcat(sTitulos, "\"Fecha ingreso sistema\";");
+   strcat(sTitulos, "\"Fecha amortización de pago\";");
+   strcat(sTitulos, "\"Monto\";");
+   strcat(sTitulos, "\"Medio de pago\";");
+   strcat(sTitulos, "\"Lugar de pago\";");
+   strcat(sTitulos, "\"Cajero\";");
+   strcat(sTitulos, "\"Oficina\";");
+   strcat(sTitulos, "\"Intereses\";");
+   strcat(sTitulos, "\"Moneda\";");
+   strcat(sTitulos, "\"Compañía\";");
+   strcat(sTitulos, "\"Impuestos\";");
+   strcat(sTitulos, "\"Cuota Convenio\";");
+
    strcat(sTitulos, "\n");
-   
+      
    fprintf(pFileUnx, sTitulos);
       
 	return 1;	
@@ -269,34 +272,28 @@ $char sClave[7];
      exit(1);
    }
 
-   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchivoUnx, sArchivoAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchUnx, sArchAux);
 	iRcv=system(sCommand);
 
-   sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchivoAux, sArchivoDos);
+   sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchAux, sArchDos);
    iRcv=system(sCommand);
    
-/*
-   sprintf(sCommand, "unix2dos %s | tr -d '\26' > %s", sArchivoUnx, sArchivoDos);
+	sprintf(sCommand, "chmod 777 %s", sArchDos);
 	iRcv=system(sCommand);
-   
-	sprintf(sCommand, "chmod 777 %s", sArchivoDos);
+
+	
+	sprintf(sCommand, "cp %s %s", sArchDos, sPathCp);
 	iRcv=system(sCommand);
-*/	
-	sprintf(sCommand, "cp %s %s", sArchivoDos, sPathCp);
-	iRcv=system(sCommand);
-   
   
-   
-/*  
-   sprintf(sCommand, "rm %s", sArchivoUnx);
+   sprintf(sCommand, "rm %s", sArchUnx);
    iRcv=system(sCommand);
 
-   sprintf(sCommand, "rm %s", sArchivoAux);
+   sprintf(sCommand, "rm %s", sArchAux);
    iRcv=system(sCommand);
 
-   sprintf(sCommand, "rm %s", sArchivoDos);
+   sprintf(sCommand, "rm %s", sArchDos);
    iRcv=system(sCommand);
-*/	
+	
 }
 
 void CreaPrepare(void){
@@ -318,7 +315,7 @@ $char sAux[1000];
 
 	/******** Cursor CLIENTES  ****************/	
 	strcpy(sql, "SELECT c.numero_cliente FROM cliente c ");
-if(giTipoCorrida==1){	
+if(giTipoCorrida==1){
    strcat(sql, ", migra_sf ma ");
 }   
 	
@@ -338,31 +335,39 @@ if(giTipoCorrida==1){
 	
 	$DECLARE curClientes CURSOR WITH HOLD FOR selClientes;
 
-   /******** Cursor CONVE  ****************/
-	strcpy(sql, "SELECT numero_cliente, ");
-	strcat(sql, "corr_convenio, ");
-	strcat(sql, "opcion_convenio, ");
-	strcat(sql, "estado, ");
-	strcat(sql, "TO_CHAR(fecha_creacion, '%Y-%m-%d'), ");
-	strcat(sql, "TO_CHAR(fecha_termino, '%Y-%m-%d'), ");
-	strcat(sql, "deuda_origen, ");
-	strcat(sql, "valor_cuota_ini, ");
-	strcat(sql, "deuda_convenida, ");
-	strcat(sql, "valor_cuota, ");
-	strcat(sql, "numero_tot_cuotas, ");
-	strcat(sql, "numero_ult_cuota, ");
-	strcat(sql, "intereses, ");
-	strcat(sql, "usuario_creacion, "); 
-	strcat(sql, "usuario_termino ");
-	strcat(sql, "FROM conve ");
-	strcat(sql, "WHERE numero_cliente = ? ");
-   strcat(sql, "AND estado = 'V' ");
-	strcat(sql, "ORDER BY corr_convenio ASC ");   
+   /******** Cursor PAGOS  ****************/
+	strcpy(sql, "SELECT h.numero_cliente, ");
+	strcat(sql, "h.corr_pagos, ");
+	strcat(sql, "h.llave, ");
+	strcat(sql, "TO_CHAR(h.fecha_pago, '%Y-%m-%dT%H:%M:%S.000Z'), ");
+	strcat(sql, "TO_CHAR(h.fecha_actualiza, '%Y-%m-%dT%H:%M:%S.000Z'), ");
+	strcat(sql, "h.tipo_pago, ");
+	strcat(sql, "c1.descripcion, ");
+	strcat(sql, "h.cajero, "); 
+	strcat(sql, "h.oficina, ");
+	strcat(sql, "h.sucursal, ");
+	strcat(sql, "h.valor_pago, ");
+	strcat(sql, "h.centro_emisor, ");
+	strcat(sql, "h.tipo_docto, ");
+	strcat(sql, "h.nro_docto_asociado, ");
+	strcat(sql, "c1.tipo_mov ");
+	strcat(sql, "FROM hispa h, conce c1 ");
+	strcat(sql, "WHERE h.numero_cliente = ? "); 
+	strcat(sql, "AND h.fecha_pago >= TODAY - 420 ");
+	strcat(sql, "AND c1.codigo_concepto = h.tipo_pago ");
+	strcat(sql, "ORDER BY h.corr_pagos ASC ");   
    
-	$PREPARE selConve FROM $sql;
+	$PREPARE selPagos FROM $sql;
 	
-	$DECLARE curConve CURSOR WITH HOLD FOR selConve;
+	$DECLARE curPagos CURSOR WITH HOLD FOR selPagos;
 
+	/******** Select Cajero ****************/
+	strcpy(sql, "SELECT FIRST 1 nombre FROM ccb@pagos_test:cajer ");
+	strcat(sql, "WHERE sucursal = ? ");
+	strcat(sql, "AND cajero = ? ");
+
+   $PREPARE selCajero FROM $sql;
+   
 	/******** Select Path de Archivos ****************/
 	strcpy(sql, "SELECT valor_alf ");
 	strcat(sql, "FROM tabla ");
@@ -435,144 +440,175 @@ $long *lNroCliente;
 }
 
 
-short LeoConve(reg)
-$ClsConve *reg;
+short LeoPagos(reg)
+$ClsPago *reg;
 {
-	InicializaConve(reg);
+$long lCorrRefactu;
+$int  iCantidad;
+$char sFechaFactuMax[20];
 
-	$FETCH curConve INTO
+	InicializaPago(reg);
+
+	$FETCH curPagos INTO
       :reg->numero_cliente,
-      :reg->corr_convenio,
-      :reg->opcion_convenio,
-      :reg->estado,
-      :reg->fecha_creacion,
-      :reg->fecha_termino,
-      :reg->deuda_origen,
-      :reg->valor_cuota_ini,
-      :reg->deuda_convenida,
-      :reg->valor_cuota,
-      :reg->numero_tot_cuotas,
-      :reg->numero_ult_cuota,
-      :reg->intereses,
-      :reg->usuario_creacion, 
-      :reg->usuario_termino;
+      :reg->corr_pagos,
+      :reg->llave,
+      :reg->fecha_pago,
+      :reg->fecha_actualiza,
+      :reg->tipo_pago,
+      :reg->descripcion,
+      :reg->cajero, 
+      :reg->oficina,
+      :reg->sucursal,
+      :reg->valor_pago,
+      :reg->centro_emisor,
+      :reg->tipo_docto,
+      :reg->nro_docto_asociado,
+      :reg->tipo_mov;
 	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
 			return 0;
 		}else{
-			printf("Error al leer Cursor de Lecturas !!!\nProceso Abortado.\n");
+			printf("Error al leer Cursor de Pagos !!!\nProceso Abortado.\n");
 			exit(1);	
 		}
     }			
    
-   alltrim(reg->usuario_creacion, ' ');
-   alltrim(reg->usuario_termino, ' ');
-   alltrim(reg->fecha_termino, ' ');
-            
+   $EXECUTE selCajero INTO :reg->nombre_cajero
+         USING :reg->sucursal,
+               :reg->cajero;
+
+   if ( SQLCODE != 0 ){
+      printf("Error leyendo nombre Cajero para sucursal %s cajero %s", reg->sucursal, reg->cajero);
+      strcpy(reg->nombre_cajero, reg->cajero);
+   }         
+
+   alltrim(reg->descripcion, ' ');
+   alltrim(reg->nombre_cajero, ' ');
+   
 	return 1;	
 }
 
-void InicializaConve(reg)
-$ClsConve	*reg;
+void InicializaPago(reg)
+$ClsPago	*reg;
 {
 
    rsetnull(CLONGTYPE, (char *) &(reg->numero_cliente));
-   rsetnull(CINTTYPE, (char *) &(reg->corr_convenio));
-   memset(reg->opcion_convenio, '\0', sizeof(reg->opcion_convenio));
-   memset(reg->estado, '\0', sizeof(reg->estado));
-   memset(reg->fecha_creacion, '\0', sizeof(reg->fecha_creacion));
-   memset(reg->fecha_termino, '\0', sizeof(reg->fecha_termino));
-   rsetnull(CDOUBLETYPE, (char *) &(reg->deuda_origen));
-   rsetnull(CDOUBLETYPE, (char *) &(reg->valor_cuota_ini));
-   rsetnull(CDOUBLETYPE, (char *) &(reg->deuda_convenida));
-   rsetnull(CDOUBLETYPE, (char *) &(reg->valor_cuota));
-   rsetnull(CINTTYPE, (char *) &(reg->numero_tot_cuotas));
-   rsetnull(CINTTYPE, (char *) &(reg->numero_ult_cuota));
-   rsetnull(CFLOATTYPE, (char *) &(reg->intereses));
-   memset(reg->usuario_creacion, '\0', sizeof(reg->usuario_creacion)); 
-   memset(reg->usuario_termino, '\0', sizeof(reg->usuario_termino));
+   rsetnull(CINTTYPE, (char *) &(reg->corr_pagos));
+   rsetnull(CLONGTYPE, (char *) &(reg->llave));
+   
+   memset(reg->fecha_pago, '\0', sizeof(reg->fecha_pago));
+   memset(reg->fecha_actualiza, '\0', sizeof(reg->fecha_actualiza));
+   memset(reg->tipo_pago, '\0', sizeof(reg->tipo_pago));
+   memset(reg->descripcion, '\0', sizeof(reg->descripcion));
+   memset(reg->cajero, '\0', sizeof(reg->cajero));
+   memset(reg->oficina, '\0', sizeof(reg->oficina));
+   memset(reg->sucursal, '\0', sizeof(reg->sucursal));
+
+   rsetnull(CDOUBLETYPE, (char *) &(reg->valor_pago));
+   
+   memset(reg->centro_emisor, '\0', sizeof(reg->centro_emisor));
+   memset(reg->tipo_docto, '\0', sizeof(reg->tipo_docto));
+
+   rsetnull(CLONGTYPE, (char *) &(reg->nro_docto_asociado));
+   
+   memset(reg->tipo_mov, '\0', sizeof(reg->tipo_mov));
+   memset(reg->nombre_cajero, '\0', sizeof(reg->nombre_cajero));
 
 }
+
 
 
 short GenerarPlano(fp, reg)
 FILE 				*fp;
-$ClsConve		reg;
+$ClsPago		reg;
 {
 	char	sLinea[1000];	
 
 	memset(sLinea, '\0', sizeof(sLinea));
 
-   /* External Id */
-   sprintf(sLinea, "\"%ld%dAR\";", reg.numero_cliente, reg.corr_convenio );
-   /* Tipo */
-   strcat(sLinea, "\"\";");
-   /* Opción de Convenio */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.opcion_convenio);
-   /* Estado */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.estado);
-   /* Fecha inicio */
-   /*sprintf(sLinea, "%s\"%sT00:00:00.000-03:00\";", sLinea, reg.fecha_creacion);*/
-   sprintf(sLinea, "%s\"%sT00:00:00.000Z\";", sLinea, reg.fecha_creacion);
-   /* Fecha fin */
-   if(strcmp(reg.fecha_termino, "")!= 0 ){
-      /*sprintf(sLinea, "%s\"%sT00:00:00.000-03:00\";", sLinea, reg.fecha_termino);*/
-      sprintf(sLinea, "%s\"%sT00:00:00.000Z\";", sLinea, reg.fecha_termino);
-   }else{
-      strcat(sLinea, "\"\";");
-   }
-   /* Deuda inicial */
-   /*sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.deuda_origen);*/
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.deuda_origen);
-   /* Pie */
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.valor_cuota_ini);
-   /* Deuda pendiente */
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.deuda_convenida);   
-   /* Valor cuota */
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.valor_cuota);
-   /* Valor última cuota */
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.valor_cuota);
-   /* Total de cuotas */
-   sprintf(sLinea, "%s\"%d\";", sLinea, reg.numero_tot_cuotas);
-   /* Cuota actual */
-   sprintf(sLinea, "%s\"%d\";", sLinea, reg.numero_ult_cuota);
-   /* Tasa */
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.intereses);
-   /* Contacto */
-   sprintf(sLinea, "%s\"%ld\";",sLinea, reg.numero_cliente);
-   /* Usuario creador */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.usuario_creacion);
-   /* Usuario término */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.usuario_termino);
-   /* Total intereses */
-   strcat(sLinea, "\"\";");
-   /* Impuesto interés */
-   strcat(sLinea, "\"\";");
-   /* Descripcion seguro indexado */
-   strcat(sLinea, "\"\";");
-   /* Compañía de seguro */
-   strcat(sLinea, "\"\";");
-   /* Fecha inicio de seguro */
-   strcat(sLinea, "\"\";");
-   /* Fecha término del seguro */
-   strcat(sLinea, "\"\";");
-   /* Valor prima del seguro */
-   strcat(sLinea, "\"\";");
-   /* Número de cuotas */
-   sprintf(sLinea, "%s\"%d\";", sLinea, reg.numero_tot_cuotas);
-   /* Estado seguro */
-   strcat(sLinea, "\"\";");
-   /* Fecha de baja */
-   strcat(sLinea, "\"\";");
-   /* Motivo de baja */
-   strcat(sLinea, "\"\";");
-   /* Suministro */
-   sprintf(sLinea, "%s\"%ldAR\";",sLinea, reg.numero_cliente);
    /* Cuenta */
-	sprintf(sLinea, "%s\"%ld\";",sLinea, reg.numero_cliente);
-   /* Company */
+   sprintf(sLinea, "\"%ld\";", reg.numero_cliente);
+      
+   /* Suministro */
+   sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
+   
+   /* Tipo de movimiento */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.tipo_mov);
+   
+   /* Número documento */
+   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.llave);
+   
+   /* Fecha de movimiento */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_pago);
+   
+   /* Fecha de vencimiento */
+   strcat(sLinea, "\"\";");
+   
+   /* Monto de evento */
+   strcat(sLinea, "\"\";");
+   
+   /* Deuda */
+   strcat(sLinea, "\"\";");
+   
+      /* Tipo de documento */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.tipo_pago);
+   
+   /* Numero interno documento */
+   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.llave);
+   
+   /* Sentido */
+   strcat(sLinea, "\"C\";");
+   
+   /* External Id */
+   sprintf(sLinea, "%s\"%ld-%ld\";", sLinea, reg.numero_cliente, reg.corr_pagos);
+   
+   /* Factura */
+   sprintf(sLinea, "%s\"%s%s%ldAR\";", sLinea, reg.centro_emisor, reg.tipo_docto, reg.nro_docto_asociado);
+   
+   /* Monto energía */
+   strcat(sLinea, "\"\";");
+   /* Monto convenio energía */
+   strcat(sLinea, "\"\";");
+   /* Monto productos y servicios */
+   strcat(sLinea, "\"\";");
+   /* Saldo actual */
+   strcat(sLinea, "\"\";");
+   
+   /* Fecha ingreso de pago */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_pago);
+   
+   /* Fecha ingreso sistema */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_actualiza);
+   
+   /* Fecha amortización de pago */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_actualiza);
+   
+   /* Monto */
+   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.valor_pago);
+   
+   /* Medio de pago */
+   strcat(sLinea, "\"\";");
+   /* Lugar de pago */
+   strcat(sLinea, "\"\";");
+   
+   /* Cajero */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.nombre_cajero);
+   
+   /* Oficina */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.oficina);
+
+   /* Intereses */
+   strcat(sLinea, "\"\";");
+   /* Moneda */
+   strcat(sLinea, "\"ARS\";");
+   /* Compañía */
    strcat(sLinea, "\"9\";");
+   /* Impuestos */
+   strcat(sLinea, "\"\";");
+   /* Cuota Convenio */
+   strcat(sLinea, "\"\";");
 
 	strcat(sLinea, "\n");
 	

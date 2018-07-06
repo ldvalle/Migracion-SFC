@@ -11,8 +11,7 @@
 		
 	Descripcion de parametros :
 		<Base de Datos> : Base de Datos <synergia>
-		
-		<Tipo Generacion>: G = Generacion; R = Regeneracion
+		<Tipo Corrida>: 0=Normal, 1=Reducida
 		
 ********************************************************************************/
 #include <locale.h>
@@ -25,7 +24,7 @@
 $include "sfc_field_operation.h";
 
 /* Variables Globales */
-$char	gsTipoGenera[2];
+int   giTipoCorrida;
 
 FILE	*pFileMedidorUnx;
 
@@ -66,7 +65,7 @@ $long lNroCliente;
 		exit(0);
 	}
 	
-   setlocale(LC_ALL, "es_ES.UTF-8");
+   setlocale(LC_ALL, "en_US.UTF-8");
    
 	hora = time(&hora);
 	
@@ -188,9 +187,7 @@ char	* argv[];
 		return 0;
 	}
 	
-	memset(gsTipoGenera, '\0', sizeof(gsTipoGenera));
-
-	strcpy(gsTipoGenera, argv[2]);
+   giTipoCorrida=atoi(argv[2]);
 	
 	return 1;
 }
@@ -198,12 +195,13 @@ char	* argv[];
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Generación> G = Generación, R = Regeneración.\n");
+		printf("	<Tipo Corrida> 0=Normal, 1=Reducida.\n");
 }
 
 short AbreArchivos()
 {
    char  sTitulos[10000];
+   $char sFecha[9];
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
@@ -211,19 +209,18 @@ short AbreArchivos()
 	memset(sArchMedidorAux,'\0',sizeof(sArchMedidorAux));
    memset(sArchMedidorDos,'\0',sizeof(sArchMedidorDos));
 	memset(sSoloArchivoMedidor,'\0',sizeof(sSoloArchivoMedidor));
-	
+	memset(sFecha,'\0',sizeof(sFecha));
 
 	memset(sPathSalida,'\0',sizeof(sPathSalida));
 
+   FechaGeneracionFormateada(sFecha);
 	RutaArchivos( sPathSalida, "SALESF" );
-   
-strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
    
 	alltrim(sPathSalida,' ');
 
 	sprintf( sArchMedidorUnx  , "%sT1FIELD_OPERATION.unx", sPathSalida );
    sprintf( sArchMedidorAux  , "%sT1FIELD_OPERATION.aux", sPathSalida );
-   sprintf( sArchMedidorDos  , "%sT1FIELD_OPERATION.csv", sPathSalida );
+   sprintf( sArchMedidorDos  , "%senel_care_fieloperation_t1_%s.csv", sPathSalida, sFecha );
 
 	strcpy( sSoloArchivoMedidor, "T1FIELD_OPERATION.unx");
 
@@ -278,7 +275,7 @@ $char sClave[7];
      exit(1);
    }
 
-   sprintf(sCommand, "unix2dos %s > %s", sArchMedidorUnx, sArchMedidorAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchMedidorUnx, sArchMedidorAux);
 	iRcv=system(sCommand);
 
    sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchMedidorAux, sArchMedidorDos);
@@ -321,18 +318,21 @@ $char sAux[1000];
 
 	/******** Cursor CLIENTES  ****************/	
 	strcpy(sql, "SELECT c.numero_cliente FROM cliente c ");
-	
-strcat(sql, ", migra_sf ma ");
+if(giTipoCorrida==1){	
+   strcat(sql, ", migra_sf ma ");
+}   
 	
 	strcat(sql, "WHERE c.estado_cliente = 0 ");
-	strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");
-	strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");
+	strcat(sql, "AND c.tipo_sum != 5 ");
+   /*strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");*/
+	/*strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");*/
 	strcat(sql, "AND NOT EXISTS (SELECT 1 FROM clientes_ctrol_med cm ");
 	strcat(sql, "WHERE cm.numero_cliente = c.numero_cliente ");
 	strcat(sql, "AND cm.fecha_activacion < TODAY ");
 	strcat(sql, "AND (cm.fecha_desactiva IS NULL OR cm.fecha_desactiva > TODAY)) ");	
-
-strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}   
 
 	$PREPARE selClientes FROM $sql;
 	
@@ -352,10 +352,18 @@ strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 	strcat(sql, "TO_CHAR(c.fecha_ini_evento, '%Y-%m-%dT%H:%M:00.000Z'), ");
 	strcat(sql, "TO_CHAR(c.fecha_sol_repo, '%Y-%m-%dT%H:%M:00.000Z'), ");
 	strcat(sql, "c.sit_encon, ");
-	strcat(sql, "c.sit_rehab ");
-	strcat(sql, "FROM correp c ");
+	strcat(sql, "c.sit_rehab, ");
+   strcat(sql, "t1.descripcion ");
+	strcat(sql, "FROM correp c, tabla t1 ");
 	strcat(sql, "WHERE c.numero_cliente = ? ");
 	strcat(sql, "AND c.fecha_corte >= TODAY-365 ");
+
+	strcat(sql, "AND t1.nomtabla = 'CORMOT' ");
+	strcat(sql, "AND t1.sucursal = '0000' ");
+	strcat(sql, "AND t1.codigo = c.motivo_corte ");
+	strcat(sql, "AND t1.fecha_activacion <= TODAY ");
+	strcat(sql, "AND (t1.fecha_desactivac IS NULL OR t1.fecha_desactivac > TODAY) ");   
+   
 	strcat(sql, "ORDER BY 2 ASC ");   
    
 	$PREPARE selCortes FROM $sql;
@@ -473,7 +481,8 @@ $ClsCorte *reg;
       :reg->fecha_ini_evento,
       :reg->fecha_sol_repo,
       :reg->sit_encon,
-      :reg->sit_rehab;
+      :reg->sit_rehab,
+      :reg->desc_motivo_corte;
 	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
@@ -490,6 +499,7 @@ $ClsCorte *reg;
    alltrim(reg->fecha_sol_repo, ' ');
    alltrim(reg->funcionario_corte, ' ');
    alltrim(reg->funcionario_repo, ' ');
+   alltrim(reg->desc_motivo_corte, ' ');
                
 	return 1;	
 }
@@ -512,6 +522,7 @@ $ClsCorte	*reg;
    memset(reg->fecha_sol_repo, '\0', sizeof(reg->fecha_sol_repo));
    memset(reg->sit_encon, '\0', sizeof(reg->sit_encon));
    memset(reg->sit_rehab, '\0', sizeof(reg->sit_rehab));
+   memset(reg->desc_motivo_corte, '\0', sizeof(reg->desc_motivo_corte));
 
 }
 
@@ -569,13 +580,13 @@ char           sTipo[2];
    switch(sTipo[0]){
       case 'C':
          /* Tipo de registro */
-         strcpy(sLinea, "\"Cutoff\";");
+         strcpy(sLinea, "\"CUTOFF\";");
          /* Fecha actual */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.fecha_corte);
          /* Monto */
          sprintf(sLinea, "%s\"%.02f\";", sLinea, regCor.saldo_exigible);
          /* Description */
-         sprintf(sLinea, "%s\"%s\";", sLinea, regCor.motivo_corte);
+         sprintf(sLinea, "%s\"%s\";", sLinea, regCor.desc_motivo_corte);
          /* Acción realizada */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.accion_corte);
          /* Rol ejecutor */
@@ -603,7 +614,7 @@ char           sTipo[2];
          break;
       case 'R':
          /* Tipo de registro */
-         strcpy(sLinea, "\"Reinstatement\";");
+         strcpy(sLinea, "\"REINSTATEMEN\";");
          /* Fecha actual */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.fecha_reposicion);
          /* Monto */
@@ -636,7 +647,7 @@ char           sTipo[2];
          break;
       case 'E':
          /* Tipo de registro */
-         strcpy(sLinea, "\"Extension\";");
+         strcpy(sLinea, "\"EXTENSION\";");
          /* Fecha actual */
          sprintf(sLinea, "%s\"%s\";", sLinea, regEx.fecha_solicitud);
          /* Monto (vacio) */

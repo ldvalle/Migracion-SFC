@@ -12,7 +12,7 @@
 		
 	Descripcion de parametros :
 		<Base de Datos> : Base de Datos <synergia>
-		<Tipo Generacion>: G = Generacion; R = Regeneracion
+		<Tipo Corrida> : 0=Normal; 1= Reducida
       <Archivos Genera>: 1= Contrato; 2=Linea Contrato; 3=Billing Profile; 0=Todos
 		
 ********************************************************************************/
@@ -28,6 +28,7 @@ $include "sfc_contrato.h";
 /* Variables Globales */
 $char	gsTipoGenera[2];
 int   gsArchivoGenera;
+int   giTipoCorrida;
 
 FILE	*pFileContrato;
 FILE	*pFileLinea;
@@ -79,14 +80,14 @@ int 	iFlagEmpla=0;
 		exit(0);
 	}
 	
-   setlocale(LC_ALL, "es_ES.UTF-8");
+   setlocale(LC_ALL, "en_US.UTF-8");
    
 	hora = time(&hora);
 	
 	printf("\nHora antes de comenzar proceso : %s\n", ctime(&hora));
 	
 	strcpy(nombreBase, argv[1]);
-   gsArchivoGenera=atoi(argv[3]);
+   
 	
 	$DATABASE :nombreBase;	
 	
@@ -117,6 +118,10 @@ int 	iFlagEmpla=0;
 
    while(LeoCliente(&regCliente)){
       
+      if(!PadreEnT23(&regCliente)){
+         memset(regCliente.papa_t23, '\0', sizeof(regCliente.papa_t23));
+      }
+      
       /* CargaAlta1(&regCliente);*/
       if(!CargaAlta2(&regCliente)){
          printf("Falló carga alta de cliente %ld\n", regCliente.numero_cliente);
@@ -125,6 +130,8 @@ int 	iFlagEmpla=0;
       if(regCliente.tipo_fpago[0]=='D'){
          CargaFormaPago(&regCliente);      
       }
+      
+      CargaTasa(&regCliente);
       
       switch(gsArchivoGenera){
          case 1:
@@ -199,24 +206,24 @@ char	* argv[];
 		MensajeParametros();
 		return 0;
 	}
-	
-	memset(gsTipoGenera, '\0', sizeof(gsTipoGenera));
-
-	strcpy(gsTipoGenera, argv[2]);
-	
+   
+   giTipoCorrida=atoi(argv[2]);
+	gsArchivoGenera=atoi(argv[3]);
+   
 	return 1;
 }
 
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Generación> G = Generación, R = Regeneración.\n");
+		printf("	<Tipo Corrida> 0=Normal, 1=Reducida.\n");
       printf("	<Archivos> 0=Todos; 1=Contrato; 2=Linea; 3= Billing.\n");
 }
 
 short AbreArchivos()
 {
    char  sTitulos[10000];
+   $char sFecha[9];
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
@@ -234,28 +241,30 @@ short AbreArchivos()
 	memset(sArchBillingAux,'\0',sizeof(sArchBillingAux));
    memset(sArchBillingDos,'\0',sizeof(sArchBillingDos));
 	memset(sSoloBilling,'\0',sizeof(sSoloBilling));
+   memset(sFecha,'\0',sizeof(sFecha));
 
 	memset(sPathSalida,'\0',sizeof(sPathSalida));
 
-	RutaArchivos( sPathSalida, "SALESF" );
+
+   FechaGeneracionFormateada(sFecha);
    
-strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
+	RutaArchivos( sPathSalida, "SALESF" );
    
 	alltrim(sPathSalida,' ');
 
 	sprintf( sArchContratoUnx  , "%sT1CONTRATO.unx", sPathSalida );
    sprintf( sArchContratoAux  , "%sT1CONTRATO.aux", sPathSalida );
-   sprintf( sArchContratoDos  , "%sT1CONTRATO.csv", sPathSalida );
+   sprintf( sArchContratoDos  , "%senel_care_contract_t1_%s.csv", sPathSalida, sFecha );
 	strcpy( sSoloContrato, "T1CONTRATO.unx");
 
 	sprintf( sArchLineaUnx  , "%sT1LINEA.unx", sPathSalida );
    sprintf( sArchLineaAux  , "%sT1LINEA.aux", sPathSalida );
-   sprintf( sArchLineaDos  , "%sT1LINEA.csv", sPathSalida );
+   sprintf( sArchLineaDos  , "%senel_care_contract_line_t1_%s.csv", sPathSalida, sFecha );
 	strcpy( sSoloLinea, "T1LINEA.unx");
 
 	sprintf( sArchBillingUnx  , "%sT1BILLING_PROFILE.unx", sPathSalida );
    sprintf( sArchBillingAux  , "%sT1BILLING_PROFILE.aux", sPathSalida );
-   sprintf( sArchBillingDos  , "%sT1BILLING_PROFILE.csv", sPathSalida );
+   sprintf( sArchBillingDos  , "%senel_care_billingprofile_t1_%s.csv", sPathSalida, sFecha);
 	strcpy( sSoloBilling, "T1BILLING_PROFILE.unx");
 
    switch(gsArchivoGenera){
@@ -266,7 +275,10 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
       		return 0;
       	}
 
-         strcpy(sTitulos,"\"Divisa del contrato\";\"Duración del contrato (meses)\";\"Estado\";\"Fecha de activación\";\"Fecha de inicio del contrato\";\"Fecha final del contrato\";\"Nombre de la cuenta\";\"Nombre del contrato\";\"Tipo de contrato\";\"Compañía\";\"External Id\";\"Contacto\";\"Id.Suministro\"\n");
+         strcpy(sTitulos,"\"Divisa del contrato\";\"Duración del contrato (meses)\";\"Estado\";\"Fecha de activación\";\"Fecha de inicio del contrato\";\"Fecha final del contrato\";\"Nombre de la cuenta\";\"Nombre del contrato\";\"Tipo de contrato\";\"Compañía\";\"External Id\";\"Contacto\";\"Suministro\";");
+         strcat(sTitulos, "\"Actividad Económica\";\"Garantía\";\"Garante\";\"Fin de Garantía\";\"Comienzo de Garantía\";\"Conexión Transitoria\";\"Tipo de Titular\";\"Motivo de Garantía\";\"Tipo de Garantía\";\"Amount To Pay\";\"Connection Charge\";\"Construction Product\";\"Deactivation Date\";\"Payment Terms\";\"Cuenta Contrato\";");
+         strcat(sTitulos, "\"Tasa AP\";\"Número de Partida\";\"Cliente Peaje\";\n");
+         
          fprintf(pFileContrato, sTitulos);
          
          break;      
@@ -277,7 +289,7 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
       		return 0;
       	}
          
-         strcpy(sTitulos,"\"Divisa\";\"Activo\";\"Perfil de Facturación\";\"Contrato\";\"Cantidad\";\"Estado\";\"External ID\"\n");
+         strcpy(sTitulos,"\"Divisa\";\"Activo\";\"Perfil de Facturación\";\"Contrato\";\"Cantidad\";\"Estado\";\"External ID\";\"CuentaContrato\";\"Perfil de Facturacion agrupador\";\n");
          fprintf(pFileLinea, sTitulos);
          
          break;      
@@ -288,7 +300,8 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
       		return 0;
       	}
          
-         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Banco\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\"\n");
+         /*strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Banco\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Tipo de Cuenta\";\"Titular de Tarjeta\";\"Tipo de Reparto\";\"Dirección Postal\";\n");*/
+         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Dirección Postal\";\"Tipo de Reparto\";\"Fecha Factura Digital\";\n");
          fprintf(pFileBilling, sTitulos);
          
          break;      
@@ -311,13 +324,16 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
       		return 0;
       	}
 
-         strcpy(sTitulos,"\"Divisa del contrato\";\"Duración del contrato (meses)\";\"Estado\";\"Fecha de activación\";\"Fecha de inicio del contrato\";\"Fecha final del contrato\";\"Nombre de la cuenta\";\"Nombre del contrato\";\"Tipo de contrato\";\"Compañía\";\"External Id\";\"Contacto\";\"Id.Suministro\"\n");
+         strcpy(sTitulos,"\"Divisa del contrato\";\"Duración del contrato (meses)\";\"Estado\";\"Fecha de activación\";\"Fecha de inicio del contrato\";\"Fecha final del contrato\";\"Nombre de la cuenta\";\"Nombre del contrato\";\"Tipo de contrato\";\"Compañía\";\"External Id\";\"Contacto\";\"Suministro\";");
+         strcat(sTitulos, "\"Actividad Económica\";\"Garantía\";\"Garante\";\"Fin de Garantía\";\"Comienzo de Garantía\";\"Conexión Transitoria\";\"Tipo de Titular\";\"Motivo de Garantía\";\"Tipo de Garantía\";\"Amount To Pay\";\"Connection Charge\";\"Construction Product\";\"Deactivation Date\";\"Payment Terms\";\"Cuenta Contrato\";");
+         strcat(sTitulos, "\"Tasa AP\";\"Número de Partida\";\"Cliente Peaje\";\n");
          fprintf(pFileContrato, sTitulos);
 
-         strcpy(sTitulos,"\"Divisa\";\"Activo\";\"Perfil de Facturación\";\"Contrato\";\"Cantidad\";\"Estado\";\"External ID\"\n");
+         strcpy(sTitulos,"\"Divisa\";\"Activo\";\"Perfil de Facturación\";\"Contrato\";\"Cantidad\";\"Estado\";\"External ID\";\"CuentaContrato\";\"Perfil de Facturacion agrupador\";\n");
          fprintf(pFileLinea, sTitulos);
 
-         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Banco\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\"\n");
+         /*strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Banco\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Tipo de Cuenta\";\"Titular de Tarjeta\";\"Tipo de Reparto\";\"Dirección Postal\";\n");*/
+         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Dirección Postal\";\"Tipo de Reparto\";\"Fecha Factura Digital\";\n");
          fprintf(pFileBilling, sTitulos);
          
          break;
@@ -370,7 +386,7 @@ $char sClave[7];
 
    switch(gsArchivoGenera){
       case 1:
-         sprintf(sCommand, "unix2dos %s > %s", sArchContratoUnx, sArchContratoAux);
+         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchContratoUnx, sArchContratoAux);
       	iRcv=system(sCommand);
       
          sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchContratoAux, sArchContratoDos);
@@ -393,7 +409,7 @@ $char sClave[7];
 
          break;      
       case 2:
-         sprintf(sCommand, "unix2dos %s > %s", sArchLineaUnx, sArchLineaAux);
+         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchLineaUnx, sArchLineaAux);
       	iRcv=system(sCommand);
       
          sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchLineaAux, sArchLineaDos);
@@ -417,7 +433,7 @@ $char sClave[7];
          break;
                
       case 3:
-         sprintf(sCommand, "unix2dos %s > %s", sArchBillingUnx, sArchBillingAux);
+         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchBillingUnx, sArchBillingAux);
       	iRcv=system(sCommand);
       
          sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchBillingAux, sArchBillingDos);
@@ -441,7 +457,7 @@ $char sClave[7];
          break;
                
       case 0:   
-         sprintf(sCommand, "unix2dos %s > %s", sArchContratoUnx, sArchContratoAux);
+         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchContratoUnx, sArchContratoAux);
       	iRcv=system(sCommand);
       
          sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchContratoAux, sArchContratoDos);
@@ -450,7 +466,7 @@ $char sClave[7];
       	sprintf(sCommand, "chmod 777 %s", sArchContratoDos);
       	iRcv=system(sCommand);
          /* ---------------- */
-         sprintf(sCommand, "unix2dos %s > %s", sArchLineaUnx, sArchLineaAux);
+         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchLineaUnx, sArchLineaAux);
       	iRcv=system(sCommand);
       
          sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchLineaAux, sArchLineaDos);
@@ -460,7 +476,7 @@ $char sClave[7];
       	iRcv=system(sCommand);
          
          /* ---------------- */
-         sprintf(sCommand, "unix2dos %s > %s", sArchBillingUnx, sArchBillingAux);
+         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchBillingUnx, sArchBillingAux);
       	iRcv=system(sCommand);
       
          sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchBillingAux, sArchBillingDos);
@@ -550,20 +566,35 @@ $char sAux[1000];
 	strcat(sql, "TRIM(c.nombre), "); 
 	strcat(sql, "c.tipo_fpago, "); 
 	strcat(sql, "c.tipo_reparto, ");
-   strcat(sql, "c.nro_beneficiario ");
-	strcat(sql, "FROM cliente c ");   	
-	
-strcat(sql, ", migra_sf ma ");
+   strcat(sql, "c.nro_beneficiario, ");
+   strcat(sql, "t1.cod_sap, ");
+   strcat(sql, "t2.descripcion, ");
+   strcat(sql, "c.minist_repart ");
+	strcat(sql, "FROM cliente c, OUTER sap_transforma t1, OUTER tabla t2 ");   	
+if(giTipoCorrida == 1){	
+   strcat(sql, ", migra_sf ma ");
+}   
 	
 	strcat(sql, "WHERE c.estado_cliente = 0 ");
-	strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");
-	strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");
+   strcat(sql, "AND c.tipo_sum != 5 ");
+	/*strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");*/
+	/*strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");*/
 	strcat(sql, "AND NOT EXISTS (SELECT 1 FROM clientes_ctrol_med cm ");
 	strcat(sql, "WHERE cm.numero_cliente = c.numero_cliente ");
 	strcat(sql, "AND cm.fecha_activacion < TODAY ");
-	strcat(sql, "AND (cm.fecha_desactiva IS NULL OR cm.fecha_desactiva > TODAY)) ");	
-
-strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+	strcat(sql, "AND (cm.fecha_desactiva IS NULL OR cm.fecha_desactiva > TODAY)) ");
+   
+	strcat(sql, "AND t1.clave = 'BU_TYPE' ");
+	strcat(sql, "AND t1.cod_mac = c.actividad_economic ");
+	strcat(sql, "AND t2.nomtabla = 'CNRTU' ");
+	strcat(sql, "AND t2.sucursal = '0000' ");
+	strcat(sql, "AND t2.codigo = c.cod_propiedad ");
+	strcat(sql, "AND t2.fecha_activacion <= TODAY ");
+	strcat(sql, "AND (t2.fecha_desactivac IS NULL OR t2.fecha_desactivac > TODAY) ");
+   	
+if(giTipoCorrida == 1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}
 
 	$PREPARE selClientes FROM $sql;
 	
@@ -606,11 +637,12 @@ strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 
 
    /********* Factura Digital **********/
-	strcpy(sql, "SELECT COUNT(*) "); 
+	strcpy(sql, "SELECT TO_CHAR(fecha_alta, '%Y-%m-%d'),  COUNT(*) "); 
 	strcat(sql, "FROM clientes_digital ");
 	strcat(sql, "WHERE numero_cliente = ? ");
 	strcat(sql, "AND fecha_alta <= TODAY ");
 	strcat(sql, "AND fecha_baja IS NULL OR fecha_baja > TODAY ");
+   strcat(sql, "GROUP BY 1 ");
    
    $PREPARE selDigital  FROM $sql;
 
@@ -634,7 +666,8 @@ strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
    $PREPARE selEntiDebito FROM $sql;
 
    /*********** Trafo Tarjeta **************/
-	strcpy(sql, "SELECT cod_sap, trim(descripcion) ");
+	/*strcpy(sql, "SELECT acronimo_sap, trim(descripcion) ");*/
+   strcpy(sql, "SELECT cod_sap, trim(descripcion) ");
 	strcat(sql, "FROM sap_transforma ");
 	strcat(sql, "WHERE clave = 'CARDTYPE' ");
 	strcat(sql, "AND cod_mac = ? ");
@@ -652,7 +685,22 @@ strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 
 	$PREPARE selRutaPlanos FROM $sql;
 
+	/********* Select Corporativo T23 **********/
+	strcpy(sql, "SELECT NVL(cod_corporativo, '000'), cod_corpo_padre FROM mg_corpor_t23 ");
+	strcat(sql, "WHERE numero_cliente = ? ");
+	
+	$PREPARE selCorpoT23 FROM $sql;
 
+   /********** Tasa AP **********/
+	strcpy(sql, "SELECT FIRST 1 partida_municipal ");  
+	strcat(sql, "FROM cliente_tasa ");
+	strcat(sql, "WHERE numero_cliente = ? ");
+	strcat(sql, "AND tasa_exceptuada = 0 ");
+	strcat(sql, "AND tasa_anulada = 0 ");
+   
+   $PREPARE selTasa FROM $sql;
+   
+   
 }
 
 void FechaGeneracionFormateada( Fecha )
@@ -709,7 +757,10 @@ $ClsCliente *reg;
       :reg->nombre,
       :reg->tipo_fpago,
       :reg->tipo_reparto,
-      :reg->nro_beneficiario;
+      :reg->nro_beneficiario,
+      :reg->codActividadEconomica,
+      :reg->tipo_titularidad,
+      :reg->minist_repart;
 	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
@@ -720,18 +771,27 @@ $ClsCliente *reg;
 		}
     }			
 
-   $EXECUTE selDigital INTO :iCantDigital USING :reg->numero_cliente;
+   $EXECUTE selDigital INTO :reg->sFechaAltaFactuDigital :iCantDigital USING :reg->numero_cliente;
 
    if(SQLCODE != 0){
+      if(SQLCODE != SQLNOTFOUND){
 			printf("Error al buscar factura digital para cliente %ld !!!\nProceso Abortado.\n", reg->numero_cliente);
-			exit(1);	
+			exit(1);
+      }else{
+         strcpy(reg->factu_digital, "N");
+         memset(reg->sFechaAltaFactuDigital, '\0', sizeof(reg->sFechaAltaFactuDigital));
+      }	
+   }else{
+      if(iCantDigital >0){
+         strcpy(reg->factu_digital, "S");
+      }else{
+         strcpy(reg->factu_digital, "N");   
+      }
    }
 
-   if(iCantDigital >0){
-      strcpy(reg->factu_digital, "S");
-   }else{
-      strcpy(reg->factu_digital, "N");   
-   }
+
+   alltrim(reg->codActividadEconomica, ' ');
+   alltrim(reg->tipo_titularidad, ' ');
    
    return 1;
 }
@@ -754,7 +814,15 @@ $ClsCliente	*reg;
    memset(reg->nroTarjeta, '\0', sizeof(reg->nroTarjeta));
    memset(reg->cbu, '\0', sizeof(reg->cbu));
    memset(reg->codBanco, '\0', sizeof(reg->codBanco));
+   
+   memset(reg->codActividadEconomica, '\0', sizeof(reg->codActividadEconomica));
+   memset(reg->tipo_titularidad, '\0', sizeof(reg->tipo_titularidad));
+   memset(reg->sFechaAltaFactuDigital, '\0', sizeof(reg->sFechaAltaFactuDigital));
 
+   rsetnull(CLONGTYPE, (char *) &(reg->minist_repart));
+   memset(reg->papa_t23, '\0', sizeof(reg->papa_t23));
+   memset(reg->sTasaAP, '\0', sizeof(reg->sTasaAP));
+   memset(reg->sPatidaMuni, '\0', sizeof(reg->sPatidaMuni));
 }
 
 
@@ -770,24 +838,26 @@ $ClsCliente *reg;
                :lFechaRti;
                
       if(SQLCODE != 0){
-		    printf("Error al buscar fecha de Alta para cliente %ld.\n", reg->numero_cliente);
-		    exit(2);
-      }
-
-      alltrim(reg->sFechaAlta, ' ');
-      if(strcmp(reg->sFechaAlta, "")==0){
-         if(!CargaAlta2(reg)){
-   		    printf("Error al buscar fecha de Alta para cliente %ld.\n", reg->numero_cliente);
-   		    exit(2);
+          if(SQLCODE != 100){
+		       printf("Error al buscar fecha de Alta para cliente %ld.\n", reg->numero_cliente);
+          }else{
+            if(!CargaAlta2(reg)){
+      		    printf("No se Encontró fecha de Alta para cliente %ld.\n", reg->numero_cliente);
+            }
+          
+          }
+      }else{
+         alltrim(reg->sFechaAlta, ' ');
+         if(strcmp(reg->sFechaAlta, "")==0){
+            if(!CargaAlta2(reg)){
+      		    printf("No se encontró fecha de Alta para cliente %ld.\n", reg->numero_cliente);
+            }
          }
-
       }
-         
 	}else{
 
       if(!CargaAlta2(reg)){
-		    printf("Error al buscar fecha de Alta para cliente %ld.\n", reg->numero_cliente);
-		    exit(2);
+		    printf("No se encontró fecha de Alta para cliente %ld.\n", reg->numero_cliente);
       }
 	}
 }
@@ -866,6 +936,7 @@ $ClsFormaPago  rPago;
          
    }else{
       /* Es debito */
+      strcpy(reg->nroTarjeta, rPago.fp_nrocuenta);
       strcpy(reg->cbu, rPago.fp_cbu);
       strcpy(reg->codBanco, rPago.fp_banco);
       
@@ -888,7 +959,7 @@ $ClsCliente		reg;
    strcat(sLinea, "\"\";");
    
    /* Estado */
-   strcat(sLinea, "\"Activated\";");
+   strcat(sLinea, "\"DRAFT\";");
    
    /* Fecha de activación */
    sprintf(sLinea, "%s\"%sT00:00:00.000Z\";", sLinea, reg.sFechaAlta);
@@ -919,8 +990,46 @@ $ClsCliente		reg;
    sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
    
    /* id suministro */
-   sprintf(sLinea, "%s\"%ldAR\"", sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
 
+   /* Actividad Económica */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.codActividadEconomica);
+   
+   /* Garantía */
+   strcat(sLinea, "\"\";");
+   /* Garante */
+   strcat(sLinea, "\"\";");
+   /* Fin de Garantía */
+   strcat(sLinea, "\"\";");
+   /* Comienzo de Garantía */
+   strcat(sLinea, "\"\";");
+   /* Conexión Transitoria */
+   strcat(sLinea, "\"\";");
+   /* Tipo de Titular */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.tipo_titularidad);
+   /* Motivo de Garantía */
+   strcat(sLinea, "\"\";");
+   /* Tipo de Garantía */
+   strcat(sLinea, "\"\";");
+   /* Amount To Pay */
+   strcat(sLinea, "\"\";");
+   /* Connection Charge */
+   strcat(sLinea, "\"\";");
+   /* Construction Product / Budget */
+   strcat(sLinea, "\"\";");
+   /* Deactivation Date */
+   strcat(sLinea, "\"\";");
+   /* Payment Terms */
+   strcat(sLinea, "\"\";");
+   /* Cuenta Contrato */
+   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
+   /* Tasa AP */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.sTasaAP);
+   /* Numero Partida */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.sPatidaMuni);
+   /* Cliente Peaje */
+   strcat(sLinea, "\"false\";");
+   
 	strcat(sLinea, "\n");
 	
 	fprintf(pFileContrato, sLinea);	
@@ -953,8 +1062,21 @@ $ClsCliente		reg;
    strcat(sLinea, "\"Active\";");
    
    /* External ID */
-   sprintf(sLinea, "%s\"%ldAR\"", sLinea, reg.numero_cliente);
-
+   sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
+   
+   /* Cuenta contrato*/
+   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
+   
+   /*Perfil de Facturación agrupador*/
+   if(strcmp(reg.papa_t23, "")!=0){
+      sprintf(sLinea, "%s\"%sBPARG\";", sLinea, reg.papa_t23);
+   }else if(reg.minist_repart > 0){
+      sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.minist_repart);
+   }else{
+      strcat(sLinea, "\"\";");
+   }
+   
+   
 	strcat(sLinea, "\n");
 	
 	fprintf(pFileLinea, sLinea);	
@@ -989,8 +1111,10 @@ $ClsCliente		reg;
    sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
    
    /* Banco */
+/*   
    alltrim(reg.sNombreBanco, ' ');
    sprintf(sLinea, "%s\"%s\";", sLinea, reg.sNombreBanco);
+*/
    
    /* Dirección de reparto */
    sprintf(sLinea, "%s\"%ld-2\";", sLinea, reg.numero_cliente);
@@ -1038,18 +1162,83 @@ $ClsCliente		reg;
    /* Entidad Bancaria */
    alltrim(reg.codBanco, ' ');
    if(strcmp(reg.codBanco,"")!= 0){
-      sprintf(sLinea, "%s\"%s\"", sLinea, reg.codBanco);
+      sprintf(sLinea, "%s\"%s\";", sLinea, reg.codBanco);
    }else{
-      strcat(sLinea, "\"\"");
+      strcat(sLinea, "\"\";");
    }
 
+   /* CuentaContrato */
+   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
+   
+   /* Número de Cuenta */
+   if(strcmp(reg.nroTarjeta,"")!= 0){
+      sprintf(sLinea, "%s\"%s\";", sLinea, reg.nroTarjeta);
+   }else{
+      strcat(sLinea, "\"\";");
+   }
+   
+   /* Tipo de Cuenta (?) */
+   /*strcat(sLinea, "\"\";");*/
+   
+   /* Titular de Tarjeta */
+   /*strcat(sLinea, "\"\";");*/
 
+   /* Dirección Postal */
+   sprintf(sLinea, "%s\"%ld-2\";", sLinea, reg.numero_cliente);
+   
+   /* Tipo de Reparto */  
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.tipo_reparto);
+
+   /* Fecha Factura Digital */
+   alltrim(reg.sFechaAltaFactuDigital, ' ');
+   if(strcmp(reg.sFechaAltaFactuDigital, "")!=0){
+      sprintf(sLinea, "%s\"%s\";", sLinea, reg.sFechaAltaFactuDigital);
+   }else{
+      strcat(sLinea, "\"\";");
+   }  
+   
 	strcat(sLinea, "\n");
 	
 	fprintf(pFileBilling, sLinea);	
 
 }
 
+short PadreEnT23(reg)
+$ClsCliente *reg;
+{
+   $char sCtaCorpo[11];
+   memset(sCtaCorpo, '\0', sizeof(sCtaCorpo));
+   
+   $EXECUTE selCorpoT23 INTO :sCtaCorpo, :reg->papa_t23 USING :reg->numero_cliente;
+   
+   if(SQLCODE != 0){
+      if(SQLCODE != SQLNOTFOUND){
+         printf("Error al bucar papa t23 para cliente %ld\n", reg->numero_cliente);
+      }
+      return 0;
+   } 
+
+   alltrim(reg->papa_t23, ' ');
+   
+   return 1;
+}
+
+void CargaTasa(reg)
+$ClsCliente *reg;
+{
+
+   $EXECUTE selTasa INTO :reg->sPatidaMuni USING :reg->numero_cliente;
+   
+   if(SQLCODE != 0){
+      if(SQLCODE != SQLNOTFOUND){
+         printf("Error al bucar tasa TAP para cliente %ld\n", reg->numero_cliente);
+      }
+      strcpy(reg->sTasaAP, "false");
+      return;
+   } 
+   strcpy(reg->sTasaAP, "true");
+   alltrim(reg->sPatidaMuni, ' ');
+}
 
 /****************************
 		GENERALES

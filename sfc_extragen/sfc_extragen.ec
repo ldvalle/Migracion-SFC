@@ -12,10 +12,7 @@
 		
 	Descripcion de parametros :
 		<Base de Datos> : Base de Datos <synergia>
-		<Estado Cliente> : 0=Activos; 1= No Activos; 2= Todos;		
-		<Tipo Generacion>: G = Generacion; R = Regeneracion
-		
-		<Nro.Cliente>: Opcional
+		<Tipo Corrida> : 0=Normal; 1= Reducida		
 
 ********************************************************************************/
 #include <locale.h>
@@ -37,6 +34,7 @@ $char gsFechaFile[9];
 $long	glNroCliente;
 $int	giEstadoCliente;
 int	giTipoGenera;
+int   giTipoCorrida;
 
 FILE	*fpStreetUnx;
 FILE	*fpAddressUnx;
@@ -163,9 +161,10 @@ long     lCantInvalidos;
 	$OPEN curClientes;
 
 	while(LeoCliente(&regCliente)){
-
+      if(!PadreEnT23(&regCliente)){
+         memset(regCliente.papa_t23, '\0', sizeof(regCliente.papa_t23));
+      }
 		GenerarPlanos(regCliente);
-
 		cantProcesada++;
 	}
 	
@@ -205,23 +204,27 @@ int		argc;
 char	* argv[];
 {
 
-	if(argc != 2){
+	if(argc != 3){
 		MensajeParametros();
 		return 0;
 	}
 	
+   giTipoCorrida=atoi(argv[2]);
+   
 	return 1;
 }
 
 
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
-		printf("\t<Base> = synergia.\n");
+		printf("\t<Base>: synergia.\n");
+      printf("\t<Tipo Corrida>: 0=Normal, 1=Reducida.\n");
 }
 
 short AbreArchivos()
 {
    char  sTitulos[10000];
+   $char  sFecha[9];
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 
@@ -260,12 +263,13 @@ short AbreArchivos()
    memset(sArchBajasDos, '\0', sizeof(sArchBajasDos));
 	memset(sSoloArchivoBajasUnx, '\0', sizeof(sSoloArchivoBajasUnx));
 
+   memset(sFecha, '\0', sizeof(sFecha));
 
+   FechaGeneracionFormateada(sFecha);
+   
 	memset(sPathSalida,'\0',sizeof(sPathSalida));
-/*
+
 	RutaArchivos( sPathSalida, "SALESF" );
-*/
-strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
 
 	alltrim(sPathSalida,' ');
 
@@ -273,32 +277,32 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
 	strcpy(sSoloArchivoAddressUnx, "T1ADDRESS.unx");
 	sprintf(sArchAddressUnx, "%s%s", sPathSalida, sSoloArchivoAddressUnx);
    sprintf(sArchAddressAux, "%sT1ADDRESS.aux", sPathSalida);
-   sprintf(sArchAddressDos, "%sEnel_ADDRESS.csv", sPathSalida);
+   sprintf(sArchAddressDos, "%senel_care_address_t1_%s.csv", sPathSalida, sFecha);
 
 	strcpy(sSoloArchivoCuentasUnx, "T1CUENTAS.unx");
 	sprintf(sArchCuentasUnx, "%s%s", sPathSalida, sSoloArchivoCuentasUnx);
    sprintf(sArchCuentasAux, "%sT1CUENTAS.aux", sPathSalida);
-   sprintf(sArchCuentasDos, "%sEnel_ACCOUNT.csv", sPathSalida);
+   sprintf(sArchCuentasDos, "%senel_care_account_t1_%s.csv", sPathSalida, sFecha);
 
 	strcpy(sSoloArchivoContactosUnx, "T1CONTACTOS.unx");
 	sprintf(sArchContactosUnx, "%s%s", sPathSalida, sSoloArchivoContactosUnx);
    sprintf(sArchContactosAux, "%sT1CONTACTOS.aux", sPathSalida);
-   sprintf(sArchContactosDos, "%sEnel_CONTACT.csv", sPathSalida);
+   sprintf(sArchContactosDos, "%senel_care_contact_t1_%s.csv", sPathSalida, sFecha);
 
 	strcpy(sSoloArchivoPointDeliveryUnx, "T1POINT_DELIVERY.unx");
 	sprintf(sArchPointDeliveryUnx, "%s%s", sPathSalida, sSoloArchivoPointDeliveryUnx);
    sprintf(sArchPointDeliveryAux, "%sT1POINT_DELIVERY.aux", sPathSalida);
-   sprintf(sArchPointDeliveryDos, "%sEnel_PointOfDelivery.csv", sPathSalida);
+   sprintf(sArchPointDeliveryDos, "%senel_care_pointofdelivery_t1_%s.csv", sPathSalida, sFecha);
 
 	strcpy(sSoloArchivoServiceProductUnx, "T1SERVICE_PRODUCT.unx");
 	sprintf(sArchServiceProductUnx, "%s%s", sPathSalida, sSoloArchivoServiceProductUnx);
    sprintf(sArchServiceProductAux, "%sT1SERVICE_PRODUCT.aux", sPathSalida);
-   sprintf(sArchServiceProductDos, "%sEnel_SERVICEPRODUCT.csv", sPathSalida);
+   sprintf(sArchServiceProductDos, "%senel_care_serviceproduct_t1_%s.csv", sPathSalida, sFecha);
 
 	strcpy(sSoloArchivoAssetUnx, "T1ASSET.unx");
 	sprintf(sArchAssetUnx, "%s%s", sPathSalida, sSoloArchivoAssetUnx);
    sprintf(sArchAssetAux, "%sT1ASSET.aux", sPathSalida);
-   sprintf(sArchAssetDos, "%sEnel_ASSET.csv", sPathSalida);	
+   sprintf(sArchAssetDos, "%senel_care_asset_t1_%s.csv", sPathSalida, sFecha);	
 
    /* Abro Archivos*/
 	fpAddressUnx=fopen( sArchAddressUnx, "w" );
@@ -307,7 +311,7 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
 		return 0;
 	}
    
-   strcpy(sTitulos, "\"Divisa\";\"Esquina\";\"Número\";\"Referencia\";\"Código Postal\";\"Número\";\"Identificador calle\";\"Departamento\";\"Calle\";\"Tipo de numeración\";\"Dirección concatenada\";\"Sector\";\"Coordenada X\";\"Coordenada Y\";\"Nombre agrupación\";\"Tipo de agrupación\";\"Tipo de interior\";\"Dirección larga\";\"Lote/Manzana\";\"Tipo de sector\";\"CompanyID\";\"Interseccion 1\";\"Interseccion 2\";\n");
+   strcpy(sTitulos, "\"Divisa\";\"Esquina\";\"Número\";\"Referencia\";\"Código Postal\";\"Número\";\"Identificador calle\";\"Departamento\";\"Calle\";\"Tipo de numeración\";\"Dirección concatenada\";\"Sector\";\"Coordenada X\";\"Coordenada Y\";\"Nombre agrupación\";\"Tipo de agrupación\";\"Tipo de interior\";\"Dirección larga\";\"Lote/Manzana\";\"Tipo de sector\";\"CompanyID\";\"Interseccion 1\";\"Interseccion 2\";\"Piso\";\"Departamento\";\"Edificio\";\n");
    fprintf(fpAddressUnx, sTitulos);
 
 	fpCuentasUnx=fopen( sArchCuentasUnx, "w" );
@@ -316,7 +320,7 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
 		return 0;
 	}
 
-   strcpy(sTitulos, "\"Identificador cuenta\";\"Nombre de la cuenta\";\"Tipo de identidad\";\"Número de identidad\";\"Email principal\";\"Email secundario\";\"Teléfono principal\";\"Teléfono secundario\";\"Teléfono adicional\";\"Divisa\";\"Tipo de Registro\";\"Fecha de nacimiento\";\"Cuenta principal\";\"Apellido materno\";\"Apellido paterno\";\"Dirección\";\"Ejecutivo\";\"Giro\";\"Clase de Servicio\";\"Id Empresa\";\"Razón social de la empresa\";\"Condicion Impositiva\";\n");
+   strcpy(sTitulos, "\"Identificador cuenta\";\"Nombre de la cuenta\";\"Tipo de identidad\";\"Número de identidad\";\"Email principal\";\"Email secundario\";\"Teléfono principal\";\"Teléfono secundario\";\"Teléfono adicional\";\"Divisa\";\"Tipo de Registro\";\"Fecha de nacimiento\";\"Cuenta principal\";\"Apellido materno\";\"Apellido paterno\";\"Dirección\";\"Ejecutivo\";\"Giro\";\"Clase de Servicio\";\"Id Empresa\";\"Razón social de la empresa\";\"Condicion Impositiva\";\"Email Adicional\";\"Tipo de Cuenta\";\"Cuenta Cliente\";\"Cuenta Padre\";\"Clase de Cuenta\";\"Tipo de Sociedad\";\n");
    fprintf(fpCuentasUnx, sTitulos);
 
 	fpContactosUnx=fopen( sArchContactosUnx, "w" );
@@ -325,7 +329,7 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
 		return 0;
 	}
    
-   strcpy(sTitulos, "\"Identificador cuenta\";\"Nombre\";\"Apellido\";\"Saludo\";\"Nombre de la cuenta\";\"Estado Civil\";\"Género\";\"Tipo de identificación\";\"Número de documento\";\"Fase del ciclo de vida del cliente\";\"Estrato\";\"Nivel educacional\";\"Autoriza uso de información personal\";\"No llamar\";\"No recibir correos electrónicos\";\"Profesión\";\"Ocupación\";\"Fecha nacimiento\";\"Canal preferente de contacto\";\"Correo electrónico\";\"Correo electrónico secundario\";\"Teléfono\";\"Teléfono secundario\";\"Teléfono movil\";\"Moneda\";\"Apellido paterno\";\"Apellido materno\";\"Tipo de acreditación\";\"Dirección del contacto\";\"Nombre de usuario de Twitter\";\"Recuento de seguidores de Twitter\";\"Influencia\";\"Tipo de influencia\";\"Biografía de Twitter\";\"Id.de usuario de Twitter\";\"Nombre de usuario de Facebook\";\"Id.de usuario de Facebook\";\"Id.de empresa\"\n");
+   strcpy(sTitulos, "\"Identificador cuenta\";\"Nombre\";\"Apellido\";\"Saludo\";\"Nombre de la cuenta\";\"Estado Civil\";\"Género\";\"Tipo de identificación\";\"Número de documento\";\"Fase del ciclo de vida del cliente\";\"Estrato\";\"Nivel educacional\";\"Autoriza uso de información personal\";\"No llamar\";\"No recibir correos electrónicos\";\"Profesión\";\"Ocupación\";\"Fecha nacimiento\";\"Canal preferente de contacto\";\"Correo electrónico\";\"Correo electrónico secundario\";\"Teléfono\";\"Teléfono secundario\";\"Teléfono movil\";\"Moneda\";\"Apellido paterno\";\"Apellido materno\";\"Tipo de acreditación\";\"Dirección del contacto\";\"Nombre de usuario de Twitter\";\"Recuento de seguidores de Twitter\";\"Influencia\";\"Tipo de influencia\";\"Biografía de Twitter\";\"Id.de usuario de Twitter\";\"Nombre de usuario de Facebook\";\"Id.de usuario de Facebook\";\"Id.de empresa\";\n");
    fprintf(fpContactosUnx, sTitulos);
 
 	fpPointDeliveryUnx=fopen( sArchPointDeliveryUnx, "w" );
@@ -334,7 +338,7 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
 		return 0;
 	}
 
-   strcpy(sTitulos, "\"Identificador PoD\";\"Número PoD\";\"Divisa\";\"DV Número de suministro\";\"Dirección\";\"Estado del suministro\";\"Pais\";\"Comuna\";\"Tipo de segmento\";\"Medida de disciplina\";\"Id empresa\";\"Electrodependiente\";\"Tarifa\";\"Tipo de agrupación\";\"Full electric\";\"Nombre boleta\";\"Ruta\";\"Dirección de reparto\";\"Comuna de reparto\";\"Número de Transformador\";\"Tipo de Transformador\";\"Tipo de Conexión\";\"Estrato socioeconómico\";\"Subestación Eléctrica Conexión\";\"Tipo de medida\";\"Número de alimentador\";\"Tipo de lectura\";\"Bloque\";\"Horario de racionamiento\";\"Estado de conexión\";\"Fecha de corte\";\"Código PRC\";\"SED\";\"SET\";\"Llave\";\"Potencia Instalada\";\"Cliente singular\";\"Clase de servicio\";\"subclase de servicio\";\"Ruta de lectura\";\"Tipo de liquidación\";\"Mercado\";\"Carga aforada\";\"Año de fabricación\"\n");
+   strcpy(sTitulos, "\"Identificador PoD\";\"Número PoD\";\"Divisa\";\"DV Número de suministro\";\"Dirección\";\"Estado del suministro\";\"Pais\";\"Comuna\";\"Tipo de segmento\";\"Medida de disciplina\";\"Id empresa\";\"Electrodependiente\";\"Tarifa\";\"Tipo de agrupación\";\"Full electric\";\"Nombre boleta\";\"Ruta\";\"Dirección de reparto\";\"Comuna de reparto\";\"Número de Transformador\";\"Tipo de Transformador\";\"Tipo de Conexión\";\"Estrato socioeconómico\";\"Subestación Eléctrica Conexión\";\"Tipo de medida\";\"Número de alimentador\";\"Tipo de lectura\";\"Bloque\";\"Horario de racionamiento\";\"Estado de conexión\";\"Fecha de corte\";\"Código PRC\";\"SED\";\"SET\";\"Llave\";\"Potencia Instalada\";\"Cliente singular\";\"Clase de servicio\";\"subclase de servicio\";\"Ruta de lectura\";\"Tipo de liquidación\";\"Mercado\";\"Carga aforada\";\"Año de fabricación\";\"Cantidad de Personas\";\"Numero de DCI\";\"Ente Emisor DCI\";\"Potencia Convenida\";\"Fecha Desconexión\";\n");
    fprintf(fpPointDeliveryUnx, sTitulos);   
 
 	fpServiceProductUnx=fopen( sArchServiceProductUnx, "w" );
@@ -343,7 +347,7 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
 		return 0;
 	}
 
-   strcpy(sTitulos, "\"Activo\";\"Contacto\";\"Cuenta\";\"Pais\";\"Compañia\"\n");
+   strcpy(sTitulos, "\"Activo\";\"Contacto\";\"Cuenta\";\"Pais\";\"Compañia\";\"ExternalID\";\"Contacto Principal\";\"Electrodependiente\";\"Númeor de DCI\";\"Ente Emisor DCI\";\n");
    fprintf(fpServiceProductUnx, sTitulos);
 
 	fpAssetUnx=fopen( sArchAssetUnx, "w" );
@@ -352,7 +356,7 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
 		return 0;
 	}
 
-   strcpy(sTitulos, "\"Identificador activo\";\"Nombre del activo\";\"Cuenta\";\"Contacto\";\"Suministro\";\"Descripción\";\"Producto\";\"Estado\"\n");
+   strcpy(sTitulos, "\"Identificador activo\";\"Nombre del activo\";\"Cuenta\";\"Contacto\";\"Suministro\";\"Descripción\";\"Producto\";\"Estado\";\"Contacto Principal\";\"Contrato\";\"Estado Contratacion\";\n");
    fprintf(fpAssetUnx, sTitulos);
 
 
@@ -381,7 +385,7 @@ $char	sPathCp[100];
    
                            
 	/* ----------- */
-   sprintf(sCommand, "unix2dos %s > %s", sArchAddressUnx, sArchAddressAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchAddressUnx, sArchAddressAux);
 	iRcv=system(sCommand);
 
    sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchAddressAux, sArchAddressDos);
@@ -403,7 +407,7 @@ $char	sPathCp[100];
    iRcv=system(sCommand);
    	
 	/* ----------- */
-   sprintf(sCommand, "unix2dos %s > %s", sArchCuentasUnx, sArchCuentasAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchCuentasUnx, sArchCuentasAux);
 	iRcv=system(sCommand);
    
    sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchCuentasAux, sArchCuentasDos);
@@ -425,7 +429,7 @@ $char	sPathCp[100];
    iRcv=system(sCommand);
    	
 	/* ----------- */
-   sprintf(sCommand, "unix2dos %s > %s", sArchContactosUnx, sArchContactosAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchContactosUnx, sArchContactosAux);
 	iRcv=system(sCommand);
 
    sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchContactosAux, sArchContactosDos);
@@ -447,7 +451,7 @@ $char	sPathCp[100];
    iRcv=system(sCommand);
    	
 	/* ----------- */
-   sprintf(sCommand, "unix2dos %s > %s", sArchPointDeliveryUnx, sArchPointDeliveryAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchPointDeliveryUnx, sArchPointDeliveryAux);
 	iRcv=system(sCommand);
 
    sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchPointDeliveryAux, sArchPointDeliveryDos);
@@ -469,7 +473,7 @@ $char	sPathCp[100];
    iRcv=system(sCommand);
    
 	/* ----------- */	
-   sprintf(sCommand, "unix2dos %s > %s", sArchServiceProductUnx, sArchServiceProductAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchServiceProductUnx, sArchServiceProductAux);
 	iRcv=system(sCommand);
 
    sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchServiceProductAux, sArchServiceProductDos);
@@ -491,7 +495,7 @@ $char	sPathCp[100];
    iRcv=system(sCommand);
    
 	/* ----------- */
-   sprintf(sCommand, "unix2dos %s > %s", sArchAssetUnx, sArchAssetAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchAssetUnx, sArchAssetAux);
 	iRcv=system(sCommand);
 
    sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchAssetAux, sArchAssetDos);
@@ -545,7 +549,8 @@ $char sAux[1000];
 	strcat(sql, "c.cod_postal, ");
 	strcat(sql, "c.piso_dir, ");
 	strcat(sql, "c.depto_dir, ");
-	strcat(sql, "c.tip_doc, ");
+   strcat(sql, "c.tip_doc, ");
+   strcat(sql, "t3.cod_sf1, ");
 	strcat(sql, "c.nro_doc, ");
 	strcat(sql, "TRIM(REPLACE(c.telefono, '-', '')), ");
 	strcat(sql, "c.tipo_cliente, ");
@@ -565,15 +570,22 @@ $char sAux[1000];
    strcat(sql, "c.potencia_inst_fp, ");
    strcat(sql, "TRIM(c.nom_entre), ");
    strcat(sql, "TRIM(c.nom_entre1), ");
-   strcat(sql, "t2.cod_sap ");         /* tipo IVA */
+   strcat(sql, "t2.cod_sap, ");         /* tipo IVA */
+   strcat(sql, "c.minist_repart ");
    
 	strcat(sql, "FROM cliente c, OUTER sf_transforma t1, OUTER tecni t ");
-   strcat(sql, ", OUTER sap_transforma t2 ");
+   strcat(sql, ", OUTER sap_transforma t2, OUTER sf_transforma t3 ");
 
-strcat(sql, ", migra_sf ma ");
+if(giTipoCorrida == 1){
+   strcat(sql, ", migra_sf ma ");
+}
+
 
 	strcat(sql, "WHERE c.estado_cliente = 0 ");
+   /*
 	strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");
+   */
+   strcat(sql, "AND c.tipo_sum != 5 ");
 	strcat(sql, "AND NOT EXISTS (SELECT 1 FROM clientes_ctrol_med m ");
 	strcat(sql, "	WHERE m.numero_cliente = c.numero_cliente ");
 	strcat(sql, "	AND m.fecha_activacion < TODAY  ");
@@ -583,15 +595,18 @@ strcat(sql, ", migra_sf ma ");
    strcat(sql, "AND t.numero_cliente = c.numero_cliente ");
    strcat(sql, "AND t2.clave = 'TIPIVA' ");
    strcat(sql, "AND t2.cod_mac = c.tipo_iva ");
-   		
-strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+   strcat(sql, "AND t3.clave = 'TIPDOCU' ");
+   strcat(sql, "AND t3.cod_mac = c.tip_doc ");
+if(giTipoCorrida == 1){   		
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}
 		
 	$PREPARE selClientes FROM $sql;
 	
 	$DECLARE curClientes CURSOR FOR selClientes;	
 
 	/******** E-Mail *********/
-	strcpy(sql, "SELECT TRIM(email_1), TRIM(email_2) ");
+	strcpy(sql, "SELECT TRIM(email_1), TRIM(email_2), TRIM(email_3) ");
 	strcat(sql, "FROM clientes_digital ");
 	strcat(sql, "WHERE numero_cliente = ? ");
 	strcat(sql, "AND fecha_alta <= TODAY ");
@@ -777,6 +792,19 @@ strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 	strcat(sql, "AND ( fecha_desactivac >= TODAY OR fecha_desactivac IS NULL ) ");
 
 	$PREPARE selRutaPlanos FROM $sql;
+
+	/******** Select DCI ****************/
+   $PREPARE selDCI FROM "SELECT organismo, nro_dci
+      FROM dci
+      WHERE numero_cliente = ? 
+      AND fecha_ingreso <= TODAY
+      AND (fecha_baja is null or fecha_baja > TODAY)";
+
+	/********* Select Corporativo T23 **********/
+	strcpy(sql, "SELECT NVL(cod_corporativo, '000'), cod_corpo_padre FROM mg_corpor_t23 ");
+	strcat(sql, "WHERE numero_cliente = ? ");
+	
+	$PREPARE selCorpoT23 FROM $sql;
       
 }
 
@@ -829,6 +857,7 @@ $ClsClientes *regCli;
 		:regCli->piso_dir,
 		:regCli->depto_dir,
 		:regCli->tip_doc,
+      :regCli->tip_doc_SF,
 		:regCli->nro_doc,
 		:regCli->telefono,
 		:regCli->tipo_cliente,
@@ -848,7 +877,8 @@ $ClsClientes *regCli;
       :regCli->potencia_inst_fp,
       :regCli->entre_calle1,
       :regCli->entre_calle2,
-      :regCli->tipoIva;
+      :regCli->tipoIva,
+      :regCli->minist_repart;
       
 				
     if ( SQLCODE != 0 ){
@@ -869,6 +899,7 @@ $ClsClientes *regCli;
 	alltrim(regCli->obs_dir, ' ');
 	alltrim(regCli->rut, ' ');
 	alltrim(regCli->tip_doc, ' ');
+   alltrim(regCli->tip_doc_SF, ' ');
 	alltrim(regCli->email_1, ' ');
 	alltrim(regCli->email_2, ' ');
 	alltrim(regCli->sClaseServicio, ' ');
@@ -897,6 +928,10 @@ $ClsClientes *regCli;
 	if(!CargoVIP(regCli)){
 		return 0;		
 	}
+
+   if(!CargaDCI(regCli)){
+      return 0;
+   }
 
 	if(strcmp(regCli->tipo_reparto, "POSTAL")){
 		if(!CargoPostal(regCli)){
@@ -977,6 +1012,7 @@ $ClsClientes	*regClie;
 	memset(regClie->piso_dir, '\0', sizeof(regClie->piso_dir));	
 	memset(regClie->depto_dir, '\0', sizeof(regClie->depto_dir));	
 	memset(regClie->tip_doc, '\0', sizeof(regClie->tip_doc));	
+   memset(regClie->tip_doc_SF, '\0', sizeof(regClie->tip_doc_SF));
 	rsetnull(CDOUBLETYPE, (char *) &(regClie->nro_doc));
 	memset(regClie->telefono, '\0', sizeof(regClie->telefono));
 	memset(regClie->tipo_cliente, '\0', sizeof(regClie->tipo_cliente));
@@ -990,6 +1026,7 @@ $ClsClientes	*regClie;
 	
 	memset(regClie->email_1, '\0', sizeof(regClie->email_1));
 	memset(regClie->email_2, '\0', sizeof(regClie->email_2));
+   memset(regClie->email_2, '\0', sizeof(regClie->email_3));
 	memset(regClie->electrodependiente, '\0', sizeof(regClie->electrodependiente));
 	memset(regClie->dp_nom_calle, '\0', sizeof(regClie->dp_nom_calle));
 	memset(regClie->dp_nro_dir, '\0', sizeof(regClie->dp_nro_dir));
@@ -1034,6 +1071,13 @@ $ClsClientes	*regClie;
    
    memset(regClie->email_contacto, '\0', sizeof(regClie->email_contacto));
    memset(regClie->tipoIva, '\0', sizeof(regClie->tipoIva));
+   
+   rsetnull(CDOUBLETYPE, (char *) &(regClie->nro_dci));
+   memset(regClie->orga_dci, '\0', sizeof(regClie->orga_dci));
+
+   rsetnull(CLONGTYPE, (char *) &(regClie->minist_repart));
+   memset(regClie->papa_t23, '\0', sizeof(regClie->papa_t23));
+   
 }
 
 
@@ -1267,7 +1311,7 @@ ClsClientes 	regCli;
 		strcat(sLinea, "\"\";");	
 	}
 
-	/* CP */
+	/* CP  */
 	if(!risnull(CINTTYPE, (char *) &regCli.cod_postal)){
 		sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.cod_postal);
 	}else{
@@ -1290,10 +1334,10 @@ ClsClientes 	regCli;
    }
 
 	/* DEPARTAMENTO  */
-   if(strcmp(regCli.depto_dir, "")!=0){
-	     sprintf(sLinea, "%s\"%s\";", sLinea, regCli.depto_dir);
+   if(regCli.provincia[0]=='C'){
+      sprintf(sLinea, "%s\"%s\";", sLinea, regCli.nom_barrio);
    }else{
-        strcat(sLinea, "\"\";");
+      sprintf(sLinea, "%s\"%s\";", sLinea, regCli.nom_comuna);
    }
    
 	/* CALLE (VACIO) */
@@ -1329,10 +1373,18 @@ ClsClientes 	regCli;
 	strcat(sLinea, "\"9\";");
    
    /* INTERSECCION1 */
-   
    sprintf(sLinea, "%s\"%s\";", sLinea, regCli.entre_calle1);
    /* INTERSECCION2 */
    sprintf(sLinea, "%s\"%s\";", sLinea, regCli.entre_calle2);
+
+   /* PISO */
+   sprintf(sLinea, "%s\"%s\";", sLinea, regCli.piso_dir);
+   
+   /* DEPARTAMENTO */
+   sprintf(sLinea, "%s\"%s\";", sLinea, regCli.depto_dir);
+   
+   /* EDIFICIO */
+   strcat(sLinea, "\"\";");
    
 	strcat(sLinea, "\n");
 
@@ -1451,7 +1503,8 @@ $ClsClientes	*regCli;
 {
 	$EXECUTE selEmail into
 		:regCli->email_1,
-		:regCli->email_2
+		:regCli->email_2,
+      :regCli->email_3
 		using
 		:regCli->numero_cliente;
 	
@@ -1459,6 +1512,7 @@ $ClsClientes	*regCli;
 		if(SQLCODE == 100){
 			strcpy(regCli->email_1, "NO TIENE");
 			strcpy(regCli->email_2, "NO TIENE");
+         strcpy(regCli->email_3, "NO TIENE");
 			return 1;
 		}else{
 			return 0;	
@@ -1467,6 +1521,7 @@ $ClsClientes	*regCli;
    
    alltrim(regCli->email_1, ' ');
    alltrim(regCli->email_2, ' ');
+   alltrim(regCli->email_3, ' ');
    
    if(strcmp(regCli->email_1, "")==0){
       strcpy(regCli->email_1, "NO TIENE");   
@@ -1474,6 +1529,10 @@ $ClsClientes	*regCli;
 
    if(strcmp(regCli->email_2, "")==0){
       strcpy(regCli->email_2, "NO TIENE");   
+   }
+
+   if(strcmp(regCli->email_3, "")==0){
+      strcpy(regCli->email_3, "NO TIENE");   
    }
 	
 	return 1;
@@ -1678,8 +1737,10 @@ $ClsClientes *regCli;
 	using :regCli->numero_cliente;
 		
 	if(SQLCODE != 0){
-		printf("Error al cargar datos del medidor de cliente %ld\n", regCli->numero_cliente);
-		return 0;
+      if(SQLCODE != SQLNOTFOUND){
+   		printf("Error al cargar datos del medidor de cliente %ld\n", regCli->numero_cliente);
+   		return 0;
+      }
 	}
 	
 	return 1;
@@ -1808,13 +1869,13 @@ ClsClientes	regCli;
 	if(regCli.es_empresa[0]=='S'){
 		if(strcmp(regCli.rut, "")!=0){
 			/* TIPO DOCUMENTO */
-			strcat(sLinea, "\"CUIT\";");
+			strcat(sLinea, "\"CE\";");
 			/* NRO DOCUMENTO */
 			sprintf(sLinea, "%s\"%s\";", sLinea, regCli.rut);
 		}else{
 			if(strcmp(regCli.tip_doc, "")!=0){
 				/* TIPO DOCUMENTO */
-				sprintf(sLinea, "%s\"%s\";", sLinea, regCli.tip_doc);
+				sprintf(sLinea, "%s\"%s\";", sLinea, regCli.tip_doc_SF);
 			}else{
 				/* TIPO DOCUMENTO */
 				strcat(sLinea, ";");
@@ -1830,7 +1891,7 @@ ClsClientes	regCli;
 	}else{
 		if(strcmp(regCli.tip_doc, "")!=0){
 			/* TIPO DOCUMENTO */
-			sprintf(sLinea, "%s\"%s\";", sLinea, regCli.tip_doc);
+			sprintf(sLinea, "%s\"%s\";", sLinea, regCli.tip_doc_SF);
 		}else{
 			/* TIPO DOCUMENTO */
 			strcat(sLinea, "\"\";");
@@ -1920,7 +1981,39 @@ ClsClientes	regCli;
 
    /* Tipo IVA */
 	sprintf(sLinea, "%s\"%s\";", sLinea, regCli.tipoIva);
+
+   /* Email Adicional */
+  	if(strcmp(regCli.email_3, "NO TIENE")!=0){
+		sprintf(sLinea, "%s\"%s\";", sLinea, regCli.email_3);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
+   
+   /* Tipo de Cuenta */
+   if(regCli.es_empresa[0]=='S'){
+      strcat(sLinea, "\"Persona Jurídica\";");
+   }else{
+      strcat(sLinea, "\"Persona Física\";");
+   }
+  
+   /* CuentaCliente  */
+   sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.numero_cliente);
       
+   /* Cuenta Padre */
+   if(strcmp(regCli.papa_t23, "")!=0){
+      sprintf(sLinea, "%s\"%sARG\";", sLinea, regCli.papa_t23);
+   }else if(regCli.minist_repart > 0){
+      sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.minist_repart);
+   }else{
+      strcat(sLinea, "\"\";");
+   }
+         
+   /* Clase de Cuenta */
+   sprintf(sLinea, "%s\"%s\";", sLinea, regCli.sClaseServicio);
+   
+   /* Tipo de Sociedad */
+   strcat(sLinea, "\"\";");
+            
 	strcat(sLinea, "\n");
 	
 	fprintf(fp, sLinea);	
@@ -2073,8 +2166,7 @@ ClsClientes	regCli;
 	/* ID USR FACBOOK (VACIO) */
 	strcat(sLinea, "\"\";");
 	/* ID EMPRESA */
-	strcat(sLinea, "\"9\"");
-		
+	strcat(sLinea, "\"9\";");
 	
 	strcat(sLinea, "\n");
 	
@@ -2299,8 +2391,27 @@ ClsClientes	regCli;
 	strcat(sLinea, "\"\";");
 	
 	/* ANO FABRICACION */
-	sprintf(sLinea, "%s\"%ld\"", sLinea, regCli.medidor_anio);
-	
+	sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.medidor_anio);
+   
+	/* CANT.PERSONAS EN PUNTO DE SUMINISTRO */
+	strcat(sLinea, "\"\";");
+   
+   /* Nro.DCI */
+   if(regCli.nro_dci > 0){
+      sprintf(sLinea, "%s\"%.0lf\";", sLinea, regCli.nro_dci);
+   }else{
+      strcat(sLinea, "\"\";");
+   }
+   
+   /* Organismo */
+	sprintf(sLinea, "%s\"%s\";", sLinea, regCli.orga_dci);
+   
+   /* Potencia Convenida */
+   strcat(sLinea, "\"\";");
+
+   /* Fecha Desconexion */
+   strcat(sLinea, "\"\";");
+   
 	strcat(sLinea, "\n");
 	
 	fprintf(fp, sLinea);	
@@ -2327,8 +2438,38 @@ ClsClientes	regCli;
 	strcat(sLinea, "\"ARGENTINA\";");
 	
 	/* COMPANIA */
-	strcat(sLinea, "\"9\"");
+	strcat(sLinea, "\"9\";");
 
+   /* EXTERNAL ID */
+   sprintf(sLinea, "%s\"%ldSP\";", sLinea, regCli.numero_cliente);
+
+	/* CONTACTO PRINCIPAL */
+	strcat(sLinea, "\"True\";");
+   
+   /* ElectroDependiente*/
+   if(regCli.electrodependiente[0]=='1'){
+      /* Electro */
+      strcat(sLinea, "\"True\";");
+      /* Nro.DCI */
+      if(regCli.nro_dci > 0){
+         sprintf(sLinea, "%s\"%.0lf\";", sLinea, regCli.nro_dci);
+      }else{
+         strcat(sLinea, "\"\";");
+      }
+      
+      /* Organismo */
+   	sprintf(sLinea, "%s\"%s\";", sLinea, regCli.orga_dci);
+      
+   }else{
+      /* Electro */
+      strcat(sLinea, "\"False\";");
+      /* DCI */
+      strcat(sLinea, "\"\";");
+      /* Organismo */
+      strcat(sLinea, "\"\";");
+   }
+   
+   
 	strcat(sLinea, "\n");
 	
 	fprintf(fp, sLinea);
@@ -2346,8 +2487,9 @@ ClsClientes regCli;
 	sprintf(sLinea, "\"%ld\";", regCli.numero_cliente);
 	
 	/* NOMBRE */
-	sprintf(sLinea, "%s\"%s\";", sLinea, regCli.nombre);
-	
+	/*sprintf(sLinea, "%s\"%s\";", sLinea, regCli.nombre);*/
+	sprintf(sLinea, "%s\"Tarifa T1-%ld\";", sLinea, regCli.numero_cliente);
+   
 	/* CUENTA */
 	sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.numero_cliente);
 	
@@ -2364,9 +2506,17 @@ ClsClientes regCli;
 	sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.numero_cliente);
 	
 	/* ESTADO */
-	strcat(sLinea, "\"Installed\"");
+	strcat(sLinea, "\"Installed\";");
+   
+   /* Contacto Principal */
+	strcat(sLinea, "\"True\";");
 	
-	
+   /* Contrato */
+   sprintf(sLinea, "%s\"%ldAR\";", sLinea, regCli.numero_cliente);
+   
+   /* Estado Contratacion */
+   strcat(sLinea, "\"Active\";");
+   
 	strcat(sLinea, "\n");
 	
 	fprintf(fp, sLinea);	
@@ -2861,7 +3011,7 @@ int          *iEmail;
 	if(!CargoVIP(regCli)){
 		return 0;		
 	}
-
+   
 	if(strcmp(regCli->tipo_reparto, "POSTAL")){
 		if(!CargoPostal(regCli)){
 			return 0;
@@ -2925,7 +3075,24 @@ int          *iEmail;
 	return 1;	
 }
 
+short CargaDCI(reg)
+$ClsClientes *reg;
+{
 
+   $EXECUTE selDCI INTO 
+      :reg->orga_dci,
+      :reg->nro_dci
+   USING :reg->numero_cliente;
+   
+   if(SQLCODE != 0){
+      if(SQLCODE != SQLNOTFOUND){
+         printf("Error al buscar DCI para cliente %ld\n", reg->numero_cliente);
+         return 0;
+      }
+   }
+
+   return 1;
+}
 
 short ValidaEmail(eMail)
 char    *eMail;
@@ -3012,6 +3179,27 @@ char    *eMail;
     }
 
     return 1;
+}
+
+
+short PadreEnT23(reg)
+$ClsClientes *reg;
+{
+   $char sCtaCorpo[11];
+   memset(sCtaCorpo, '\0', sizeof(sCtaCorpo));
+   
+   $EXECUTE selCorpoT23 INTO :sCtaCorpo, :reg->papa_t23 USING :reg->numero_cliente;
+   
+   if(SQLCODE != 0){
+      if(SQLCODE != SQLNOTFOUND){
+         printf("Error al bucar papa t23 para cliente %ld\n", reg->numero_cliente);
+      }
+      return 0;
+   } 
+
+   alltrim(reg->papa_t23, ' ');
+   
+   return 1;
 }
 
 int instr(cadena, patron)

@@ -1,17 +1,17 @@
 /*********************************************************************************
     Proyecto: Migracion al sistema SALES-FORCES
-    Aplicacion: sfc_convenios
+    Aplicacion: sfc_cnr
     
 	Fecha : 03/01/2018
 
 	Autor : Lucas Daniel Valle(LDV)
 
 	Funcion del programa : 
-		Extractor que genera el archivo plano para las estructura DEVICE (medidores)
+		Extractor que genera el archivo plano para las estructura Diciplina de Mercado (CNR)
 		
 	Descripcion de parametros :
 		<Base de Datos> : Base de Datos <synergia>
-		<Tipo Corrida>: 0 = Normal; 1 = Reducida
+      <Tipo Corrida> 0=Normal 1=Reducida
 		
 ********************************************************************************/
 #include <locale.h>
@@ -21,15 +21,15 @@
 #include <time.h>
 #include <synmail.h>
 
-$include "sfc_convenios.h";
+$include "sfc_cnr.h";
 
 /* Variables Globales */
 int   giTipoCorrida;
 FILE	*pFileUnx;
 
-char	sArchivoUnx[100];
-char	sArchivoAux[100];
-char	sArchivoDos[100];
+char	sArchUnx[100];
+char	sArchAux[100];
+char	sArchDos[100];
 char	sSoloArchivo[100];
 
 char	sArchLog[100];
@@ -44,7 +44,7 @@ long 	cantPreexistente;
 long	iContaLog;
 
 /* Variables Globales Host */
-$ClsConve	regConve;
+$ClsCnr	regCnr;
 
 char	sMensMail[1024];	
 
@@ -58,6 +58,8 @@ FILE	*fp;
 int		iFlagMigra=0;
 int 	iFlagEmpla=0;
 $long lNroCliente;
+long     iFactu;
+
 
 	if(! AnalizarParametros(argc, argv)){
 		exit(0);
@@ -94,23 +96,18 @@ $long lNroCliente;
 				AREA CURSOR PPAL
 	**********************************************/
 
-   $OPEN curClientes;
+   $OPEN curCNR;
 
-   while(LeoCliente(&lNroCliente)){
-   	$OPEN curConve USING :lNroCliente;
-   
-   	while(LeoConve(&regConve)){
-   		if (!GenerarPlano(fp, regConve)){
-            printf("Fallo GenearPlano\n");
-   			exit(1);	
-   		}
-   	}
+   while(LeoCnr(&regCnr)){
+		if (!GenerarPlano(fp, regCnr)){
+         printf("Fallo GenearPlano\n");
+			exit(1);	
+		}
    	
-   	$CLOSE curConve;
       cantProcesada++;
    }
    			
-   $CLOSE curClientes;      
+   $CLOSE curCNR;      
    
 	CerrarArchivos();
 
@@ -135,7 +132,7 @@ $long lNroCliente;
 	}
 */
 	printf("==============================================\n");
-	printf("CONVENIOS\n");
+	printf("MOVIMIENTOS\n");
 	printf("==============================================\n");
 	printf("Proceso Concluido.\n");
 	printf("==============================================\n");
@@ -165,14 +162,13 @@ char	* argv[];
 	}
 	
    giTipoCorrida=atoi(argv[2]);
-	
+   
 	return 1;
 }
 
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Generación> G = Generación, R = Regeneración.\n");
 }
 
 short AbreArchivos()
@@ -182,12 +178,13 @@ short AbreArchivos()
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
-	memset(sArchivoUnx,'\0',sizeof(sArchivoUnx));
-	memset(sArchivoAux,'\0',sizeof(sArchivoAux));
-   memset(sArchivoDos,'\0',sizeof(sArchivoDos));
+	memset(sArchUnx,'\0',sizeof(sArchUnx));
+	memset(sArchAux,'\0',sizeof(sArchAux));
+   memset(sArchDos,'\0',sizeof(sArchDos));
 	memset(sSoloArchivo,'\0',sizeof(sSoloArchivo));
-	memset(sFecha,'\0',sizeof(sFecha));
-
+	
+   memset(sFecha,'\0',sizeof(sFecha));
+   
 	memset(sPathSalida,'\0',sizeof(sPathSalida));
 
    FechaGeneracionFormateada(sFecha);
@@ -196,51 +193,35 @@ short AbreArchivos()
    
 	alltrim(sPathSalida,' ');
 
-	sprintf( sArchivoUnx  , "%sT1CONVENIOS.unx", sPathSalida );
-   sprintf( sArchivoAux  , "%sT1CONVENIOS.aux", sPathSalida );
-   sprintf( sArchivoDos  , "%senel_care_agreement_t1_%s.csv", sPathSalida, sFecha);
+	sprintf( sArchUnx  , "%sT1DICIPLINA.unx", sPathSalida );
+   sprintf( sArchAux  , "%sT1DICIPLINA.aux", sPathSalida );
+   sprintf( sArchDos  , "%senel_care_marketdicipline_t1_%s.csv", sPathSalida, sFecha );
 
-	strcpy( sSoloArchivo, "T1CONVENIOS.unx");
+	strcpy( sSoloArchivo, "T1DICIPLINA.unx");
 
-	pFileUnx=fopen( sArchivoUnx, "w" );
+	pFileUnx=fopen( sArchUnx, "w" );
 	if( !pFileUnx ){
-		printf("ERROR al abrir archivo %s.\n", sArchivoUnx );
+		printf("ERROR al abrir archivo %s.\n", sArchUnx );
 		return 0;
 	}
-	
-   strcpy(sTitulos, "\"External Id\";");
-   strcat(sTitulos, "\"Tipo\";");
-   strcat(sTitulos, "\"Opción de Convenio\";");
+
+   strcpy(sTitulos,"\"Suministro\";");
+   strcat(sTitulos, "\"Nro. Expediente\";");
+   strcat(sTitulos, "\"Fecha creación expediente\";");
+   strcat(sTitulos, "\"Condicion del expediente\";");
+   strcat(sTitulos, "\"Año del expediente\";");
+   strcat(sTitulos, "\"Fecha Inicio\";");
+   strcat(sTitulos, "\"Fecha Fin\";");
+   strcat(sTitulos, "\"Fecha inicio energía\";");
+   strcat(sTitulos, "\"Fecha fin energía\";");
    strcat(sTitulos, "\"Estado\";");
-   strcat(sTitulos, "\"Fecha inicio\";");
-   strcat(sTitulos, "\"Fecha fin\";");
-   strcat(sTitulos, "\"Deuda inicial\";");
-   strcat(sTitulos, "\"Pie\";");
-   strcat(sTitulos, "\"Deuda pendiente\";");
-   strcat(sTitulos, "\"Valor cuota\";");
-   strcat(sTitulos, "\"Valor última cuota\";");
-   strcat(sTitulos, "\"Total de cuotas\";");
-   strcat(sTitulos, "\"Cuota actual\";");
-   strcat(sTitulos, "\"Tasa\";");
-   strcat(sTitulos, "\"Contacto\";");
-   strcat(sTitulos, "\"Usuario creador\";");
-   strcat(sTitulos, "\"Usuario término\";");
-   strcat(sTitulos, "\"Total intereses\";");
-   strcat(sTitulos, "\"Impuesto interés\";");
-   strcat(sTitulos, "\"Descripcion seguro indexado\";");
-   strcat(sTitulos, "\"Compañía de seguro\";");
-   strcat(sTitulos, "\"Fecha inicio de seguro\";");
-   strcat(sTitulos, "\"Fecha término del seguro\";");
-   strcat(sTitulos, "\"Valor prima del seguro\";");
-   strcat(sTitulos, "\"Número de cuotas\";");
-   strcat(sTitulos, "\"Estado seguro\";");
-   strcat(sTitulos, "\"Fecha de baja\";");
-   strcat(sTitulos, "\"Motivo de baja\";");
-   strcat(sTitulos, "\"Suministro\";");
-   strcat(sTitulos, "\"Cuenta\";");
-   strcat(sTitulos, "\"Company\"");
+   strcat(sTitulos, "\"Monto Expediente\";");
+   strcat(sTitulos, "\"Cantidad de cuotas\";");
+   strcat(sTitulos, "\"Número de medidor\";");
+   strcat(sTitulos, "\"External Id\";");
+
    strcat(sTitulos, "\n");
-   
+      
    fprintf(pFileUnx, sTitulos);
       
 	return 1;	
@@ -269,34 +250,28 @@ $char sClave[7];
      exit(1);
    }
 
-   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchivoUnx, sArchivoAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchUnx, sArchAux);
 	iRcv=system(sCommand);
 
-   sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchivoAux, sArchivoDos);
+   sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchAux, sArchDos);
    iRcv=system(sCommand);
    
-/*
-   sprintf(sCommand, "unix2dos %s | tr -d '\26' > %s", sArchivoUnx, sArchivoDos);
+	sprintf(sCommand, "chmod 777 %s", sArchDos);
 	iRcv=system(sCommand);
-   
-	sprintf(sCommand, "chmod 777 %s", sArchivoDos);
+
+	
+	sprintf(sCommand, "cp %s %s", sArchDos, sPathCp);
 	iRcv=system(sCommand);
-*/	
-	sprintf(sCommand, "cp %s %s", sArchivoDos, sPathCp);
-	iRcv=system(sCommand);
-   
   
-   
-/*  
-   sprintf(sCommand, "rm %s", sArchivoUnx);
+   sprintf(sCommand, "rm %s", sArchUnx);
    iRcv=system(sCommand);
 
-   sprintf(sCommand, "rm %s", sArchivoAux);
+   sprintf(sCommand, "rm %s", sArchAux);
    iRcv=system(sCommand);
 
-   sprintf(sCommand, "rm %s", sArchivoDos);
+   sprintf(sCommand, "rm %s", sArchDos);
    iRcv=system(sCommand);
-*/	
+	
 }
 
 void CreaPrepare(void){
@@ -320,7 +295,7 @@ $char sAux[1000];
 	strcpy(sql, "SELECT c.numero_cliente FROM cliente c ");
 if(giTipoCorrida==1){	
    strcat(sql, ", migra_sf ma ");
-}   
+}
 	
 	strcat(sql, "WHERE c.estado_cliente = 0 ");
    strcat(sql, "AND c.tipo_sum != 5 ");
@@ -338,31 +313,60 @@ if(giTipoCorrida==1){
 	
 	$DECLARE curClientes CURSOR WITH HOLD FOR selClientes;
 
-   /******** Cursor CONVE  ****************/
-	strcpy(sql, "SELECT numero_cliente, ");
-	strcat(sql, "corr_convenio, ");
-	strcat(sql, "opcion_convenio, ");
-	strcat(sql, "estado, ");
-	strcat(sql, "TO_CHAR(fecha_creacion, '%Y-%m-%d'), ");
-	strcat(sql, "TO_CHAR(fecha_termino, '%Y-%m-%d'), ");
-	strcat(sql, "deuda_origen, ");
-	strcat(sql, "valor_cuota_ini, ");
-	strcat(sql, "deuda_convenida, ");
-	strcat(sql, "valor_cuota, ");
-	strcat(sql, "numero_tot_cuotas, ");
-	strcat(sql, "numero_ult_cuota, ");
-	strcat(sql, "intereses, ");
-	strcat(sql, "usuario_creacion, "); 
-	strcat(sql, "usuario_termino ");
-	strcat(sql, "FROM conve ");
-	strcat(sql, "WHERE numero_cliente = ? ");
-   strcat(sql, "AND estado = 'V' ");
-	strcat(sql, "ORDER BY corr_convenio ASC ");   
+   /******** Cursor CNR  ****************/
+	strcpy(sql, "SELECT c.sucursal, ");
+	strcat(sql, "c.nro_expediente, ");
+	strcat(sql, "c.ano_expediente, ");
+	strcat(sql, "TO_CHAR(c.fecha_deteccion, '%Y-%m-%dT%H:%M:%S.000Z'), ");
+	strcat(sql, "TO_CHAR(c.fecha_inicio, '%Y-%m-%dT%H:%M:%S.000Z'), "); 
+	strcat(sql, "TO_CHAR(c.fecha_finalizacion, '%Y-%m-%dT%H:%M:%S.000Z'), "); 
+	strcat(sql, "c.numero_cliente, ");
+	strcat(sql, "c.nro_solicitud, ");
+	strcat(sql, "c.cod_estado, ");
+	strcat(sql, "t1.descripcion ");
+	strcat(sql, "FROM cnr_new c, tabla t1 ");
+	strcat(sql, "WHERE c.fecha_inicio >= TODAY - 365 ");
+   strcat(sql, "AND c.cod_estado != '99' ");
+	strcat(sql, "AND t1.nomtabla = 'CNRRE' ");
+	strcat(sql, "AND t1.sucursal = '0000' ");
+	strcat(sql, "AND t1.codigo = c.cod_estado ");
+	strcat(sql, "AND t1.fecha_activacion <= TODAY ");
+	strcat(sql, "AND (t1.fecha_desactivac IS NULL OR t1.fecha_desactivac >TODAY) ");
    
-	$PREPARE selConve FROM $sql;
+	$PREPARE selCnr FROM $sql;
 	
-	$DECLARE curConve CURSOR WITH HOLD FOR selConve;
+	$DECLARE curCNR CURSOR WITH HOLD FOR selCnr;
 
+   /************ Período ultimo calculo ************/
+	strcpy(sql, "SELECT FIRST 1 TO_CHAR(fecha_desde, '%Y-%m-%dT%H:%M:%S.000Z'), ");
+	strcat(sql, "TO_CHAR(fecha_hasta, '%Y-%m-%dT%H:%M:%S.000Z'), ");
+   strcat(sql, "total_calculo, ");
+	strcat(sql, "MAX(fecha_calculo) ");
+	strcat(sql, "FROM cnr_calculo "); 
+	strcat(sql, "WHERE sucursal = ? ");
+	strcat(sql, "AND ano_expediente = ? ");
+	strcat(sql, "AND nro_expediente = ? ");
+	strcat(sql, "GROUP BY 1,2,3 ");
+	strcat(sql, "ORDER BY 1,2,3 ");
+   
+   $PREPARE selPeriodo FROM $sql;
+
+   /************ Sel Medidor ************/
+	strcpy(sql, "SELECT marca_medidor, ");
+	strcat(sql, "modelo_medidor, ");
+	strcat(sql, "numero_medidor ");
+	strcat(sql, "FROM medid ");
+	strcat(sql, "WHERE numero_cliente = ? ");
+	strcat(sql, "AND estado = 'I' ");
+   
+   $PREPARE selMedidor FROM $sql;
+   
+   /************ Sel Solicitud ************/
+	strcpy(sql, "SELECT numero_cliente FROM solicitud ");
+	strcat(sql, "WHERE nro_solicitud = ? ");
+   
+   $PREPARE selSolicitud FROM $sql;
+   
 	/******** Select Path de Archivos ****************/
 	strcpy(sql, "SELECT valor_alf ");
 	strcat(sql, "FROM tabla ");
@@ -418,161 +422,185 @@ $long iValor=0;
     return iValor;
 }
 
-short LeoCliente(lNroCliente)
-$long *lNroCliente;
+
+short LeoCnr(reg)
+$ClsCnr *reg;
 {
-   $long nroCliente;
-   
-   $FETCH curClientes INTO :nroCliente;
-   
-    if ( SQLCODE != 0 ){
-        return 0;
-    }
-   
-   *lNroCliente = nroCliente;
-
-   return 1;
-}
+$long lCorrRefactu;
+$int  iCantidad;
 
 
-short LeoConve(reg)
-$ClsConve *reg;
-{
-	InicializaConve(reg);
+	InicializaCnr(reg);
 
-	$FETCH curConve INTO
+	$FETCH curCnr INTO
+      :reg->sucursal,
+      :reg->nro_expediente,
+      :reg->ano_expediente,
+      :reg->fecha_deteccion,
+      :reg->fecha_inicio, 
+      :reg->fecha_finalizacion, 
       :reg->numero_cliente,
-      :reg->corr_convenio,
-      :reg->opcion_convenio,
-      :reg->estado,
-      :reg->fecha_creacion,
-      :reg->fecha_termino,
-      :reg->deuda_origen,
-      :reg->valor_cuota_ini,
-      :reg->deuda_convenida,
-      :reg->valor_cuota,
-      :reg->numero_tot_cuotas,
-      :reg->numero_ult_cuota,
-      :reg->intereses,
-      :reg->usuario_creacion, 
-      :reg->usuario_termino;
+      :reg->nro_solicitud,
+      :reg->cod_estado,
+      :reg->descripcion;
 	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
 			return 0;
 		}else{
-			printf("Error al leer Cursor de Lecturas !!!\nProceso Abortado.\n");
+			printf("Error al leer Cursor de CNR !!!\nProceso Abortado.\n");
 			exit(1);	
 		}
     }			
    
-   alltrim(reg->usuario_creacion, ' ');
-   alltrim(reg->usuario_termino, ' ');
-   alltrim(reg->fecha_termino, ' ');
-            
+   /* Ver si tiene calculos */
+  
+   $EXECUTE selPeriodo INTO :reg->sFechaDesdePeriCalcu,
+                            :reg->sFechaHastaPeriCalcu,
+                            :reg->total_calculo
+                        USING :reg->sucursal,
+                              :reg->ano_expediente,
+                              :reg->nro_expediente;
+                              
+   if ( SQLCODE != 0 ){
+      if(SQLCODE != 100){
+         printf("Error leyendo cnr_calculo para sucursal %s ano %ld expediente %ld\n", reg->sucursal, reg->ano_expediente, reg->nro_expediente);
+      }
+   }         
+   
+   /* datos del medidor */
+   
+   if(reg->numero_cliente > 0){
+      $EXECUTE selMedidor INTO :reg->marca_medidor,
+                               :reg->modelo_medidor,
+                               :reg->numero_medidor
+                          USING :reg->numero_cliente;
+                          
+      if ( SQLCODE != 0 ){
+         if(SQLCODE != 100){
+            printf("Error leyendo medid para cliente %ld\n", reg->numero_cliente);
+         }
+      }         
+      
+   }else{
+      if(reg->nro_solicitud > 0){
+         $EXECUTE selSolicitud INTO :reg->numero_cliente
+                              USING :reg->nro_solicitud;
+                              
+         if(SQLCODE == 0){
+            if(reg->numero_cliente > 0){
+               $EXECUTE selMedidor INTO :reg->marca_medidor,
+                                        :reg->modelo_medidor,
+                                        :reg->numero_medidor
+                                   USING :reg->numero_cliente;
+                                   
+               if ( SQLCODE != 0 ){
+                  if(SQLCODE != 100){
+                     printf("Error leyendo medid para cliente %ld\n", reg->numero_cliente);
+                  }
+               }         
+            }
+         }                              
+      }
+   
+   }
+   
+   alltrim(reg->descripcion, ' ');
+   
 	return 1;	
 }
 
-void InicializaConve(reg)
-$ClsConve	*reg;
+void InicializaCnr(reg)
+$ClsCnr	*reg;
 {
-
+   memset(reg->sucursal, '\0', sizeof(reg->sucursal));
+   rsetnull(CLONGTYPE, (char *) &(reg->nro_expediente));
+   rsetnull(CINTTYPE, (char *) &(reg->ano_expediente));
+   memset(reg->fecha_deteccion, '\0', sizeof(reg->fecha_deteccion));
+   memset(reg->fecha_inicio, '\0', sizeof(reg->fecha_inicio)); 
+   memset(reg->fecha_finalizacion, '\0', sizeof(reg->fecha_finalizacion)); 
    rsetnull(CLONGTYPE, (char *) &(reg->numero_cliente));
-   rsetnull(CINTTYPE, (char *) &(reg->corr_convenio));
-   memset(reg->opcion_convenio, '\0', sizeof(reg->opcion_convenio));
-   memset(reg->estado, '\0', sizeof(reg->estado));
-   memset(reg->fecha_creacion, '\0', sizeof(reg->fecha_creacion));
-   memset(reg->fecha_termino, '\0', sizeof(reg->fecha_termino));
-   rsetnull(CDOUBLETYPE, (char *) &(reg->deuda_origen));
-   rsetnull(CDOUBLETYPE, (char *) &(reg->valor_cuota_ini));
-   rsetnull(CDOUBLETYPE, (char *) &(reg->deuda_convenida));
-   rsetnull(CDOUBLETYPE, (char *) &(reg->valor_cuota));
-   rsetnull(CINTTYPE, (char *) &(reg->numero_tot_cuotas));
-   rsetnull(CINTTYPE, (char *) &(reg->numero_ult_cuota));
-   rsetnull(CFLOATTYPE, (char *) &(reg->intereses));
-   memset(reg->usuario_creacion, '\0', sizeof(reg->usuario_creacion)); 
-   memset(reg->usuario_termino, '\0', sizeof(reg->usuario_termino));
+   rsetnull(CLONGTYPE, (char *) &(reg->nro_solicitud));
+   memset(reg->cod_estado, '\0', sizeof(reg->cod_estado));
+   memset(reg->descripcion, '\0', sizeof(reg->descripcion));
+   
+   memset(reg->sFechaDesdePeriCalcu, '\0', sizeof(reg->sFechaDesdePeriCalcu));
+   memset(reg->sFechaHastaPeriCalcu, '\0', sizeof(reg->sFechaHastaPeriCalcu));
+   rsetnull(CDOUBLETYPE, (char *) &(reg->total_calculo));
+   rsetnull(CLONGTYPE, (char *) &(reg->numero_medidor));
+   memset(reg->marca_medidor, '\0', sizeof(reg->marca_medidor));
+   memset(reg->modelo_medidor, '\0', sizeof(reg->modelo_medidor));
 
 }
+
 
 
 short GenerarPlano(fp, reg)
 FILE 				*fp;
-$ClsConve		reg;
+$ClsCnr		reg;
 {
 	char	sLinea[1000];	
 
 	memset(sLinea, '\0', sizeof(sLinea));
 
-   /* External Id */
-   sprintf(sLinea, "\"%ld%dAR\";", reg.numero_cliente, reg.corr_convenio );
-   /* Tipo */
-   strcat(sLinea, "\"\";");
-   /* Opción de Convenio */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.opcion_convenio);
-   /* Estado */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.estado);
-   /* Fecha inicio */
-   /*sprintf(sLinea, "%s\"%sT00:00:00.000-03:00\";", sLinea, reg.fecha_creacion);*/
-   sprintf(sLinea, "%s\"%sT00:00:00.000Z\";", sLinea, reg.fecha_creacion);
-   /* Fecha fin */
-   if(strcmp(reg.fecha_termino, "")!= 0 ){
-      /*sprintf(sLinea, "%s\"%sT00:00:00.000-03:00\";", sLinea, reg.fecha_termino);*/
-      sprintf(sLinea, "%s\"%sT00:00:00.000Z\";", sLinea, reg.fecha_termino);
+   /* Suministro */
+   sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
+   
+   /* Nro. Expediente */
+   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.nro_expediente);
+   
+   /* Fecha creación expediente */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_inicio);
+   
+   /* Condicion del expediente */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.descripcion);
+   
+   /* Año del expediente */
+   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.ano_expediente);
+   
+   /* Fecha Inicio */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_inicio);
+   
+   /* Fecha Fin */
+   if(strcmp(reg.fecha_finalizacion, "")!=0){
+      sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_finalizacion);
    }else{
       strcat(sLinea, "\"\";");
    }
-   /* Deuda inicial */
-   /*sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.deuda_origen);*/
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.deuda_origen);
-   /* Pie */
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.valor_cuota_ini);
-   /* Deuda pendiente */
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.deuda_convenida);   
-   /* Valor cuota */
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.valor_cuota);
-   /* Valor última cuota */
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.valor_cuota);
-   /* Total de cuotas */
-   sprintf(sLinea, "%s\"%d\";", sLinea, reg.numero_tot_cuotas);
-   /* Cuota actual */
-   sprintf(sLinea, "%s\"%d\";", sLinea, reg.numero_ult_cuota);
-   /* Tasa */
-   sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.intereses);
-   /* Contacto */
-   sprintf(sLinea, "%s\"%ld\";",sLinea, reg.numero_cliente);
-   /* Usuario creador */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.usuario_creacion);
-   /* Usuario término */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.usuario_termino);
-   /* Total intereses */
+   
+   /* Fecha inicio energía */
+   if(strcmp(reg.sFechaDesdePeriCalcu, "")!=0){
+      sprintf(sLinea, "%s\"%s\";", sLinea, reg.sFechaDesdePeriCalcu);
+   }else{
+      strcat(sLinea, "\"\";");
+   }
+   
+   /* Fecha fin energía */
+   if(strcmp(reg.sFechaHastaPeriCalcu, "")!=0){
+      sprintf(sLinea, "%s\"%s\";", sLinea, reg.sFechaHastaPeriCalcu);
+   }else{
+      strcat(sLinea, "\"\";");
+   }
+   
+   /* Estado */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.cod_estado);
+   
+   /* Monto Expediente */
+   if(!risnull(CDOUBLETYPE, (char *) &reg.total_calculo) && reg.total_calculo > 0){
+      sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.total_calculo);
+   }else{
+      strcat(sLinea, "\"\";");
+   }
+   
+   /* Cantidad de cuotas */
    strcat(sLinea, "\"\";");
-   /* Impuesto interés */
-   strcat(sLinea, "\"\";");
-   /* Descripcion seguro indexado */
-   strcat(sLinea, "\"\";");
-   /* Compañía de seguro */
-   strcat(sLinea, "\"\";");
-   /* Fecha inicio de seguro */
-   strcat(sLinea, "\"\";");
-   /* Fecha término del seguro */
-   strcat(sLinea, "\"\";");
-   /* Valor prima del seguro */
-   strcat(sLinea, "\"\";");
-   /* Número de cuotas */
-   sprintf(sLinea, "%s\"%d\";", sLinea, reg.numero_tot_cuotas);
-   /* Estado seguro */
-   strcat(sLinea, "\"\";");
-   /* Fecha de baja */
-   strcat(sLinea, "\"\";");
-   /* Motivo de baja */
-   strcat(sLinea, "\"\";");
-   /* Suministro */
-   sprintf(sLinea, "%s\"%ldAR\";",sLinea, reg.numero_cliente);
-   /* Cuenta */
-	sprintf(sLinea, "%s\"%ld\";",sLinea, reg.numero_cliente);
-   /* Company */
-   strcat(sLinea, "\"9\";");
+   
+   /* Número de medidor */
+   sprintf(sLinea, "%s\"%ld%s%s\";", sLinea, reg.numero_medidor, reg.marca_medidor, reg.modelo_medidor);
+   
+   /* External Id */
+   sprintf(sLinea, "%s\"%d%s%ld\";", sLinea, reg.ano_expediente, reg.sucursal, reg.nro_expediente);
+
 
 	strcat(sLinea, "\n");
 	

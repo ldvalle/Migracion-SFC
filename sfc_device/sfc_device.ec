@@ -12,8 +12,6 @@
 	Descripcion de parametros :
 		<Base de Datos> : Base de Datos <synergia>
 		
-		<Tipo Generacion>: G = Generacion; R = Regeneracion
-		
 ********************************************************************************/
 #include <locale.h>
 #include <stdio.h>
@@ -25,7 +23,7 @@
 $include "sfc_device.h";
 
 /* Variables Globales */
-$char	gsTipoGenera[2];
+int   giTipoCorrida;
 
 FILE	*pFileMedidorUnx;
 
@@ -164,43 +162,42 @@ char	* argv[];
 		MensajeParametros();
 		return 0;
 	}
-	
-	memset(gsTipoGenera, '\0', sizeof(gsTipoGenera));
 
-	strcpy(gsTipoGenera, argv[2]);
-	
+   giTipoCorrida = atoi(argv[2]);
+   
 	return 1;
 }
 
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Generación> G = Generación, R = Regeneración.\n");
+      printf("	<Tipo Corrida> 0=Normal, 1=Reducida.\n");
 }
 
 short AbreArchivos()
 {
    char  sTitulos[10000];
+   $char sFecha[9];
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
 	memset(sArchMedidorUnx,'\0',sizeof(sArchMedidorUnx));
 	memset(sArchMedidorAux,'\0',sizeof(sArchMedidorAux));
    memset(sArchMedidorDos,'\0',sizeof(sArchMedidorDos));
+   memset(sFecha,'\0',sizeof(sFecha));
 	memset(sSoloArchivoMedidor,'\0',sizeof(sSoloArchivoMedidor));
-	
 
 	memset(sPathSalida,'\0',sizeof(sPathSalida));
 
-	RutaArchivos( sPathSalida, "SALESF" );
+   FechaGeneracionFormateada(sFecha);
    
-strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
+	RutaArchivos( sPathSalida, "SALESF" );
    
 	alltrim(sPathSalida,' ');
 
 	sprintf( sArchMedidorUnx  , "%sT1DEVICE.unx", sPathSalida );
    sprintf( sArchMedidorAux  , "%sT1DEVICE.aux", sPathSalida );
-   sprintf( sArchMedidorDos  , "%sT1DEVICE.csv", sPathSalida );
+   sprintf( sArchMedidorDos  , "%senel_care_device_t1_%s.csv", sPathSalida, sFecha );
 
 	strcpy( sSoloArchivoMedidor, "T1DEVICE.unx");
 
@@ -210,7 +207,8 @@ strcpy(sPathSalida, "/home/ldvalle/noti_rep/");
 		return 0;
 	}
 	
-   strcpy(sTitulos,"\"Marca Medidor\";\"Modelo Medidor\";\"Nro.Medidor\";\"Propiedad Medidor\";\"Tipo Medidor\";\"Punto de Suministro\";\"External ID\";\"Estado Medidor\"\n");
+   strcpy(sTitulos,"\"Marca Medidor\";\"Modelo Medidor\";\"Nro.Medidor\";\"Propiedad Medidor\";\"Tipo Medidor\";\"Punto de Suministro\";\"External ID\";\"Estado Medidor\";\"Fecha Ult.Instalacion\";\"Constante\";\"Fecha Fabricacion\";\"Fecha Instalacion\";\n");
+
    fprintf(pFileMedidorUnx, sTitulos);
       
 	return 1;	
@@ -239,7 +237,7 @@ $char sClave[7];
      exit(1);
    }
 
-   sprintf(sCommand, "unix2dos %s > %s", sArchMedidorUnx, sArchMedidorAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchMedidorUnx, sArchMedidorAux);
 	iRcv=system(sCommand);
 
    sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchMedidorAux, sArchMedidorDos);
@@ -288,11 +286,16 @@ $char sAux[1000];
 	strcat(sql, "me.med_ubic, ");
 	strcat(sql, "me.med_codubic, ");
 	strcat(sql, "me.numero_cliente, ");
-	strcat(sql, "mo.tipo_medidor ");
-	strcat(sql, "FROM medid m, medidor me, modelo mo ");
+	strcat(sql, "mo.tipo_medidor, ");
+	strcat(sql, "TO_CHAR(m.fecha_prim_insta, '%Y-%m-%d'), ");
+	strcat(sql, "TO_CHAR(m.fecha_ult_insta, '%Y-%m-%d'), ");
+	strcat(sql, "m.constante, ");
+	strcat(sql, "me.med_anio ");
    
-strcat(sql, ", migra_sf ma ");
-
+	strcat(sql, "FROM medid m, medidor me, modelo mo ");
+if(giTipoCorrida == 1){
+   strcat(sql, ", migra_sf ma ");
+}
 	strcat(sql, "WHERE m.estado = 'I' ");
 	strcat(sql, "AND me.med_numero = m.numero_medidor ");
 	strcat(sql, "AND me.mar_codigo = m.marca_medidor ");
@@ -303,8 +306,9 @@ strcat(sql, ", migra_sf ma ");
 	strcat(sql, "AND me.med_anio != 2019 "); 
 	strcat(sql, "AND mo.mar_codigo = me.mar_codigo "); 
 	strcat(sql, "AND mo.mod_codigo = me.mod_codigo "); 
-
-strcat(sql, "AND ma.numero_cliente = m.numero_cliente ");
+if(giTipoCorrida == 1){
+   strcat(sql, "AND ma.numero_cliente = m.numero_cliente ");
+}   
 
 	$PREPARE selMedidores FROM $sql;
 	
@@ -378,7 +382,11 @@ $ClsMedidor *regMed;
 		:regMed->med_ubic, 
 		:regMed->med_codubic,
 		:regMed->numero_cliente,
-		:regMed->tipo_medidor;
+		:regMed->tipo_medidor,
+		:regMed->fecha_prim_insta,
+		:regMed->fecha_ult_insta,
+		:regMed->constante,
+		:regMed->med_anio;
 	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
@@ -405,6 +413,10 @@ $ClsMedidor	*regMed;
 	rsetnull(CLONGTYPE, (char *) &(regMed->numero_cliente));
 	memset(regMed->tipo_medidor, '\0', sizeof(regMed->tipo_medidor));
    memset(regMed->estado_sfc, '\0', sizeof(regMed->estado_sfc));
+   memset(regMed->fecha_prim_insta, '\0', sizeof(regMed->fecha_prim_insta));
+   memset(regMed->fecha_ult_insta, '\0', sizeof(regMed->fecha_ult_insta));
+	rsetnull(CFLOATTYPE, (char *) &(regMed->constante));
+	rsetnull(CINTTYPE, (char *) &(regMed->med_anio));
 	
 }
 
@@ -482,6 +494,15 @@ $ClsMedidor			regMed;
    
    /* Estado Medidor */
    sprintf(sLinea, "%s\"%s\";", sLinea, regMed.estado_sfc);
+
+   /* Fecha Ult.Instalacion */
+   sprintf(sLinea, "%s\"%s\";", sLinea, regMed.fecha_ult_insta);
+   /* Constante */
+   sprintf(sLinea, "%s\"%f\";", sLinea, regMed.constante);
+   /* Fecha Fabricación */
+   sprintf(sLinea, "%s\"%d\";", sLinea, regMed.med_anio);
+   /* Fecha Instalacion */
+   sprintf(sLinea, "%s\"%s\";", sLinea, regMed.fecha_prim_insta);
 
 	strcat(sLinea, "\n");
 	

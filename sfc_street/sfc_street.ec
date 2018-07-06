@@ -164,6 +164,7 @@ void MensajeParametros(void){
 short AbreArchivos()
 {
    char  sTitulos[10000];
+   $char sFecha[9];
    
    memset(sTitulos, '\0', sizeof(sTitulos));
    
@@ -171,19 +172,20 @@ short AbreArchivos()
    memset(sArchStreetAux, '\0', sizeof(sArchStreetAux));
    memset(sArchStreetDos, '\0', sizeof(sArchStreetDos));
 	memset(sSoloArchivoStreetUnx, '\0', sizeof(sSoloArchivoStreetUnx));
-	
+	memset(sFecha, '\0', sizeof(sFecha));
 
 	memset(sPathSalida,'\0',sizeof(sPathSalida));
 
+   FechaGeneracionFormateada(sFecha);
 	RutaArchivos( sPathSalida, "SALESF" );
-strcpy(sPathSalida, "/home/ldvalle/noti_rep/");	
+	
 	alltrim(sPathSalida,' ');
 
    /* Armo nombres de archivo */
 	strcpy(sSoloArchivoStreetUnx, "T1STREET.unx");
 	sprintf(sArchStreetUnx, "%s%s", sPathSalida, sSoloArchivoStreetUnx);
    sprintf(sArchStreetAux, "%sT1STREET.aux", sPathSalida);
-   sprintf(sArchStreetDos, "%sT1STREET.csv", sPathSalida);
+   sprintf(sArchStreetDos, "%senel_care_street_t1_%s.csv", sPathSalida, sFecha);
 	
 	
    /* Abro Archivos*/
@@ -213,7 +215,6 @@ $char sClave[7];
 	memset(sCommand, '\0', sizeof(sCommand));
 	memset(sPathCp, '\0', sizeof(sPathCp));
    strcpy(sClave, "SALEFC");
-	/*strcpy(sPathCp, "/fs/migracion/Extracciones/SF_Emergencias/T1/");*/
    
 	$EXECUTE selRutaFinal INTO :sPathCp using :sClave;
 
@@ -223,7 +224,7 @@ $char sClave[7];
     }
    /* ----------- */
    
-   sprintf(sCommand, "unix2dos %s > %s", sArchStreetUnx, sArchStreetAux);
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchStreetUnx, sArchStreetAux);
 	iRcv=system(sCommand);
       
    sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchStreetAux, sArchStreetDos);
