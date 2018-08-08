@@ -73,6 +73,7 @@ public class MeasuresDAO {
 
 			while(rs0.next() ){
 				lNroCliente = rs0.getLong(1);
+				
 				if(!miSrv.ProcesaCliente(lNroCliente)) {
 					System.out.println("No se proceso cliente " + lNroCliente);
 				}
@@ -132,6 +133,7 @@ public class MeasuresDAO {
 				miReg.fecha_facturacion= rs0.getString(11);
 				miReg.numero_medidor=rs0.getLong(12);
 				miReg.marca_medidor=rs0.getString(13);
+				miReg.coseno_phi = rs0.getFloat(14);
 				
 				if(miReg.indica_refact.compareTo("S")==0) {
 					//Debo buscar la refacturada
@@ -345,7 +347,8 @@ public class MeasuresDAO {
 		"h2.indica_refact, "+
 	    "TO_CHAR(h2.fecha_facturacion, '%Y-%m-%d'), "+
 		"h.numero_medidor, "+
-		"h.marca_medidor "+
+		"h.marca_medidor, "+
+		"h.coseno_phi "+
 		"FROM hislec h, hisfac h2 "+
 		"WHERE h.numero_cliente =  "+ nroCliente + " "+
 		"AND h.fecha_lectura >= TODAY - 365 "+

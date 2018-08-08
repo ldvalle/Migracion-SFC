@@ -18,9 +18,9 @@ public class startMuestreo {
 
 		//MoveIn();
 		
-		//UniversoSAP();
+		UniversoSAP();
 		
-		ContratoSFC(sOS);
+		//ContratoSFC(sOS);
 	}
 
 	
@@ -63,6 +63,7 @@ public class startMuestreo {
 		}
 	}
 	
+/*
 	private static void ContratoSFC(String sOS) {
 		servicios.sfcContrato miSrv = new servicios.sfcContrato();
 
@@ -75,7 +76,6 @@ public class startMuestreo {
 			//JOptionPane.showMessageDialog(null,"FAllo");
 			System.out.println("Fallo");
 		}
-
-		
 	}
+*/	
 }

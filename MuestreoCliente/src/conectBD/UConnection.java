@@ -33,6 +33,16 @@ public class UConnection {
 			throw new RuntimeException("Error al crear conexión", ex);
 		}
 	}
+
+	public static void nullConnection() {
+		try {
+			con=null;
+			//con.close();
+		}catch(Exception ex){
+			ex.printStackTrace();
+			throw new RuntimeException("Error al cerrar conexión", ex);
+		}
+	}
 	
 	static class MiShDwnHook extends Thread{
 		public void run(){

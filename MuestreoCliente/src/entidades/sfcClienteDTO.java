@@ -2,6 +2,7 @@ package entidades;
 
 public class sfcClienteDTO {
 	public long		numero_cliente;
+	public int		corr_facturacion;
 	public String	nombre;
 	public String	cod_calle;
 	public String	nom_calle;
@@ -33,5 +34,6 @@ public class sfcClienteDTO {
 	public double   potencia_inst_fp;
 	public String  	entre_calle1;
 	public String  	entre_calle2;
-
+	public String	tipo_fpago;
+	public String	nro_beneficiario;
 }

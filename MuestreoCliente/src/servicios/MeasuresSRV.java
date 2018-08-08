@@ -6,6 +6,7 @@ import entidades.MeasuresDTO;
 import java.util.Collection;
 import java.util.Vector;
 import java.util.Date;
+import java.text.SimpleDateFormat;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +14,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+
 
 
 
@@ -129,6 +131,12 @@ public class MeasuresSRV {
 		String sArchivoConsumos="";
 		String sFilePathConsumos="";
 		
+		Date dFechaHoy = new Date();
+		
+		SimpleDateFormat fechaF = new SimpleDateFormat("yyyyMMdd");
+		String sFechaFMT=fechaF.format(dFechaHoy);
+
+		
 		sClave = "SALESF";
 		sPathGenera=miDao.getPathFile(sClave);
 		sClave = "SALEFC";
@@ -139,9 +147,10 @@ public class MeasuresSRV {
 			sPathCopia="C:\\Users\\ar17031095.ENELINT\\Documents\\data_out\\";
 		}
 		
-		sArchivoLecturas="T1MEASURES.csv";
+		sArchivoLecturas= String.format("enel_care_measures_counters_t1_%s.csv", sFechaFMT);
 		sFilePathLecturas=sPathGenera.trim() + sArchivoLecturas.trim();
-		sArchivoConsumos="T1CONSUMOS.csv";
+		
+		sArchivoConsumos= String.format("enel_care_consumption_t1_%s.csv", sFechaFMT);
 		sFilePathConsumos=sPathGenera.trim() + sArchivoConsumos.trim();
 		sArchLectu=sArchivoLecturas;
 		sArchConsu=sArchivoConsumos;
@@ -211,7 +220,7 @@ public class MeasuresSRV {
 		if(sTipo.equals("LECTU")) {
 			sTitulo="\"Suministro\";\"Fecha Evento\";\"Evento Medicion\";\"Tipo de Medida\";\"Numero Medidor\";\"Constante\";\"Consumo\";\"Lectura\";\"Lectura Terreno\";\"Clave Medicion\";\"Irregularidad de Lectura\";\"Caso de Atencion\";\"Factura\";\"External ID\";\"Fecha Proxima Lectura\";\"CreatedByClient\";\r\n";
 		}else {
-			sTitulo="\"Suministro\";\"Factura\";\"Tipo de consumo\";\"Consumo facturado\";\"Clave de consumo\";\"Tipo de medida\";\"External Id\";\"Fecha del evento\"\r\n";
+			sTitulo="\"Suministro\";\"Factura\";\"Tipo de consumo\";\"Consumo facturado\";\"Clave de consumo\";\"Tipo de medida\";\"External Id\";\"Fecha del evento\";\"Número Medidor\";\"Coseno Phi\";\r\n";
 		}
 		
 		return sTitulo;
@@ -322,6 +331,12 @@ public class MeasuresSRV {
 	   // Fecha Facturacion
 		sLinea+= String.format("\"%s\"", reg.fecha_facturacion);
 
+		// Nro + marca + modelo de medidor
+		sLinea += String.format("\"%d%s%s\";", reg.numero_medidor, reg.marca_medidor, reg.modelo_medidor);
+		
+		// Coseno Phi
+		sLinea+= String.format("\"%.02f\";", reg.coseno_phi);
+		
 		sLinea += "\r\n";		
 		
 		try {
