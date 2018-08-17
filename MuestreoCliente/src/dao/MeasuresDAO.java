@@ -348,7 +348,7 @@ public class MeasuresDAO {
 	    "TO_CHAR(h2.fecha_facturacion, '%Y-%m-%d'), "+
 		"h.numero_medidor, "+
 		"h.marca_medidor, "+
-		"h.coseno_phi "+
+		"h2.coseno_phi "+
 		"FROM hislec h, hisfac h2 "+
 		"WHERE h.numero_cliente =  "+ nroCliente + " "+
 		"AND h.fecha_lectura >= TODAY - 365 "+

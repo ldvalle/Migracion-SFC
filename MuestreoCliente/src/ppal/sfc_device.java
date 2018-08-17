@@ -2,15 +2,14 @@ package ppal;
 
 import java.util.Date;
 import java.text.SimpleDateFormat;
+import servicios.DeviceSRV;
 
-import servicios.ConvenioSRV;
-
-public class sfc_convenios {
+public class sfc_device {
 	static private int iModoExtraccion; 
 	static private String sOS;
 
 	public static void main(String[] args) {
-		ConvenioSRV miSrv = new ConvenioSRV();
+		DeviceSRV miSrv = new DeviceSRV();
 		SimpleDateFormat fechaF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 		
 		Date fechaInicio = new Date();
@@ -18,10 +17,10 @@ public class sfc_convenios {
 		if(!ValidaArgumentos(args)) {
 			System.exit(1);
 		}
-		System.out.println("Procesando CONVENIOS ...");
+		System.out.println("Procesando DEVICES ...");
 		
 
-		if(!miSrv.ProcesaConve(iModoExtraccion, sOS)) {
+		if(!miSrv.ProcesaDevice(iModoExtraccion, sOS)) {
 			System.out.println("Fallo el proceso");
 			System.exit(1);
 		}
@@ -51,5 +50,5 @@ public class sfc_convenios {
 		return true;
 	}
 	
-	
+
 }
