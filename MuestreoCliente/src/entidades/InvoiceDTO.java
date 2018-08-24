@@ -1,9 +1,12 @@
 package entidades;
 
+import java.util.Date;
+
 public class InvoiceDTO {
 
 	   public	long	numero_cliente;
 	   public	int		corr_facturacion;
+	   public	Date	dFechaFacturacion;
 	   public	String	fecha_facturacion;
 	   public	String	fecha_vencimiento1;
 	   public	String	fecha_vencimiento2;

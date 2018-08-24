@@ -1,9 +1,7 @@
 package dao;
 
 import conectBD.UConnection;
-import entidades.DeviceDTO;
 import entidades.FieldOperationDTO;
-import servicios.DeviceSRV;
 import servicios.FieldOperationSRV;
 
 import java.sql.Connection;

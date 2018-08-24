@@ -16,8 +16,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 
-
-
 public class MeasuresSRV {
 
 	private static String Plataforma;
