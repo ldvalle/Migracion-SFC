@@ -203,7 +203,7 @@ public class DeviceSRV {
 		}
 		
 	   /* External ID */
-		sLinea+= String.format("\"%d%s%s\";", reg.numero, reg.marca, reg.modelo);
+		sLinea+= String.format("\"%d%d%s%sDEVARG\";", reg.numero_cliente, reg.numero, reg.marca, reg.modelo);
 	   
 	   /* Estado Medidor */
 		sLinea += String.format("\"%s\";", reg.estado_sfc.trim());

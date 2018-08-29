@@ -104,7 +104,7 @@ public class ConvenioSRV {
 		sLinea=String.format("\"%.02f\";", reg.intereses);
 
 	   /* Contacto */
-		sLinea+=String.format("\"%d\";", reg.numero_cliente);
+		sLinea+=String.format("\"%dARG\";", reg.numero_cliente);
 
 	   /* Usuario creador */
 		sLinea+=String.format("\"%s\";", reg.usuario_creacion);
@@ -139,7 +139,7 @@ public class ConvenioSRV {
 		sLinea=String.format("\"%dAR\";", reg.numero_cliente);
 
 	   /* Cuenta */
-		sLinea+=String.format("\"%d\";", reg.numero_cliente);
+		sLinea+=String.format("\"%dARG\";", reg.numero_cliente);
 
 	   /* Company */
 		sLinea+= "\"9\";";

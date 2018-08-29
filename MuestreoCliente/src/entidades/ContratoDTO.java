@@ -30,6 +30,6 @@ public class ContratoDTO {
 	   public String fp_nroTarjeta;
 	   public String fp_codTarjeta;
 	   
-
+	   public String sMarcaTarjeta;
 }
 

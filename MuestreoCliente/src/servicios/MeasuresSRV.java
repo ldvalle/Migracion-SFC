@@ -244,7 +244,7 @@ public class MeasuresSRV {
 	   }
 	   
 	   // ID Medidor
-	   sLinea += String.format("\"%d%s%s\";", reg.numero_medidor, reg.marca_medidor, reg.modelo_medidor);
+	   sLinea += String.format("\"%d%d%s%sDEVARG\";", reg.numero_cliente, reg.numero_medidor, reg.marca_medidor, reg.modelo_medidor);
 	   
 	   // Constante
 	   sLinea += String.format("\"%.05f\";", reg.constante);

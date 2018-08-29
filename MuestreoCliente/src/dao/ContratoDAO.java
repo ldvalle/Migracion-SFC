@@ -224,6 +224,7 @@ public class ContratoDAO {
 				if(rs.next()) {
 					reg.codTarjetaCredito = rs.getString(1);
 					reg.sNombreBanco = rs.getString(2);
+					reg.sMarcaTarjeta = rs.getString(3);
 				}
 			}else {
 				//Es Debito
@@ -440,7 +441,7 @@ public class ContratoDAO {
 				"c.tipo_fpago, " + 
 				"c.tipo_reparto, " + 
 				"c.nro_beneficiario, " + 
-				"t1.cod_sap, " + 
+				"t1.cod_sap || '-' || trim(t1.descripcion), " + 
 				"t2.descripcion, " + 
 				"c.minist_repart " + 
 				"FROM cliente c, OUTER sap_transforma t1, OUTER tabla t2 " + 
@@ -478,7 +479,7 @@ public class ContratoDAO {
 	}
 	
 	private String selCodSapTarjeta(String codMac) {
-		String sql = "SELECT cod_sap, trim(descripcion) " + 
+		String sql = "SELECT cod_sap, trim(descripcion), trim(acronimo_sap) " + 
 				"FROM sap_transforma " + 
 				"WHERE clave = 'CARDTYPE' " + 
 				"AND cod_mac =  '" + codMac.trim() + "' ";

@@ -293,15 +293,22 @@ public class InvoiceSRV {
 	   
 	   // Factura Digital
 	   if(reg.factu_digital.charAt(0)=='S') {
-		   sLinea += "\"True\";";
+		   sLinea += "\"TRUE\";";
 	   }else {
-		   sLinea += "\"False\";";
+		   sLinea += "\"FALSE\";";
 	   }
 	
 	   // Moneda
 	   sLinea += "\"ARS\";";
-	
-		
+	   //Valor Energia Activa
+	   sLinea += "\"\";";
+	   //Valor Energia Reactiva
+	   sLinea += "\"\";";
+	   //Valor Potencia
+	   sLinea += "\"\";";
+	   //Valor Ahorro %
+	   sLinea += "\"\";";
+	   
 	   sLinea += "\r\n";
 		
 		try {

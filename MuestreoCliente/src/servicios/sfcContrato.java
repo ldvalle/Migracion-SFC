@@ -113,9 +113,9 @@ public class sfcContrato {
 		//Cargar Tasa
 		String sTasa = miDAO.getPartidaMuni(nroCliente);
 		if(sTasa.trim().equals("FALSE")) {
-			miContra.sTasaAP="false";
+			miContra.sTasaAP="FALSE";
 		}else {
-			miContra.sTasaAP="true";
+			miContra.sTasaAP="TRUE";
 			miContra.sPatidaMuni = sTasa.trim();
 		}
 	
@@ -345,7 +345,7 @@ public class sfcContrato {
 		sLinea += "\"\";";
 	   
 	   // Nombre de la cuenta
-		sLinea += String.format("\"%d\";", reg.numero_cliente);
+		sLinea += String.format("\"%dARG\";", reg.numero_cliente);
 	   
 	   // Nombre del contrato
 		sLinea += String.format("\"%s\";", reg.nombre.trim());
@@ -357,10 +357,10 @@ public class sfcContrato {
 		sLinea += "\"9\";";
 
 		// External Id
-		sLinea += String.format("\"%dAR\";", reg.numero_cliente);
+		sLinea += String.format("\"%dCTOARG\";", reg.numero_cliente);
 	   
 	   // Contacto
-		sLinea += String.format("\"%d\";", reg.numero_cliente);
+		sLinea += String.format("\"%dARG\";", reg.numero_cliente);
 	   
 	   // id suministro
 		sLinea += String.format("\"%dAR\";", reg.numero_cliente);
@@ -418,7 +418,7 @@ public class sfcContrato {
 		}
 
 	   // Cliente Peaje
-		sLinea += "\"false\";";
+		sLinea += "\"FALSE\";";
 		
 		
 		sLinea += "\r\n";
@@ -438,13 +438,13 @@ public class sfcContrato {
 
 	      
 	   // Activo
-		sLinea += String.format("\"%d\";", reg.numero_cliente);
+		sLinea += String.format("\"%dARG\";", reg.numero_cliente);
 	   
 	   // Perfil de Facturación
-		sLinea += String.format("\"%dAR\";", reg.numero_cliente);
+		sLinea += String.format("\"%dBPARG\";", reg.numero_cliente);
 	   
 	   // Contrato
-		sLinea += String.format("\"%dAR\";", reg.numero_cliente);
+		sLinea += String.format("\"%dCTOARG\";", reg.numero_cliente);
 	   
 	   // Cantidad
 		sLinea += "\"1\";";
@@ -453,7 +453,7 @@ public class sfcContrato {
 		sLinea += "\"Active\";";
 	   
 	   // External ID
-		sLinea += String.format("\"%dAR\";", reg.numero_cliente); 
+		sLinea += String.format("\"%dLCOARG\";", reg.numero_cliente); 
 	   
 	   // Cuenta contrato
 		sLinea += String.format("\"%d\";", reg.numero_cliente);
@@ -482,41 +482,46 @@ public class sfcContrato {
 		String sLinea = "";
 
 	   // Cuenta
-		sLinea = String.format("\"%d\";", reg.numero_cliente);
+		sLinea = String.format("\"%dARG\";", reg.numero_cliente);
 	   
 	   // Tipo
 		if(reg.tipo_fpago.trim().contentEquals("D")) {
-			sLinea += "\"Automatic Debit\";";
+			if(reg.cbu.trim().equals("")) {
+				sLinea += String.format("\"%s\";", reg.sMarcaTarjeta);
+			}else {
+				sLinea += "\"D\";";
+			}
+			
 		}else {
-			sLinea += "\"Cash\";";
+			sLinea += "\"\";";
 		}
 		
 	   // Acepta Términos y Condiciones
 		if(reg.factu_digital.trim().equals("S")) {
-			sLinea += "\"True\";";
+			sLinea += "\"TRUE\";";
 		}else {
-			sLinea += "\"False\";";
+			sLinea += "\"FALSE\";";
 		}
 		
 	   // Nombre de la factura
-		sLinea += String.format("\"%d\";", reg.numero_cliente);
+		sLinea += String.format("\"%dARG\";", reg.numero_cliente);
 	   
 	   // Dirección de reparto
-		sLinea += String.format("\"%d-2\";", reg.numero_cliente);
+		sLinea += String.format("\"%d-2ARG\";", reg.numero_cliente);
 	   
 	   // Tipo de Documento
 		sLinea += "\"Factura\";";
 	   
 	   // Adhesión a Factura Electrónica
 		if(reg.tipo_fpago.trim().contentEquals("D")) {
-			sLinea += "\"True\";";
+			sLinea += "\"TRUE\";";
 	   }else{
-		   sLinea += "\"False\";";
+		   sLinea += "\"FALSE\";";
 
 	   }
 	   
 	   // External ID
-		sLinea += String.format("\"%dAR\";", reg.numero_cliente);
+		sLinea += String.format("\"%dBPARG\";", reg.numero_cliente);
 	   
 	   // External ID Suministro
 		sLinea += String.format("\"%dAR\";", reg.numero_cliente);
@@ -553,14 +558,17 @@ public class sfcContrato {
 		sLinea += String.format("\"%d\";", reg.numero_cliente);
 	   
 	   // Número de Cuenta
+		/*
 		if(reg.nroTarjeta != null) {
 			sLinea += String.format("\"%s\";", reg.nroTarjeta.trim());
 		}else {
 			sLinea += "\"\";";
 		}
+		*/
+		sLinea += "\"\";";
 	   
 	   // Dirección Postal
-		sLinea += String.format("\"%d-2\";", reg.numero_cliente);
+		sLinea += String.format("\"%d-2ARG\";", reg.numero_cliente);
 	   
 	   // Tipo de Reparto  
 		sLinea += String.format("\"%s\";", reg.tipo_reparto);

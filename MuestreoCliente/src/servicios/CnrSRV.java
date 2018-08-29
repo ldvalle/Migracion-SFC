@@ -178,7 +178,7 @@ public class CnrSRV {
 		sLinea += "\"\";";
 	   
 	   /* Número de medidor */
-	    sLinea += String.format("\"%d%s%s\";", cnr.numero_medidor, cnr.marca_medidor, cnr.modelo_medidor);
+	    sLinea += String.format("\"%d%d%s%sDEVARG\";",cnr.numero_cliente, cnr.numero_medidor, cnr.marca_medidor, cnr.modelo_medidor);
 	   
 	   /* External Id */
 	    sLinea += String.format("\"%d%s%d\";", cnr.ano_expediente, cnr.sucursal, cnr.nro_expediente);
