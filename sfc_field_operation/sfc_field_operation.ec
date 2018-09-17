@@ -220,7 +220,7 @@ short AbreArchivos()
 
 	sprintf( sArchMedidorUnx  , "%sT1FIELD_OPERATION.unx", sPathSalida );
    sprintf( sArchMedidorAux  , "%sT1FIELD_OPERATION.aux", sPathSalida );
-   sprintf( sArchMedidorDos  , "%senel_care_fieloperation_t1_%s.csv", sPathSalida, sFecha );
+   sprintf( sArchMedidorDos  , "%senel_care_fieldoperation_t1_%s.csv", sPathSalida, sFecha );
 
 	strcpy( sSoloArchivoMedidor, "T1FIELD_OPERATION.unx");
 

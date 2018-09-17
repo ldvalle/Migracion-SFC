@@ -12,6 +12,7 @@
 		
 	Descripcion de parametros :
 		<Base de Datos> : Base de Datos <synergia>
+      <Tipo Corrida> : 0=Activos; 1= No Activos
 		<Tipo Corrida> : 0=Normal; 1= Reducida		
 
 ********************************************************************************/
@@ -204,12 +205,13 @@ int		argc;
 char	* argv[];
 {
 
-	if(argc != 3){
+	if(argc != 4){
 		MensajeParametros();
 		return 0;
 	}
 	
-   giTipoCorrida=atoi(argv[2]);
+   giEstadoCliente=atoi(argv[2]);
+   giTipoCorrida=atoi(argv[3]);
    
 	return 1;
 }
@@ -218,7 +220,8 @@ char	* argv[];
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("\t<Base>: synergia.\n");
-      printf("\t<Tipo Corrida>: 0=Normal, 1=Reducida.\n");
+      printf("\t<Estado Cliente>: 0=Activo, 1=No Activo.\n");
+      printf("\t<Tipo Corrida>:   0=Normal, 1=Reducida.\n");
 }
 
 short AbreArchivos()
@@ -541,9 +544,9 @@ $char sAux[1000];
 	strcat(sql, "REPLACE(TRIM(c.nombre), '\"', ' '), ");
    strcat(sql, "c.cod_calle, ");
 	strcat(sql, "c.nom_calle, ");
-	strcat(sql, "c.nom_partido, ");
+	strcat(sql, "TRIM(c.nom_partido), ");
 	strcat(sql, "c.provincia, ");
-	strcat(sql, "c.nom_comuna, ");
+	strcat(sql, "TRIM(c.nom_comuna), ");
 	strcat(sql, "c.nro_dir, ");
 	strcat(sql, "TRIM(c.obs_dir), ");
 	strcat(sql, "c.cod_postal, ");
@@ -579,9 +582,13 @@ $char sAux[1000];
 if(giTipoCorrida == 1){
    strcat(sql, ", migra_sf ma ");
 }
-
-
-	strcat(sql, "WHERE c.estado_cliente = 0 ");
+   if(giEstadoCliente == 1){
+      strcat(sql, ", sap_inactivos si ");
+   	strcat(sql, "WHERE c.numero_cliente = si.numero_cliente ");
+   }else{
+   	strcat(sql, "WHERE c.estado_cliente = 0 ");
+   }
+      
    /*
 	strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");
    */
@@ -634,7 +641,7 @@ if(giTipoCorrida == 1){
 	strcat(sql, "AND (v.fecha_desactivac IS NULL OR v.fecha_desactivac > TODAY) ");
 	strcat(sql, "AND t.nomtabla = 'SDCLIV' ");
 	strcat(sql, "AND t.codigo = v.motivo ");
-	strcat(sql, "AND t.valor_alf[1] = 'S' ");
+	strcat(sql, "AND t.valor_alf[4] = 'S' ");
 	strcat(sql, "AND t.sucursal = '0000' ");
 	strcat(sql, "AND t.fecha_activacion <= TODAY "); 
 	strcat(sql, "AND ( t.fecha_desactivac >= TODAY OR t.fecha_desactivac IS NULL ) ");    
@@ -794,11 +801,14 @@ if(giTipoCorrida == 1){
 	$PREPARE selRutaPlanos FROM $sql;
 
 	/******** Select DCI ****************/
-   $PREPARE selDCI FROM "SELECT organismo, nro_dci
-      FROM dci
-      WHERE numero_cliente = ? 
-      AND fecha_ingreso <= TODAY
-      AND (fecha_baja is null or fecha_baja > TODAY)";
+   $PREPARE selDCI FROM "SELECT FIRST 1 organismo, nro_dci
+      FROM dci d1
+      WHERE d1.numero_cliente = ?
+      AND d1.fecha_ingreso = ( SELECT MAX(d2.fecha_ingreso)
+      	FROM dci d2
+         WHERE d2.numero_cliente = d1.numero_cliente
+         AND d2.fecha_ingreso <= TODAY
+         AND (d2.fecha_baja is null or d2.fecha_baja > TODAY))";
 
 	/********* Select Corporativo T23 **********/
 	strcpy(sql, "SELECT NVL(cod_corporativo, '000'), cod_corpo_padre FROM mg_corpor_t23 ");
@@ -1319,21 +1329,29 @@ ClsClientes 	regCli;
 	}
 
 	/* ID */
-	sprintf(sLinea, "%s\"%ld-2\";", sLinea, regCli.numero_cliente);
+   alltrim(regCli.tipo_reparto, ' ');
+   if(strcmp(regCli.tipo_reparto, "POSTAL")==0){
+      sprintf(sLinea, "%s\"%ld-1ARG\";", sLinea, regCli.numero_cliente);
+   }else{
+      sprintf(sLinea, "%s\"%ld-2ARG\";", sLinea, regCli.numero_cliente);
+   }
+	
 	
 	/* ID-CALLE */
    if(strcmp(regCli.cod_calle, "")==0 || strcmp(regCli.cod_calle, "-1")==0){
       /*sprintf(sLinea, "%s\"%ld-2\";", sLinea, regCli.numero_cliente);*/
-      strcat(sLinea, "\"A0000A\";");
+      strcat(sLinea, "\"A0000AARG\";");
    }else{
       if(ValidaCalle(regCli)){
-         sprintf(sLinea, "%s\"%s%s\";", sLinea, regCli.cod_calle, regCli.comuna);
+         sprintf(sLinea, "%s\"%s%sARG\";", sLinea, regCli.cod_calle, regCli.comuna);
       }else{
-         strcat(sLinea, "\"A0000A\";");
+         strcat(sLinea, "\"A0000AARG\";");
       }
    }
 
 	/* DEPARTAMENTO  */
+   alltrim(regCli.nom_barrio, ' ');
+   alltrim(regCli.nom_comuna, ' ');
    if(regCli.provincia[0]=='C'){
       sprintf(sLinea, "%s\"%s\";", sLinea, regCli.nom_barrio);
    }else{
@@ -1860,7 +1878,7 @@ ClsClientes	regCli;
 	
 
 	/* ID */
-	sprintf(sLinea, "\"%ld\";", regCli.numero_cliente);
+	sprintf(sLinea, "\"%ldARG\";", regCli.numero_cliente);
 	
 	/* NOMBRE */
 	sprintf(sLinea, "%s\"%s\";", sLinea, regCli.nombre);
@@ -1944,11 +1962,14 @@ ClsClientes	regCli;
 	strcat(sLinea, "\"ARS\";");
 	
 	/* TIPO REGISTRO */
+   /*
 	if(regCli.es_empresa[0]=='S'){
 		strcat(sLinea, "\"B2B\";");
 	}else{
 		strcat(sLinea, "\"B2C\";");
 	}
+   */
+   strcat(sLinea, "\"B2C\";");
 	
 	/* FECHA NACIMIENTO (VACIO) */
 	strcat(sLinea, "\"\";");
@@ -1960,7 +1981,7 @@ ClsClientes	regCli;
 	strcat(sLinea, "\".\";");
 	
 	/* DIRECCION */
-	sprintf(sLinea, "%s\"%ld-2\";", sLinea, regCli.numero_cliente);
+	sprintf(sLinea, "%s\"%ld-2ARG\";", sLinea, regCli.numero_cliente);
 	
 	/* EJECUTIVO (VACIO) */
 	strcat(sLinea, "\"\";");
@@ -1991,9 +2012,9 @@ ClsClientes	regCli;
    
    /* Tipo de Cuenta */
    if(regCli.es_empresa[0]=='S'){
-      strcat(sLinea, "\"Persona Jurídica\";");
+      strcat(sLinea, "\"Persona Juridica\";");
    }else{
-      strcat(sLinea, "\"Persona Física\";");
+      strcat(sLinea, "\"Persona Fisica\";");
    }
   
    /* CuentaCliente  */
@@ -2028,7 +2049,7 @@ ClsClientes	regCli;
 	memset(sLinea, '\0', sizeof(sLinea));
 	
 	/* ID */
-	sprintf(sLinea, "\"%ld\";", regCli.numero_cliente);
+	sprintf(sLinea, "\"%ldARG\";", regCli.numero_cliente);
 	
 	/* NOMBRE */
 	sprintf(sLinea, "%s\"%s\";", sLinea, regCli.nombre);
@@ -2039,7 +2060,7 @@ ClsClientes	regCli;
 	strcat(sLinea, "\"\";");
 	
 	/* NOMBRE CUENTA */
-	sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.numero_cliente);
+	sprintf(sLinea, "%s\"%ldARG\";", sLinea, regCli.numero_cliente);
 	
 	/* ESTADO CIVIL (VACIO) */
 	strcat(sLinea, "\"\";");
@@ -2146,8 +2167,8 @@ ClsClientes	regCli;
 	strcat(sLinea, "\"\";");
 	/* TIPO ACREDITACION (VACIO) */
 	strcat(sLinea, "\"\";");
-	/* DIRECC.DEL CONTACTO (VACIO) */
-   sprintf(sLinea, "%s\"%ld-2\";", sLinea, regCli.numero_cliente);
+	/* DIRECC.DEL CONTACTO  */
+   sprintf(sLinea, "%s\"%ld-2ARG\";", sLinea, regCli.numero_cliente);
 	
 	/* USR TWITTER (VACIO) */
 	strcat(sLinea, "\"\";");
@@ -2229,7 +2250,7 @@ ClsClientes	regCli;
 	strcat(sLinea, "\"\";");
 	
 	/* DIRECCION */
-   sprintf(sLinea, "%s\"%ld-2\";", sLinea, regCli.numero_cliente);
+   sprintf(sLinea, "%s\"%ld-2ARG\";", sLinea, regCli.numero_cliente);
 	
 	/* ESTADO POD */
 	strcat(sLinea, "\"0\";");
@@ -2426,13 +2447,13 @@ ClsClientes	regCli;
 	memset(sLinea, '\0', sizeof(sLinea));
 
 	/* ACTIVO */	
-	sprintf(sLinea, "\"%ld\";", regCli.numero_cliente);
+	sprintf(sLinea, "\"%ldARG\";", regCli.numero_cliente);
 	
 	/* CONTACTO */
-	sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.numero_cliente);
+	sprintf(sLinea, "%s\"%ldARG\";", sLinea, regCli.numero_cliente);
 	
 	/* CUENTA */
-	sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.numero_cliente);
+	sprintf(sLinea, "%s\"%ldARG\";", sLinea, regCli.numero_cliente);
 	
 	/* PAIS */
 	strcat(sLinea, "\"ARGENTINA\";");
@@ -2441,15 +2462,16 @@ ClsClientes	regCli;
 	strcat(sLinea, "\"9\";");
 
    /* EXTERNAL ID */
-   sprintf(sLinea, "%s\"%ldSP\";", sLinea, regCli.numero_cliente);
+   sprintf(sLinea, "%s\"%ldSPRARG\";", sLinea, regCli.numero_cliente);
 
 	/* CONTACTO PRINCIPAL */
-	strcat(sLinea, "\"True\";");
+	strcat(sLinea, "\"TRUE\";");
    
    /* ElectroDependiente*/
    if(regCli.electrodependiente[0]=='1'){
       /* Electro */
-      strcat(sLinea, "\"True\";");
+      /*strcat(sLinea, "\"TRUE\";");*/
+      strcat(sLinea, "\"FALSE\";");
       /* Nro.DCI */
       if(regCli.nro_dci > 0){
          sprintf(sLinea, "%s\"%.0lf\";", sLinea, regCli.nro_dci);
@@ -2462,7 +2484,7 @@ ClsClientes	regCli;
       
    }else{
       /* Electro */
-      strcat(sLinea, "\"False\";");
+      strcat(sLinea, "\"FALSE\";");
       /* DCI */
       strcat(sLinea, "\"\";");
       /* Organismo */
@@ -2484,17 +2506,17 @@ ClsClientes regCli;
 	memset(sLinea, '\0', sizeof(sLinea));
 	
 	/* ID */
-	sprintf(sLinea, "\"%ld\";", regCli.numero_cliente);
+	sprintf(sLinea, "\"%ldARG\";", regCli.numero_cliente);
 	
 	/* NOMBRE */
 	/*sprintf(sLinea, "%s\"%s\";", sLinea, regCli.nombre);*/
 	sprintf(sLinea, "%s\"Tarifa T1-%ld\";", sLinea, regCli.numero_cliente);
    
 	/* CUENTA */
-	sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.numero_cliente);
+	sprintf(sLinea, "%s\"%ldARG\";", sLinea, regCli.numero_cliente);
 	
 	/* CONTACTO */
-	sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.numero_cliente);
+	sprintf(sLinea, "%s\"%ldARG\";", sLinea, regCli.numero_cliente);
 	
 	/* SUMINISTRO */
 	sprintf(sLinea, "%s\"%ldAR\";", sLinea, regCli.numero_cliente);
@@ -2503,19 +2525,27 @@ ClsClientes regCli;
 	sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.nombre);
 	
 	/* PRODUCTO */
-	sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.numero_cliente);
+	sprintf(sLinea, "%s\"%ldSPRARG\";", sLinea, regCli.numero_cliente);
 	
 	/* ESTADO */
-	strcat(sLinea, "\"Installed\";");
+   if(giEstadoCliente==0){
+      strcat(sLinea, "\"Installed\";");
+   }else{
+      strcat(sLinea, "\"Unsuscribed\";");
+   }
    
    /* Contacto Principal */
-	strcat(sLinea, "\"True\";");
+	strcat(sLinea, "\"TRUE\";");
 	
    /* Contrato */
-   sprintf(sLinea, "%s\"%ldAR\";", sLinea, regCli.numero_cliente);
+   sprintf(sLinea, "%s\"%ldCTOARG\";", sLinea, regCli.numero_cliente);
    
    /* Estado Contratacion */
-   strcat(sLinea, "\"Active\";");
+   if(giEstadoCliente==0){
+      strcat(sLinea, "\"Active\";");
+   }else{
+      strcat(sLinea, "\"Inactive\";");
+   }
    
 	strcat(sLinea, "\n");
 	

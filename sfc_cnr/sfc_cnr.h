@@ -26,6 +26,7 @@ $typedef struct{
    long  nro_solicitud;
    char  cod_estado[3];
    char  descripcion[51];
+   char  tipo_expediente[2];
    
    char  sFechaDesdePeriCalcu[25];
    char  sFechaHastaPeriCalcu[25];

@@ -64,6 +64,7 @@ $long lNroCliente;
 	}
 	
    setlocale(LC_ALL, "en_US.UTF-8");
+   setlocale(LC_NUMERIC, "en_US");
    
 	hora = time(&hora);
 	
@@ -540,7 +541,7 @@ $ClsConve		reg;
    /* Tasa */
    sprintf(sLinea, "%s\"%.02lf\";", sLinea, reg.intereses);
    /* Contacto */
-   sprintf(sLinea, "%s\"%ld\";",sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldARG\";",sLinea, reg.numero_cliente);
    /* Usuario creador */
    sprintf(sLinea, "%s\"%s\";", sLinea, reg.usuario_creacion);
    /* Usuario término */
@@ -570,7 +571,7 @@ $ClsConve		reg;
    /* Suministro */
    sprintf(sLinea, "%s\"%ldAR\";",sLinea, reg.numero_cliente);
    /* Cuenta */
-	sprintf(sLinea, "%s\"%ld\";",sLinea, reg.numero_cliente);
+	sprintf(sLinea, "%s\"%ldARG\";",sLinea, reg.numero_cliente);
    /* Company */
    strcat(sLinea, "\"9\";");
 

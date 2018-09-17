@@ -38,8 +38,8 @@ $typedef struct{
 	char	rut[12];
 	char	tipo_reparto[7];
 	char	sucursal[5];
-	int		sector;
-	int		zona;
+	int	sector;
+	int	zona;
 	char	tarifa[4];
 	long	correlativo_ruta;
 	char	sClaseServicio[11];
@@ -58,12 +58,12 @@ $typedef struct{
 	char	dp_nro_dir[6];
 	char	dp_piso_dir[7];
 	char	dp_depto_dir[7];
-	int		dp_cod_postal;
+	int	dp_cod_postal;
 	char	dp_nom_localidad[26];
 	long	medidor_nro;
 	char	medidor_marca[4];
 	char	medidor_modelo[3];
-	int		medidor_anio;
+	int	medidor_anio;
 	
 	char	tec_centro_trans[21];
 	char	tipo_tranformador[3];

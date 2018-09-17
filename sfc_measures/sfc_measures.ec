@@ -234,7 +234,7 @@ short AbreArchivos()
    FechaGeneracionFormateada(sFecha);
    
 	RutaArchivos( sPathSalida, "SALESF" );
-   
+
 	alltrim(sPathSalida,' ');
 
 	sprintf( sArchMedidorUnx  , "%sT1MEASURES.unx", sPathSalida );
@@ -484,7 +484,7 @@ if(giTipoCorrida==1){
    strcat(sql, "TO_CHAR(h2.fecha_facturacion, '%Y-%m-%d'), ");
 	strcat(sql, "h.numero_medidor, ");
 	strcat(sql, "h.marca_medidor, ");
-   strcat(sql, "h2.coseno_phi ");
+   strcat(sql, "NVL(h2.coseno_phi, 0)/100 ");
 	strcat(sql, "FROM hislec h, hisfac h2 ");
 	strcat(sql, "WHERE h.numero_cliente = ? ");
 	strcat(sql, "AND h.fecha_lectura >= TODAY - 365 ");
@@ -772,7 +772,7 @@ char           sTipo[2];
    }
    
    /* ID Medidor */
-   sprintf(sLinea, "%s\"%ld%s%s\";", sLinea, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
+   sprintf(sLinea, "%s\"%ld%ld%s%sDEVARG\";", sLinea, regLec.numero_cliente, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
    
    /* Constante */
    sprintf(sLinea, "%s\"%.05lf\";", sLinea, regLec.constante);

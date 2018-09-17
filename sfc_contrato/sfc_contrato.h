@@ -30,12 +30,13 @@ $typedef struct{
    char  nroTarjeta[21];
    char  cbu[23];
    char  codBanco[7];
-   char  codActividadEconomica[11];
+   char  codActividadEconomica[100];
    char  tipo_titularidad[51];
    long  minist_repart;
    char  papa_t23[11];
    char  sTasaAP[10];
    char  sPatidaMuni[14];
+   char  sMarcaTarjeta[2];
 }ClsCliente;
 
 $typedef struct{

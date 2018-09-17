@@ -1,4 +1,4 @@
-/*********************************************************************************
+/********************************************************************************
     Proyecto: Migracion al sistema SALES-FORCES
     Aplicacion: sfc_device
     
@@ -67,6 +67,7 @@ long     iFactu;
 	}
 	
    setlocale(LC_ALL, "en_US.UTF-8");
+   setlocale(LC_NUMERIC, "en_US");
    
 	hora = time(&hora);
 	
@@ -529,7 +530,7 @@ $ClsPago		reg;
 	memset(sLinea, '\0', sizeof(sLinea));
 
    /* Cuenta */
-   sprintf(sLinea, "\"%ld\";", reg.numero_cliente);
+   sprintf(sLinea, "\"%ldARG\";", reg.numero_cliente);
       
    /* Suministro */
    sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);

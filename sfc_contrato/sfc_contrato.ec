@@ -1,4 +1,4 @@
-/*********************************************************************************
+/********************************************************************************
     Proyecto: Migracion al sistema SALES-FORCES
     Aplicacion: sfc_device
     
@@ -565,12 +565,13 @@ $char sAux[1000];
    strcat(sql, "c.corr_facturacion, "); 
 	strcat(sql, "TRIM(c.nombre), "); 
 	strcat(sql, "c.tipo_fpago, "); 
-	strcat(sql, "c.tipo_reparto, ");
+   strcat(sql, "s1.cod_sf1, "); /* Tipo Reparto */
    strcat(sql, "c.nro_beneficiario, ");
-   strcat(sql, "t1.cod_sap, ");
+   strcat(sql, "TRIM(t1.cod_sap) || ' - ' || TRIM(t1.descripcion), ");
    strcat(sql, "t2.descripcion, ");
    strcat(sql, "c.minist_repart ");
-	strcat(sql, "FROM cliente c, OUTER sap_transforma t1, OUTER tabla t2 ");   	
+	strcat(sql, "FROM cliente c, OUTER sap_transforma t1, OUTER tabla t2 ");
+   strcat(sql, ", sf_transforma s1 ");   	
 if(giTipoCorrida == 1){	
    strcat(sql, ", migra_sf ma ");
 }   
@@ -591,6 +592,8 @@ if(giTipoCorrida == 1){
 	strcat(sql, "AND t2.codigo = c.cod_propiedad ");
 	strcat(sql, "AND t2.fecha_activacion <= TODAY ");
 	strcat(sql, "AND (t2.fecha_desactivac IS NULL OR t2.fecha_desactivac > TODAY) ");
+	strcat(sql, "AND s1.clave = 'TIPREPARTO' ");
+	strcat(sql, "AND s1.cod_mac = c.tipo_reparto ");   
    	
 if(giTipoCorrida == 1){
    strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
@@ -667,7 +670,7 @@ if(giTipoCorrida == 1){
 
    /*********** Trafo Tarjeta **************/
 	/*strcpy(sql, "SELECT acronimo_sap, trim(descripcion) ");*/
-   strcpy(sql, "SELECT cod_sap, trim(descripcion) ");
+   strcpy(sql, "SELECT cod_sap, trim(descripcion), trim(acronimo_sap) ");
 	strcat(sql, "FROM sap_transforma ");
 	strcat(sql, "WHERE clave = 'CARDTYPE' ");
 	strcat(sql, "AND cod_mac = ? ");
@@ -823,6 +826,8 @@ $ClsCliente	*reg;
    memset(reg->papa_t23, '\0', sizeof(reg->papa_t23));
    memset(reg->sTasaAP, '\0', sizeof(reg->sTasaAP));
    memset(reg->sPatidaMuni, '\0', sizeof(reg->sPatidaMuni));
+   memset(reg->sMarcaTarjeta, '\0', sizeof(reg->sMarcaTarjeta));
+   
 }
 
 
@@ -930,7 +935,8 @@ $ClsFormaPago  rPago;
       strcpy(reg->nroTarjeta, rPago.fp_nrocuenta);
       
       $EXECUTE selTrafoCard INTO :reg->codTarjetaCredito,
-                                 :reg->sNombreBanco
+                                 :reg->sNombreBanco,
+                                 :reg->sMarcaTarjeta
                                  
                            USING :rPago.fp_banco;
          
@@ -959,7 +965,7 @@ $ClsCliente		reg;
    strcat(sLinea, "\"\";");
    
    /* Estado */
-   strcat(sLinea, "\"DRAFT\";");
+   strcat(sLinea, "\"Activated\";");
    
    /* Fecha de activación */
    sprintf(sLinea, "%s\"%sT00:00:00.000Z\";", sLinea, reg.sFechaAlta);
@@ -971,7 +977,7 @@ $ClsCliente		reg;
    strcat(sLinea, "\"\";");
    
    /* Nombre de la cuenta */
-   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldARG\";", sLinea, reg.numero_cliente);
    
    /* Nombre del contrato */
    alltrim(reg.nombre, ' ');
@@ -984,10 +990,10 @@ $ClsCliente		reg;
    strcat(sLinea, "\"9\";");
    
    /* External Id */
-   sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldCTOARG\";", sLinea, reg.numero_cliente);
    
    /* Contacto */
-   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldARG\";", sLinea, reg.numero_cliente);
    
    /* id suministro */
    sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
@@ -1028,7 +1034,7 @@ $ClsCliente		reg;
    /* Numero Partida */
    sprintf(sLinea, "%s\"%s\";", sLinea, reg.sPatidaMuni);
    /* Cliente Peaje */
-   strcat(sLinea, "\"false\";");
+   strcat(sLinea, "\"FALSE\";");
    
 	strcat(sLinea, "\n");
 	
@@ -1047,13 +1053,13 @@ $ClsCliente		reg;
    strcpy(sLinea, "\"ARS\";");
       
    /* Activo */
-   sprintf(sLinea, "%s\"%ld\";",sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldARG\";",sLinea, reg.numero_cliente);
    
    /* Perfil de Facturación */
-   sprintf(sLinea, "%s\"%ldAR\";",sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldBPARG\";",sLinea, reg.numero_cliente);
    
    /* Contrato */
-   sprintf(sLinea, "%s\"%ldAR\";",sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldCTOARG\";",sLinea, reg.numero_cliente);
    
    /* Cantidad */
    strcat(sLinea, "\"1\";");
@@ -1062,7 +1068,7 @@ $ClsCliente		reg;
    strcat(sLinea, "\"Active\";");
    
    /* External ID */
-   sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldLCOARG\";", sLinea, reg.numero_cliente);
    
    /* Cuenta contrato*/
    sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
@@ -1091,24 +1097,29 @@ $ClsCliente		reg;
 	memset(sLinea, '\0', sizeof(sLinea));
 
    /* Cuenta */
-   sprintf(sLinea, "\"%ld\";", reg.numero_cliente);
+   sprintf(sLinea, "\"%ldARG\";", reg.numero_cliente);
    
    /* Tipo */
    if(reg.tipo_fpago[0]=='D'){
-      strcat(sLinea, "\"Automatic Debit\";");
+      alltrim(reg.cbu, ' ');
+      if(strcmp(reg.cbu, "")==0){
+         sprintf(sLinea, "%s\"%s\";", sLinea, reg.sMarcaTarjeta);
+      }else{
+         strcat(sLinea, "\"D\";");   
+      }
    }else{
-      strcat(sLinea, "\"Cash\";");   
+      strcat(sLinea, "\"\";");   
    }
    
    /* Acepta Términos y Condiciones */
    if(reg.factu_digital[0]=='S'){
-      strcat(sLinea, "\"True\";");
+      strcat(sLinea, "\"TRUE\";");
    }else{
-      strcat(sLinea, "\"False\";");
+      strcat(sLinea, "\"FALSE\";");
    }
    
    /* Nombre de la factura */
-   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldARG\";", sLinea, reg.numero_cliente);
    
    /* Banco */
 /*   
@@ -1117,20 +1128,26 @@ $ClsCliente		reg;
 */
    
    /* Dirección de reparto */
-   sprintf(sLinea, "%s\"%ld-2\";", sLinea, reg.numero_cliente);
+   if(reg.tipo_reparto[0]=='P'){
+      sprintf(sLinea, "%s\"%ld-1ARG\";", sLinea, reg.numero_cliente);
+   }else{
+      sprintf(sLinea, "%s\"%ld-2ARG\";", sLinea, reg.numero_cliente);
+   }
+   
    
    /* Tipo de Documento */
-   strcat(sLinea, "\"Factura\";");
+   /*strcat(sLinea, "\"Factura\";");*/
+   strcat(sLinea, "\"\";");
    
    /* Adhesión a Factura Electrónica */
    if(reg.factu_digital[0]=='S'){
-      strcat(sLinea, "\"True\";");
+      strcat(sLinea, "\"TRUE\";");
    }else{
-      strcat(sLinea, "\"False\";");
+      strcat(sLinea, "\"FALSE\";");
    }
    
    /* External ID */
-   sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldBPARG\";", sLinea, reg.numero_cliente);
    
    /* External ID Suministro */
    sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
@@ -1171,11 +1188,14 @@ $ClsCliente		reg;
    sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
    
    /* Número de Cuenta */
+/*   
    if(strcmp(reg.nroTarjeta,"")!= 0){
       sprintf(sLinea, "%s\"%s\";", sLinea, reg.nroTarjeta);
    }else{
       strcat(sLinea, "\"\";");
    }
+*/   
+   strcat(sLinea, "\"\";");
    
    /* Tipo de Cuenta (?) */
    /*strcat(sLinea, "\"\";");*/
@@ -1184,9 +1204,14 @@ $ClsCliente		reg;
    /*strcat(sLinea, "\"\";");*/
 
    /* Dirección Postal */
-   sprintf(sLinea, "%s\"%ld-2\";", sLinea, reg.numero_cliente);
+   if(reg.tipo_reparto[0]=='P'){
+      sprintf(sLinea, "%s\"%ld-1ARG\";", sLinea, reg.numero_cliente);
+   }else{
+      sprintf(sLinea, "%s\"%ld-2ARG\";", sLinea, reg.numero_cliente);
+   }
    
-   /* Tipo de Reparto */  
+   /* Tipo de Reparto */
+   alltrim(reg.tipo_reparto, ' ');  
    sprintf(sLinea, "%s\"%s\";", sLinea, reg.tipo_reparto);
 
    /* Fecha Factura Digital */
@@ -1233,10 +1258,10 @@ $ClsCliente *reg;
       if(SQLCODE != SQLNOTFOUND){
          printf("Error al bucar tasa TAP para cliente %ld\n", reg->numero_cliente);
       }
-      strcpy(reg->sTasaAP, "false");
+      strcpy(reg->sTasaAP, "FALSE");
       return;
    } 
-   strcpy(reg->sTasaAP, "true");
+   strcpy(reg->sTasaAP, "TRUE");
    alltrim(reg->sPatidaMuni, ' ');
 }
 

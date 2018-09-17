@@ -323,8 +323,13 @@ if(giTipoCorrida==1){
 	strcat(sql, "c.numero_cliente, ");
 	strcat(sql, "c.nro_solicitud, ");
 	strcat(sql, "c.cod_estado, ");
-	strcat(sql, "t1.descripcion ");
+	strcat(sql, "t1.descripcion, ");
+   strcat(sql, "c.tipo_expediente ");
 	strcat(sql, "FROM cnr_new c, tabla t1 ");
+if(giTipoCorrida==1){	
+   strcat(sql, ", migra_sf ma ");
+}
+   
 	strcat(sql, "WHERE c.fecha_inicio >= TODAY - 365 ");
    strcat(sql, "AND c.cod_estado != '99' ");
 	strcat(sql, "AND t1.nomtabla = 'CNRRE' ");
@@ -332,6 +337,10 @@ if(giTipoCorrida==1){
 	strcat(sql, "AND t1.codigo = c.cod_estado ");
 	strcat(sql, "AND t1.fecha_activacion <= TODAY ");
 	strcat(sql, "AND (t1.fecha_desactivac IS NULL OR t1.fecha_desactivac >TODAY) ");
+
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}
    
 	$PREPARE selCnr FROM $sql;
 	
@@ -442,7 +451,8 @@ $int  iCantidad;
       :reg->numero_cliente,
       :reg->nro_solicitud,
       :reg->cod_estado,
-      :reg->descripcion;
+      :reg->descripcion,
+      :reg->tipo_expediente;
 	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
@@ -530,6 +540,7 @@ $ClsCnr	*reg;
    rsetnull(CLONGTYPE, (char *) &(reg->numero_medidor));
    memset(reg->marca_medidor, '\0', sizeof(reg->marca_medidor));
    memset(reg->modelo_medidor, '\0', sizeof(reg->modelo_medidor));
+   memset(reg->tipo_expediente, '\0', sizeof(reg->tipo_expediente));
 
 }
 
@@ -553,7 +564,12 @@ $ClsCnr		reg;
    sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_inicio);
    
    /* Condicion del expediente */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.descripcion);
+   /*sprintf(sLinea, "%s\"%s\";", sLinea, reg.descripcion);*/
+   if(reg.tipo_expediente[0]=='S'){
+      strcat(sLinea, "\"Sin Dolo\";");
+   }else{
+      strcat(sLinea, "\"Con Dolo\";");
+   }
    
    /* Año del expediente */
    sprintf(sLinea, "%s\"%ld\";", sLinea, reg.ano_expediente);
@@ -596,7 +612,7 @@ $ClsCnr		reg;
    strcat(sLinea, "\"\";");
    
    /* Número de medidor */
-   sprintf(sLinea, "%s\"%ld%s%s\";", sLinea, reg.numero_medidor, reg.marca_medidor, reg.modelo_medidor);
+   sprintf(sLinea, "%s\"%ld%ld%s%sDEVARG\";", sLinea, reg.numero_cliente, reg.numero_medidor, reg.marca_medidor, reg.modelo_medidor);
    
    /* External Id */
    sprintf(sLinea, "%s\"%d%s%ld\";", sLinea, reg.ano_expediente, reg.sucursal, reg.nro_expediente);

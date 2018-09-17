@@ -63,6 +63,7 @@ int 	iFlagEmpla=0;
 	}
 	
    setlocale(LC_ALL, "es_ES.UTF-8");
+   setlocale(LC_NUMERIC, "en_US");
    
 	hora = time(&hora);
 	
@@ -490,7 +491,7 @@ $ClsMedidor			regMed;
    }
    
    /* External ID */
-   sprintf(sLinea, "%s\"%ld%s%s\";", sLinea, regMed.numero, regMed.marca, regMed.modelo);
+   sprintf(sLinea, "%s\"%ld%s%sDEVARG\";", sLinea, regMed.numero, regMed.marca, regMed.modelo);
    
    /* Estado Medidor */
    sprintf(sLinea, "%s\"%s\";", sLinea, regMed.estado_sfc);
@@ -498,11 +499,13 @@ $ClsMedidor			regMed;
    /* Fecha Ult.Instalacion */
    sprintf(sLinea, "%s\"%s\";", sLinea, regMed.fecha_ult_insta);
    /* Constante */
-   sprintf(sLinea, "%s\"%f\";", sLinea, regMed.constante);
+   sprintf(sLinea, "%s\"%.02f\";", sLinea, regMed.constante);
+   
    /* Fecha Fabricación */
    sprintf(sLinea, "%s\"%d\";", sLinea, regMed.med_anio);
-   /* Fecha Instalacion */
-   sprintf(sLinea, "%s\"%s\";", sLinea, regMed.fecha_prim_insta);
+   /* Fecha Retiro */
+   /*sprintf(sLinea, "%s\"%s\";", sLinea, regMed.fecha_prim_insta);*/
+   strcat(sLinea, "\"\";");
 
 	strcat(sLinea, "\n");
 	

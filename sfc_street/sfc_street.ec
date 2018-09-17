@@ -354,7 +354,7 @@ ClsNomencla    regNom;
 	memset(sLinea, '\0', sizeof(sLinea));
 
 	/* ID */
-   sprintf(sLinea, "\"%s%s\";", regNom.cod_calle, regNom.cod_localidad);
+   sprintf(sLinea, "\"%s%sARG\";", regNom.cod_calle, regNom.cod_localidad);
 	
 	/* NOMBRE_CALLE */
 	sprintf(sLinea, "%s\"%s\";", sLinea, regNom.nombre_calle);
@@ -409,7 +409,7 @@ FILE           *fp;
 	memset(sLinea, '\0', sizeof(sLinea));
 
 	/* ID */
-   strcpy(sLinea, "\"A0000A\";");
+   strcpy(sLinea, "\"A0000AARG\";");
 	
 	/* NOMBRE_CALLE */
    strcat(sLinea, "\"DUMMY\";");

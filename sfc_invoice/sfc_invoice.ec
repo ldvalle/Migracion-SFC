@@ -67,6 +67,7 @@ double   dRecargo;
 	}
 	
    setlocale(LC_ALL, "en_US.UTF-8");
+   setlocale(LC_NUMERIC, "en_US");
    
 	hora = time(&hora);
 	
@@ -208,7 +209,7 @@ short AbreArchivos()
 
 	sprintf( sArchMedidorUnx  , "%sT1INVOICE.unx", sPathSalida );
    sprintf( sArchMedidorAux  , "%sT1INVOICE.aux", sPathSalida );
-   sprintf( sArchMedidorDos  , "%senel_care_invoice_t1_%.csv", sPathSalida, sFecha );
+   sprintf( sArchMedidorDos  , "%senel_care_invoice_t1_%s.csv", sPathSalida, sFecha );
 
 	strcpy( sSoloArchivoMedidor, "T1INVOICE.unx");
 
@@ -218,7 +219,7 @@ short AbreArchivos()
 		return 0;
 	}
 	
-   strcpy(sTitulos,"\"Fecha de emisión\";\"Fecha de vencimiento\";\"Fecha de segundo vencimiento\";\"Intereses\";\"Acceso a la factura\";\"Dirección factura\";\"Titular\";\"Otros cargos\";\"Suministro\";\"Saldo anterior\";\"Cantidad de productos y servicios\";\"Impuestos\";\"External ID\";\"Numero Factura\";\"Direccion Facturación (Historico)\";\"Pago\";\"Total\";\"Cargos Fijos\";\"Cargos Variables\";\"Factor Potencia\";\"Tasa Alumbrado Público\";\"Recargo\";\"Recargo Anterior\";\"Cuota convenio\";\"CNR\";\"Refacturación\";\"Ahorro %\";\"Factura Digital\";\"Moneda\";\n");
+   strcpy(sTitulos,"\"Fecha de emisión\";\"Fecha de vencimiento\";\"Fecha de segundo vencimiento\";\"Intereses\";\"Acceso a la factura\";\"Dirección factura\";\"Titular\";\"Otros cargos\";\"Suministro\";\"Saldo anterior\";\"Cantidad de productos y servicios\";\"Impuestos\";\"External ID\";\"Numero Factura\";\"Direccion Facturación (Historico)\";\"Pago\";\"Total\";\"Cargos Fijos\";\"Cargos Variables\";\"Factor Potencia\";\"Tasa Alumbrado Público\";\"Recargo\";\"Recargo Anterior\";\"Cuota convenio\";\"CNR\";\"Refacturación\";\"Ahorro %\";\"Factura Digital\";\"Moneda\";\"Valor Energía Activa\";\"Valor Energía Reactiva\";\"Valor Potencia\";\"Valor Ahorro\";\n");
    fprintf(pFileMedidorUnx, sTitulos);
       
 	return 1;	
@@ -324,7 +325,7 @@ if(giTipoCorrida==1){
 	strcat(sql, "h.centro_emisor || h.tipo_docto || h.numero_factura, ");
    strcat(sql, "h.numero_factura, ");
 	strcat(sql, "h.total_a_pagar, ");
-	strcat(sql, "h.coseno_phi /100, ");
+	strcat(sql, "NVL(h.coseno_phi, 0) /100, ");
 	strcat(sql, "h.suma_recargo, ");
 	strcat(sql, "h.suma_convenio, ");
 	strcat(sql, "h.tarifa, ");
@@ -647,12 +648,12 @@ $ClsFactura		reg;
    sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_intereses);
    
    /* Acceso a la factura (Vacio) */
-   strcat(sLinea, "\"http://www.edesur.com.ar/” \";");
+   strcat(sLinea, "\"http://www.edesur.com.ar/\";");
    
    /* Dirección factura (vacio) */
    /*strcat(sLinea, "\"\";");*/
    /*sprintf(sLinea, "%s\"%ld-2\";", sLinea, reg.numero_cliente);*/
-   sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
+   sprintf(sLinea, "%s\"%ldBPARG\";", sLinea, reg.numero_cliente);
    
    /* Titular */
    sprintf(sLinea, "%s\"%ldARG\";", sLinea, reg.numero_cliente);
@@ -683,7 +684,8 @@ $ClsFactura		reg;
    sprintf(sLinea, "%s\"%s\";", sLinea, reg.id_factura);
    
    /* Direccion Facturación (Historico) */
-   sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);
+   /*sprintf(sLinea, "%s\"%ld\";", sLinea, reg.numero_cliente);*/
+   strcat(sLinea, "\"\";");
    
    /* Pago (vacio) */
    strcat(sLinea, "\"\";");
@@ -751,13 +753,22 @@ $ClsFactura		reg;
    
    /* Factura Digital */
    if(reg.factu_digital[0]=='S'){
-      strcat(sLinea, "\"True\";");
+      strcat(sLinea, "\"TRUE\";");
    }else{
-      strcat(sLinea, "\"False\";");
+      strcat(sLinea, "\"FALSE\";");
    }
 
    /* Moneda */
    strcat(sLinea, "\"ARS\";");
+
+   /* Valor Energia Activa */
+   strcat(sLinea, "\"\";");
+   /* Valor Energia Reactiva  */
+   strcat(sLinea, "\"\";");
+   /* Valor Potencia */
+   strcat(sLinea, "\"\";");
+   /* Valor Ahorro % */
+   strcat(sLinea, "\"\";");
 
 	strcat(sLinea, "\n");
 	
