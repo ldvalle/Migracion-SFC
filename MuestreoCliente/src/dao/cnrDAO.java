@@ -72,6 +72,7 @@ public class cnrDAO {
 				reg.nro_solicitud = rs0.getLong(8);
 				reg.cod_estado = rs0.getString(9);
 				reg.descripcion = rs0.getString(10).trim();
+				reg.tipo_expediente = rs0.getString(11);
 			   
 				//-- Ver si existen calculos
 			   PreparedStatement ps = con.prepareStatement(SEL_PERI_CALCU);
@@ -167,7 +168,8 @@ public class cnrDAO {
 				"c.numero_cliente, " + 
 				"c.nro_solicitud, " + 
 				"c.cod_estado, " + 
-				"t1.descripcion " + 
+				"t1.descripcion, " +
+				"c.tipo_expediente " +
 				"FROM cnr_new c, tabla t1 ";
 		
 		if(iTipoCorrida == 1) {

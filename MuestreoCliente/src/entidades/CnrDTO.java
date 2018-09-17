@@ -11,6 +11,7 @@ public class CnrDTO {
 	   public long  nro_solicitud;
 	   public String	cod_estado;
 	   public String	descripcion;
+	   public String	tipo_expediente;
 	   
 	   public String	sFechaDesdePeriCalcu;
 	   public String	sFechaHastaPeriCalcu;

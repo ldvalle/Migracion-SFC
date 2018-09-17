@@ -4,13 +4,14 @@ import java.util.Date;
 import java.text.SimpleDateFormat;
 
 import servicios.InvoiceSRV;
+import servicios.MovimientosSRV;
 
-public class sfc_invoice {
+public class sfc_movimientos {
 	static private int iModoExtraccion; 
 	static private String sOS;
 
 	public static void main(String[] args) {
-		InvoiceSRV miSrv = new InvoiceSRV();
+		MovimientosSRV miSrv = new MovimientosSRV();
 		SimpleDateFormat fechaF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 		
 		Date fechaInicio = new Date();
@@ -18,9 +19,9 @@ public class sfc_invoice {
 		if(!ValidaArgumentos(args)) {
 			System.exit(1);
 		}
-		System.out.println("Procesando INVOICES ...");
+		System.out.println("Procesando MOVIMIENTOS ...");
 		
-		if(!miSrv.ProcesaInvoice(iModoExtraccion, sOS)) {
+		if(!miSrv.ProcesaMovimientos(iModoExtraccion, sOS)) {
 			System.out.println("Fallo el proceso");
 			System.exit(1);
 		}
@@ -31,6 +32,7 @@ public class sfc_invoice {
 		
 		System.out.println("Inicio: " + fechaF.format(fechaInicio));
 		System.out.println("Fin:    " + fechaF.format(fechaFin));
+
 
 	}
 
@@ -49,6 +51,5 @@ public class sfc_invoice {
 		
 		return true;
 	}
-	
 	
 }

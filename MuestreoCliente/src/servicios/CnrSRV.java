@@ -135,7 +135,12 @@ public class CnrSRV {
 		sLinea += String.format("\"%d\";", cnr.nro_expediente);
 	   
 	   /* Condicion del expediente */
-		sLinea += String.format("\"%s\";", cnr.descripcion);
+		//sLinea += String.format("\"%s\";", cnr.descripcion);
+		if(cnr.tipo_expediente.equals("S")) {
+			sLinea += "\"Sin Dolo\";";
+		}else {
+			sLinea += "\"Con Dolo\";";
+		}
 	   
 	   /* Año del expediente */
 		sLinea += String.format("\"%d\";", cnr.ano_expediente);

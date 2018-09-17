@@ -439,12 +439,12 @@ public class ContratoDAO {
 				"c.corr_facturacion, " + 
 				"TRIM(c.nombre), " + 
 				"c.tipo_fpago, " + 
-				"c.tipo_reparto, " + 
+				"s1.cod_sf1,, " + 
 				"c.nro_beneficiario, " + 
-				"t1.cod_sap || '-' || trim(t1.descripcion), " + 
+				"TRIM(t1.cod_sap) || '-' || trim(t1.descripcion), " + 
 				"t2.descripcion, " + 
 				"c.minist_repart " + 
-				"FROM cliente c, OUTER sap_transforma t1, OUTER tabla t2 " + 
+				"FROM cliente c, OUTER sap_transforma t1, OUTER tabla t2, sf_transforma s1 " + 
 				"WHERE c.numero_cliente = " + lNroCliente + " " + 
 				"AND t1.clave = 'BU_TYPE' " + 
 				"AND t1.cod_mac = c.actividad_economic " + 
@@ -452,7 +452,9 @@ public class ContratoDAO {
 				"AND t2.sucursal = '0000' " + 
 				"AND t2.codigo = c.cod_propiedad " + 
 				"AND t2.fecha_activacion <= TODAY " + 
-				"AND (t2.fecha_desactivac IS NULL OR t2.fecha_desactivac > TODAY) ";
+				"AND (t2.fecha_desactivac IS NULL OR t2.fecha_desactivac > TODAY) " +
+				"AND s1.clave = 'TIPREPARTO' " +
+				"AND s1.cod_mac = c.tipo_reparto ";
 		
 		
 		return sql;

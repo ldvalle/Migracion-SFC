@@ -46,11 +46,10 @@ public class InvoiceSRV {
 		CierraArchivos();
 	
 		//Copiar Archivos
-/*		
 		if(!MoverArchivo()) {
 			System.out.println("No se pudo mover los archivos.");
 		}
-*/
+
 		return true;
 	}
 	
@@ -169,6 +168,10 @@ public class InvoiceSRV {
 				"\"Ahorro %\";" +
 				"\"Factura Digital\";" +
 				"\"Moneda\";" +
+				"\"Valor Energía Activa\";" +
+				"\"Valor Energía Reactiva\";" +
+				"\"Valor Potencia\";" +
+				"\"Valor Ahorro\";" +
 				
 				"\r\n";
 		
@@ -191,10 +194,10 @@ public class InvoiceSRV {
 		sLinea += String.format("\"%.02f\";", reg.suma_intereses);
 	   
 	   // Acceso a la factura
-		sLinea +="\"http://www.edesur.com.ar\";";
+		sLinea +="\"http://www.edesur.com.ar/\";";
 	   
 	   // Dirección factura
-		sLinea += String.format("\"%dAR\";", reg.numero_cliente);
+		sLinea += String.format("\"%dBPARG\";", reg.numero_cliente);
 	   
 	   // Titular
 		sLinea += String.format("\"%dARG\";", reg.numero_cliente);
@@ -225,7 +228,8 @@ public class InvoiceSRV {
 	   sLinea += String.format("\"%sAR\";", reg.id_factura);
 	   
 	   // Direccion Facturación (Historico)
-	   sLinea += String.format("\"%d\";", reg.numero_cliente);
+	   //sLinea += String.format("\"%d\";", reg.numero_cliente);
+	   sLinea += "\"\";";
 	   
 	   // Pago (vacio)
 	   sLinea += "\"\";";

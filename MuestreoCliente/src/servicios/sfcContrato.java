@@ -331,7 +331,7 @@ public class sfcContrato {
 		sLinea += "\"\";";
 	   
 	   // Estado
-		sLinea += "\"DRAFT\";";
+		sLinea += "\"Activated\";";
 	   
 	   // Fecha de activación
 		sLinea += String.format("\"%sT00:00:00.000Z\";", reg.sFechaAlta);
@@ -507,10 +507,15 @@ public class sfcContrato {
 		sLinea += String.format("\"%dARG\";", reg.numero_cliente);
 	   
 	   // Dirección de reparto
-		sLinea += String.format("\"%d-2ARG\";", reg.numero_cliente);
+		if(reg.tipo_reparto.trim().equals("P")) {
+			sLinea += String.format("\"%d-1ARG\";", reg.numero_cliente);
+		}else {
+			sLinea += String.format("\"%d-2ARG\";", reg.numero_cliente);
+		}
+		
 	   
 	   // Tipo de Documento
-		sLinea += "\"Factura\";";
+		sLinea += "\"\";";
 	   
 	   // Adhesión a Factura Electrónica
 		if(reg.tipo_fpago.trim().contentEquals("D")) {
@@ -568,10 +573,15 @@ public class sfcContrato {
 		sLinea += "\"\";";
 	   
 	   // Dirección Postal
-		sLinea += String.format("\"%d-2ARG\";", reg.numero_cliente);
+		if(reg.tipo_reparto.trim().equals("P")) {
+			sLinea += String.format("\"%d-1ARG\";", reg.numero_cliente);
+		}else {
+			sLinea += String.format("\"%d-2ARG\";", reg.numero_cliente);
+		}
+
 	   
 	   // Tipo de Reparto  
-		sLinea += String.format("\"%s\";", reg.tipo_reparto);
+		sLinea += String.format("\"%s\";", reg.tipo_reparto.trim());
 	
 	   // Fecha Factura Digital
 		if(!reg.sFechaAltaFactuDigital.trim().equals("")) {

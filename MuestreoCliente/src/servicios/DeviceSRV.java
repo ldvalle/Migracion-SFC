@@ -217,12 +217,15 @@ public class DeviceSRV {
 	   /* Fecha Fabricación */
 		sLinea += String.format("\"%d\";", reg.med_anio);
 
-	   /* Fecha Instalacion */
+	   /* Fecha Retiro */
+/*		
 		if(reg.fecha_prim_insta != null) {
 			sLinea += String.format("\"%s\";", reg.fecha_prim_insta);
 		}else {
 			sLinea +=  "\"\";";
 		}
+*/
+		sLinea +=  "\"\";";
 		
 		sLinea += "\r\n";
 		
