@@ -132,7 +132,7 @@ public class CnrSRV {
 		sLinea += String.format("\"%d\";", cnr.nro_expediente);
 	   
 	   /* Fecha creación expediente */
-		sLinea += String.format("\"%d\";", cnr.nro_expediente);
+		sLinea += String.format("\"%s\";", cnr.fecha_inicio);
 	   
 	   /* Condicion del expediente */
 		//sLinea += String.format("\"%s\";", cnr.descripcion);
