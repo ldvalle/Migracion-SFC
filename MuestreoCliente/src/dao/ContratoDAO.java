@@ -394,6 +394,40 @@ public class ContratoDAO {
 			
 		return sFechaAlta;
 	}
+	
+	public Boolean getDepGar(ContratoDTO reg) {
+		Connection con = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+		boolean salida = false;
+
+		try{
+			con = UConnection.getConnection();
+			st = con.prepareStatement(SQL_SEL_RUTA_FILES);
+			st.setLong(1, reg.numero_cliente);
+			rs=st.executeQuery();
+			if(rs.next()){
+				reg.dg_nroDg = rs.getLong(1);
+				reg.dg_fechaEmision = rs.getString(2);
+				reg.dg_garante = rs.getLong(3);
+				reg.dg_motivo = rs.getString(4);
+				salida = true;
+			}
+
+		}catch(Exception ex){
+			ex.printStackTrace();
+			throw new RuntimeException(ex);
+		}finally{
+			try{
+				rs.close();
+				st.close();
+			}catch(Exception ex){
+				ex.printStackTrace();
+				throw new RuntimeException(ex);
+			}
+		}
+		return salida;
+	}
 
 	private static String SQL_SEL_RUTA_FILES = "SELECT valor_alf "+
 			"FROM tabla "+
@@ -541,4 +575,14 @@ public class ContratoDAO {
 		
 		return sql;
 	}
+	
+	private static final String SEL_DEPGAR = "SELECT numero_dg, " +
+			"fecha_emision, " +
+			"TO_CHAR(fecha_emision, '%Y-%m-%dT%H:%M:%S.000Z'), " +
+			"garante, " +
+			"motivo " + 
+			"FROM depgar " + 
+			"WHERE numero_cliente = ? " ;
+	
+	
 }

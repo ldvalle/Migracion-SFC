@@ -18,5 +18,6 @@ public class MovimientosDTO {
 	public	long	nro_docto_asociado;
 	public	String	tipo_mov;
 	public	String	nombre_cajero;
+	public 	String	lugarPago;
 	
 }

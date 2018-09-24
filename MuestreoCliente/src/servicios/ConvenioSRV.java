@@ -12,6 +12,7 @@ import java.text.SimpleDateFormat;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -33,7 +34,6 @@ public class ConvenioSRV {
 		}
 		
 		ConvenioDAO miDao = new ConvenioDAO();
-
 		
 		//proceso ppal ----
 		if(!miDao.procesaConve(iTipo)) {
@@ -46,7 +46,7 @@ public class ConvenioSRV {
 	
 		//Copiar Archivos
 		
-		if(!MoverArchivo()) {
+		if(!MoverArchivo(sOS)) {
 			System.out.println("No se pudo mover los archivos.");
 		}
 
@@ -58,7 +58,7 @@ public class ConvenioSRV {
 		
 		
 	   /* External Id */
-		sLinea=String.format("\"%d%dAR\";", reg.numero_cliente, reg.corr_convenio);
+		sLinea=String.format("\"%d%dAGRARG\";", reg.numero_cliente, reg.corr_convenio);
 
 	   /* Tipo */
 		sLinea+= "\"\";";
@@ -73,26 +73,26 @@ public class ConvenioSRV {
 		sLinea+=String.format("\"%sT00:00:00.000Z\";", reg.fecha_creacion);
 	   
 	   /* Fecha fin */
-		if(reg.fecha_termino == null) {
+		if(reg.fecha_termino != null) {
 			sLinea+=String.format("\"%sT00:00:00.000Z\";", reg.fecha_termino);
 		}else {
 			sLinea+= "\"\";";
 		}
 		
 	   /* Deuda inicial */
-		sLinea=String.format("\"%.02f\";", reg.deuda_origen);
+		sLinea+=String.format("\"%.02f\";", reg.deuda_origen);
 
 	   /* Pie */
-		sLinea=String.format("\"%.02f\";", reg.valor_cuota_ini);
+		sLinea+=String.format("\"%.02f\";", reg.valor_cuota_ini);
 
 	   /* Deuda pendiente */
-		sLinea=String.format("\"%.02f\";", reg.deuda_convenida);
+		sLinea+=String.format("\"%.02f\";", reg.deuda_convenida);
    
 	   /* Valor cuota */
-		sLinea=String.format("\"%.02f\";", reg.valor_cuota);
+		sLinea+=String.format("\"%.02f\";", reg.valor_cuota);
 
 	   /* Valor última cuota */
-		sLinea=String.format("\"%.02f\";", reg.valor_cuota);
+		sLinea+=String.format("\"%.02f\";", reg.valor_cuota);
 
 	   /* Total de cuotas */
 		sLinea+=String.format("\"%d\";", reg.numero_tot_cuotas);
@@ -101,7 +101,7 @@ public class ConvenioSRV {
 		sLinea+=String.format("\"%d\";", reg.numero_ult_cuota);
 
 	   /* Tasa */
-		sLinea=String.format("\"%.02f\";", reg.intereses);
+		sLinea+=String.format("\"%.02f\";", reg.intereses);
 
 	   /* Contacto */
 		sLinea+=String.format("\"%dARG\";", reg.numero_cliente);
@@ -110,7 +110,12 @@ public class ConvenioSRV {
 		sLinea+=String.format("\"%s\";", reg.usuario_creacion);
 
 	   /* Usuario término */
-		sLinea+=String.format("\"%s\";", reg.usuario_termino);
+		if(reg.usuario_termino != null) {
+			sLinea+=String.format("\"%s\";", reg.usuario_termino);
+		}else {
+			sLinea+= "\"\";";
+		}
+			
 
 	   /* Total intereses */
 		sLinea+= "\"\";";
@@ -136,7 +141,7 @@ public class ConvenioSRV {
 	   /* Motivo de baja */
 		sLinea+= "\"\";";
 	   /* Suministro */
-		sLinea=String.format("\"%dAR\";", reg.numero_cliente);
+		sLinea+=String.format("\"%dAR\";", reg.numero_cliente);
 
 	   /* Cuenta */
 		sLinea+=String.format("\"%dARG\";", reg.numero_cliente);
@@ -207,13 +212,14 @@ public class ConvenioSRV {
 		
 	}
 
-	Boolean MoverArchivo() {
+	Boolean MoverArchivo(String sOs) {
+		
 		String sOriCnr = sPathGenera.trim() + sArchConve.trim();
 		String sDestiCnr = sPathCopia.trim() + sArchConve.trim();
-		
+
         Path pOriCnr = FileSystems.getDefault().getPath(sOriCnr);
         Path pDestiCnr = FileSystems.getDefault().getPath(sDestiCnr);
-        
+		
 		try {
 			Files.move(pOriCnr, pDestiCnr, StandardCopyOption.REPLACE_EXISTING);
 		}catch(Exception e) {

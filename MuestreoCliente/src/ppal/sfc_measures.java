@@ -2,6 +2,7 @@ package ppal;
 
 import servicios.MeasuresSRV;
 import java.util.Date;
+import java.util.Locale;
 import java.text.SimpleDateFormat;
 
 public class sfc_measures {
@@ -20,10 +21,11 @@ public class sfc_measures {
 		if(!ValidaArgumentos(args)) {
 			System.exit(1);
 		}
-/*		
-		System.out.println(String.format("[%d] [%d] [%d] [%s]", iEstadoCliente, iModoExtraccion, iTipoArchivos, sOS));
-		System.exit(1);
-*/		
+
+		if(sOS.equals("DOS")) {
+			Locale.setDefault(Locale.Category.FORMAT, java.util.Locale.US);
+		}
+		
 		System.out.println("Procesando ...");
 		
 		if(!miSrv.ProcesaMeasure(iEstadoCliente, iModoExtraccion, iTipoArchivos, sOS)) {

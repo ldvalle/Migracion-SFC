@@ -222,7 +222,7 @@ public class InvoiceSRV {
 	   sLinea += String.format("\"%.02f\";", reg.suma_impuestos);
 	   
 	   // External ID
-	   sLinea += String.format("\"%sAR\";", reg.id_factura);
+	   sLinea += String.format("\"%d%sINVARG\";", reg.numero_cliente,reg.id_factura);
 	   
 	   // Numero Factura
 	   sLinea += String.format("\"%sAR\";", reg.id_factura);

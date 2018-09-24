@@ -26,7 +26,7 @@ public class ExtragenDAO {
 		try {
 			con = UConnection.getConnection();
 			st = con.prepareStatement(SQL_SEL_RUTA_FILES);
-			st.setString(1, sRuta);
+			st.setString(1, sCodigo);
 			rs=st.executeQuery();
 			if(rs.next()) {
 				sRuta = rs.getString(1);

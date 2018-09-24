@@ -186,7 +186,7 @@ public class CnrSRV {
 	    sLinea += String.format("\"%d%d%s%sDEVARG\";",cnr.numero_cliente, cnr.numero_medidor, cnr.marca_medidor, cnr.modelo_medidor);
 	   
 	   /* External Id */
-	    sLinea += String.format("\"%d%s%d\";", cnr.ano_expediente, cnr.sucursal, cnr.nro_expediente);
+	    sLinea += String.format("\"%d%s%dMDARG\";", cnr.ano_expediente, cnr.sucursal, cnr.nro_expediente);
 
 		sLinea += "\r\n";
 			

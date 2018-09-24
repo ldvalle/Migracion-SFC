@@ -119,6 +119,13 @@ public class sfcContrato {
 			miContra.sPatidaMuni = sTasa.trim();
 		}
 	
+		//Carga DG
+		if( miDAO.getDepGar(miContra)) {
+			miContra.garantia=true;
+		}else {
+			miContra.garantia=false;
+		}
+		
 		//Generar Archivos
 		
 		switch(iTipoArchivo) {
@@ -374,13 +381,28 @@ public class sfcContrato {
 		
 	   
 	   // Garantía
-		sLinea += "\"\";";
+		if(reg.garantia) {
+			sLinea += "\"TRUE\";";
+		}else {
+			sLinea += "\"FALSE\";";
+		}
+		
 	   // Garante
-		sLinea += "\"\";";
+		if(reg.dg_garante != null) {
+			sLinea += String.format("\"%d\";", reg.dg_garante);
+		}else {
+			sLinea += "\"\";";
+		}
+		
 	   // Fin de Garantía
 		sLinea += "\"\";";
 	   // Comienzo de Garantía
-		sLinea += "\"\";";
+		if(reg.dg_fechaEmision != null) {
+			sLinea += String.format("\"%s\";", reg.dg_fechaEmision);
+		}else {
+			sLinea += "\"\";";
+		}
+		
 	   // Conexión Transitoria
 		sLinea += "\"\";";
 	   // Tipo de Titular

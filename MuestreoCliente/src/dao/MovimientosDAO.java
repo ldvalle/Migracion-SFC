@@ -26,7 +26,7 @@ public class MovimientosDAO {
 		try {
 			con = UConnection.getConnection();
 			st = con.prepareStatement(SQL_SEL_RUTA_FILES);
-			st.setString(1, sRuta);
+			st.setString(1, sCodigo);
 			rs=st.executeQuery();
 			if(rs.next()) {
 				sRuta = rs.getString(1);
@@ -119,9 +119,8 @@ public class MovimientosDAO {
 				miReg.tipo_docto = rs.getString(13);
 				miReg.nro_docto_asociado = rs.getLong(14);
 				miReg.tipo_mov = rs.getString(15);
+				miReg.lugarPago = rs.getString(16);
 				
-				
-				//Si tiene Factura Digital
 				miReg.nombre_cajero = getNombreCajero(miReg);
 				
 				
@@ -209,11 +208,14 @@ public class MovimientosDAO {
 			"h.centro_emisor, " + 
 			"h.tipo_docto, " + 
 			"h.nro_docto_asociado, " + 
-			"c1.tipo_mov " + 
-			"FROM hispa h, conce c1 " + 
+			"c1.tipo_mov, " + 
+			"o.nombre "  +
+			"FROM hispa h, conce c1, OUTER oficinas o " + 
 			"WHERE h.numero_cliente = ?  " + 
 			"AND h.fecha_pago >= TODAY - 420 " + 
 			"AND c1.codigo_concepto = h.tipo_pago " + 
+			"AND o.oficina = h.oficina " +
+			"AND o.sucursal = '0000' " +
 			"ORDER BY h.corr_pagos ASC ";
 	
 	private static final String SEL_CAJERO = "SELECT FIRST 1 nombre FROM ccb@pagos_test:cajer " + 

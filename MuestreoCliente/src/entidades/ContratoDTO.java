@@ -31,5 +31,11 @@ public class ContratoDTO {
 	   public String fp_codTarjeta;
 	   
 	   public String sMarcaTarjeta;
+	   public Boolean	garantia;
+	   
+	   public long	dg_nroDg;
+	   public String	dg_fechaEmision;
+	   public Long	dg_garante;
+	   public String	dg_motivo;
 }
 

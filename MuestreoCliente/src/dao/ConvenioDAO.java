@@ -26,7 +26,7 @@ public class ConvenioDAO {
 		try {
 			con = UConnection.getConnection();
 			st = con.prepareStatement(SQL_SEL_RUTA_FILES);
-			st.setString(1, sRuta);
+			st.setString(1, sCodigo);
 			rs=st.executeQuery();
 			if(rs.next()) {
 				sRuta = rs.getString(1);
@@ -76,7 +76,9 @@ public class ConvenioDAO {
 					reg.opcion_convenio=rs.getString(3);
 					reg.estado=rs.getString(4);
 					reg.fecha_creacion=rs.getString(5);
-					reg.fecha_termino=rs.getString(6);
+					if(rs.getString(6) != null)
+						reg.fecha_termino=rs.getString(6);
+					
 					reg.deuda_origen=rs.getDouble(7);
 					reg.valor_cuota_ini=rs.getDouble(8);
 					reg.deuda_convenida=rs.getDouble(9);
@@ -84,8 +86,9 @@ public class ConvenioDAO {
 					reg.numero_tot_cuotas=rs.getInt(11);
 					reg.numero_ult_cuota=rs.getInt(12);
 					reg.intereses=rs.getDouble(13);
-					reg.usuario_creacion=rs.getString(14);
-					reg.usuario_termino=rs.getString(15);
+					reg.usuario_creacion=rs.getString(14).trim();
+					if(rs.getString(15) != null)
+						reg.usuario_termino=rs.getString(15).trim();
 
 					if(!miSrv.InformaConve(reg)) {
 					   System.out.println("Fallo informar Convenio para Cliente " + reg.numero_cliente + " Corr. Convenio" + reg.corr_convenio);

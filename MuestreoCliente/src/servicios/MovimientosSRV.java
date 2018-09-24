@@ -97,7 +97,7 @@ public class MovimientosSRV {
 		sLinea += "\"\";";
 	   
 	   /* Monto de evento */
-		sLinea += "\"\";";
+		sLinea += String.format("\"%.02f\";", reg.valor_pago);
 	   
 	   /* Deuda */
 		sLinea += "\"\";";
@@ -112,10 +112,10 @@ public class MovimientosSRV {
 		sLinea += "\"C\";";
 	   
 	   /* External Id */
-		sLinea += String.format("\"%d-%d\";", reg.numero_cliente, reg.corr_pagos);
+		sLinea += String.format("\"%d%d%dMOVARG\";", reg.llave, reg.numero_cliente, reg.corr_pagos);
 	   
 	   /* Factura */
-		sLinea += String.format("\"%s%s%dAR\";", reg.centro_emisor, reg.tipo_docto, reg.nro_docto_asociado);
+		sLinea += String.format("\"%d%s%s%dINVARG\";",reg.numero_cliente, reg.centro_emisor, reg.tipo_docto, reg.nro_docto_asociado);
 	   
 	   /* Monto energía */
 		sLinea += "\"\";";
@@ -141,7 +141,7 @@ public class MovimientosSRV {
 	   /* Medio de pago */
 	   sLinea += "\"\";";
 	   /* Lugar de pago */
-	   sLinea += "\"\";";
+	   sLinea += String.format("\"%s\";", reg.lugarPago);
 	   
 	   /* Cajero */
 	   sLinea += String.format("\"%s\";", reg.nombre_cajero);

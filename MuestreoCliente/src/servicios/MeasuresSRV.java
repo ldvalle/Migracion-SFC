@@ -226,6 +226,15 @@ public class MeasuresSRV {
 	
 	void GeneraPlanoLectura(MeasuresDTO reg, String tipoMedidor) {
 		String sLinea="";
+		String sExternalID ="";
+		
+
+		if(tipoMedidor.equals("A")) {
+			sExternalID = String.format("%d%dACTIMEDARG", reg.numero_cliente, reg.corr_facturacion);
+		}else {
+			sExternalID = String.format("%d%dREACMEDARG", reg.numero_cliente, reg.corr_facturacion);
+		}
+
 		
 	   // Suministro
 		sLinea = String.format("\"%dAR\";",reg.numero_cliente);
@@ -272,10 +281,10 @@ public class MeasuresSRV {
 	   sLinea+="\"\";";
 
 	   // Factura
-	   sLinea+=String.format("\"%s\";", reg.id_factura);
+	   sLinea+=String.format("\"%d%sINVARG\";", reg.numero_cliente, reg.id_factura);
 	   
 	   // External ID
-	   sLinea += String.format("\"%d%dAR\";", reg.numero_cliente, reg.corr_facturacion);
+	   sLinea += String.format("\"%s\";", sExternalID);
 	   
 	   // Fecha Prox.Lectura (vacio)
 	   sLinea+="\"\";";
@@ -296,12 +305,20 @@ public class MeasuresSRV {
 	
 	void GeneraPlanoConsumo(MeasuresDTO reg, String tipoMedidor) {
 		String sLinea="";
+		
+		String sExternalID ="";
+		
+		if(tipoMedidor.equals("A")) {
+			sExternalID = String.format("%dACTI%dCNSARG", reg.corr_facturacion, reg.numero_cliente);
+		}else {
+			sExternalID = String.format("%dREAC%dCNSARG", reg.corr_facturacion, reg.numero_cliente);
+		}
 
 	   // Suministro
 		sLinea = String.format("\"%dAR\";", reg.numero_cliente);
 	   
 	   // Factura
-		sLinea += String.format("\"%sAR\";", reg.id_factura);
+		sLinea += String.format("\"%d%sINVAR\";", reg.numero_cliente, reg.id_factura);
 	
 	   // Tipo de Consumo
 		if(tipoMedidor.equals("A")) {
@@ -324,10 +341,10 @@ public class MeasuresSRV {
 		}
 	   
 	   // External ID
-		sLinea+= String.format("\"%d%dAR\";", reg.numero_cliente, reg.corr_facturacion);
+		sLinea+= String.format("\"%s\";", sExternalID.trim());
 	   
 	   // Fecha Facturacion
-		sLinea+= String.format("\"%s\"", reg.fecha_facturacion);
+		sLinea+= String.format("\"%s\";", reg.fecha_facturacion);
 
 		// Nro + marca + modelo de medidor
 		sLinea += String.format("\"%d%s%s\";", reg.numero_medidor, reg.marca_medidor, reg.modelo_medidor);
