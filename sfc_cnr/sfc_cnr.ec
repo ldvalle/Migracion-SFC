@@ -615,7 +615,7 @@ $ClsCnr		reg;
    sprintf(sLinea, "%s\"%ld%ld%s%sDEVARG\";", sLinea, reg.numero_cliente, reg.numero_medidor, reg.marca_medidor, reg.modelo_medidor);
    
    /* External Id */
-   sprintf(sLinea, "%s\"%d%s%ld\";", sLinea, reg.ano_expediente, reg.sucursal, reg.nro_expediente);
+   sprintf(sLinea, "%s\"%d%s%ldMDARG\";", sLinea, reg.ano_expediente, reg.sucursal, reg.nro_expediente);
 
 
 	strcat(sLinea, "\n");
