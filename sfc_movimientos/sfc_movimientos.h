@@ -32,6 +32,7 @@ $typedef struct{
    long  nro_docto_asociado;
    char  tipo_mov[2];
    char  nombre_cajero[31];
+   char  lugarPago[60];
 }ClsPago;
 
 

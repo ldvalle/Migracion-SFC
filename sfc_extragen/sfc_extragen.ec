@@ -1101,7 +1101,10 @@ $ClsClientes		regCliente;
       GeneraStreet(fpStreetUnx, regCliente);
    }
 */
-	GeneraAddress(fpAddressUnx, regCliente);
+	GeneraAddress(fpAddressUnx, regCliente, "S");
+    if(strcmp(regCliente.tipo_reparto, "POSTAL")==0){
+        GeneraAddress(fpAddressUnx, regCliente, "P");
+    }
 
 	GeneraCuentas(fpCuentasUnx, regCliente);
 
@@ -1261,9 +1264,10 @@ ClsClientes		regCli;
 	
 }
 
-void GeneraAddress(fp, regCli)
+void GeneraAddress(fp, regCli, sTipoReparto)
 FILE 			*fp;
 ClsClientes 	regCli;
+char            sTipoReparto[2];
 {
 	char	sLinea[1000];	
 	char	sAux[100];
@@ -1275,36 +1279,53 @@ ClsClientes 	regCli;
    memset(sAuxL, '\0', sizeof(sAuxL));
    memset(sObs, '\0', sizeof(sObs));
 
-	sprintf(sAux, "%s %s ", regCli.nom_calle, regCli.nro_dir);
-	
-	if(strcmp(regCli.piso_dir, "")!=0){
-		sprintf(sAux, "%spiso %s ", sAux, regCli.piso_dir);	
-	}
-	if(strcmp(regCli.depto_dir, "")!=0){
-		sprintf(sAux, "%sDpto. %s", sAux, regCli.depto_dir);	
-	}	
+   if(sTipoReparto[0]=='S'){
+       
+        sprintf(sAux, "%s %s ", regCli.nom_calle, regCli.nro_dir);
+        
+        if(strcmp(regCli.piso_dir, "")!=0){
+            sprintf(sAux, "%spiso %s ", sAux, regCli.piso_dir);	
+        }
+        if(strcmp(regCli.depto_dir, "")!=0){
+            sprintf(sAux, "%sDpto. %s", sAux, regCli.depto_dir);	
+        }	
 
-   strcpy(sAuxL, sAux);
-   
-   if(strcmp(regCli.comuna, " ")!=0){
-      sprintf(sAuxL, "%s Loc. %s", sAuxL, regCli.nom_comuna );
+        strcpy(sAuxL, sAux);
+        
+        if(strcmp(regCli.comuna, " ")!=0){
+            sprintf(sAuxL, "%s Loc. %s", sAuxL, regCli.nom_comuna );
+        }
+        
+        if(strcmp(regCli.partido, " ")!=0){
+            sprintf(sAuxL, "%s Part. %s", sAuxL, regCli.nom_partido );
+        }
+            
+        if(strcmp(regCli.obs_dir, "")!=0){
+            strcpy(sObs, regCli.obs_dir);
+        }
+        if(strcmp(regCli.entre_calle1, "")!=0 && strcmp(regCli.entre_calle2, "")!=0){
+            if(strcmp(sObs, "")!=0){
+                sprintf(sObs, "% (Entre calle: %s y calle: %s)", sObs, regCli.entre_calle1, regCli.entre_calle2);
+            }else{
+                sprintf(sObs, "(Entre calle: %s y calle: %s)", regCli.entre_calle1, regCli.entre_calle2);
+            }
+        }
+   }else{
+        sprintf(sAux, "%s %s ", regCli.dp_nom_calle, regCli.dp_nro_dir);
+        
+        if(strcmp(regCli.dp_piso_dir, "")!=0){
+            sprintf(sAux, "%spiso %s ", sAux, regCli.dp_piso_dir);	
+        }
+        if(strcmp(regCli.dp_depto_dir, "")!=0){
+            sprintf(sAux, "%sDpto. %s", sAux, regCli.dp_depto_dir);	
+        }	
+
+        strcpy(sAuxL, sAux);
+        
+        if(strcmp(regCli.dp_nom_localidad, " ")!=0){
+            sprintf(sAuxL, "%s Loc. %s", sAuxL, regCli.dp_nom_localidad );
+        }
    }
-   
-   if(strcmp(regCli.partido, " ")!=0){
-      sprintf(sAuxL, "%s Part. %s", sAuxL, regCli.nom_partido );
-   }
-      
-   if(strcmp(regCli.obs_dir, "")!=0){
-      strcpy(sObs, regCli.obs_dir);
-   }
-   if(strcmp(regCli.entre_calle1, "")!=0 && strcmp(regCli.entre_calle2, "")!=0){
-      if(strcmp(sObs, "")!=0){
-         sprintf(sObs, "% (Entre calle: %s y calle: %s)", sObs, regCli.entre_calle1, regCli.entre_calle2);
-      }else{
-         sprintf(sObs, "(Entre calle: %s y calle: %s)", regCli.entre_calle1, regCli.entre_calle2);
-      }
-   }
-      
 	/* MONEDA */
 	strcpy(sLinea, "\"ARS\";");
 		
@@ -1322,15 +1343,23 @@ ClsClientes 	regCli;
 	}
 
 	/* CP  */
-	if(!risnull(CINTTYPE, (char *) &regCli.cod_postal)){
-		sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.cod_postal);
-	}else{
-		strcat(sLinea, "\"\";");
-	}
-
+    if(sTipoReparto[0]=='S'){
+        if(!risnull(CINTTYPE, (char *) &regCli.cod_postal)){
+            sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.cod_postal);
+        }else{
+            strcat(sLinea, "\"\";");
+        }
+    }else{
+        if(!risnull(CINTTYPE, (char *) &regCli.dp_cod_postal)){
+            sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.dp_cod_postal);
+        }else{
+            strcat(sLinea, "\"\";");
+        }
+    }
+    
 	/* ID */
    alltrim(regCli.tipo_reparto, ' ');
-   if(strcmp(regCli.tipo_reparto, "POSTAL")==0){
+   if(sTipoReparto[0]== 'P'){
       sprintf(sLinea, "%s\"%ld-1ARG\";", sLinea, regCli.numero_cliente);
    }else{
       sprintf(sLinea, "%s\"%ld-2ARG\";", sLinea, regCli.numero_cliente);
@@ -1338,17 +1367,22 @@ ClsClientes 	regCli;
 	
 	
 	/* ID-CALLE */
-   if(strcmp(regCli.cod_calle, "")==0 || strcmp(regCli.cod_calle, "-1")==0){
-      /*sprintf(sLinea, "%s\"%ld-2\";", sLinea, regCli.numero_cliente);*/
-      strcat(sLinea, "\"A0000AARG\";");
+   if(sTipoReparto[0]== 'P'){
+        strcat(sLinea, "\"A0000AARG\";");
    }else{
-      if(ValidaCalle(regCli)){
-         sprintf(sLinea, "%s\"%s%sARG\";", sLinea, regCli.cod_calle, regCli.comuna);
-      }else{
-         strcat(sLinea, "\"A0000AARG\";");
-      }
+            
+        if(strcmp(regCli.cod_calle, "")==0 || strcmp(regCli.cod_calle, "-1")==0){
+            /*sprintf(sLinea, "%s\"%ld-2\";", sLinea, regCli.numero_cliente);*/
+            strcat(sLinea, "\"A0000AARG\";");
+        }else{
+            if(ValidaCalle(regCli)){
+                sprintf(sLinea, "%s\"%s%sARG\";", sLinea, regCli.cod_calle, regCli.comuna);
+            }else{
+                strcat(sLinea, "\"A0000AARG\";");
+            }
+        }
    }
-
+   
 	/* DEPARTAMENTO  */
    alltrim(regCli.nom_barrio, ' ');
    alltrim(regCli.nom_comuna, ' ');
@@ -1891,36 +1925,69 @@ ClsClientes	regCli;
 			/* NRO DOCUMENTO */
 			sprintf(sLinea, "%s\"%s\";", sLinea, regCli.rut);
 		}else{
-			if(strcmp(regCli.tip_doc, "")!=0){
-				/* TIPO DOCUMENTO */
-				sprintf(sLinea, "%s\"%s\";", sLinea, regCli.tip_doc_SF);
-			}else{
-				/* TIPO DOCUMENTO */
-				strcat(sLinea, ";");
-			}
-			if(!risnull(CDOUBLETYPE, (char *) &regCli.nro_doc)){
-				/* NRO DOCUMENTO */
-				sprintf(sLinea, "%s\"%.0f\";", sLinea, regCli.nro_doc);
-			}else{
-				/* NRO DOCUMENTO */
-				strcat(sLinea, "\"\";");
-			}
+            if(strcmp(regCli.tip_doc, "DEF")!=0){
+                if(!risnull(CDOUBLETYPE, (char *) &regCli.nro_doc) && regCli.nro_doc > 0 && regCli.nro_doc != 11111111){
+
+                    if(strcmp(regCli.tip_doc, "")!=0){
+                        /* TIPO DOCUMENTO */
+                        sprintf(sLinea, "%s\"%s\";", sLinea, regCli.tip_doc_SF);
+                    }else{
+                        /* TIPO DOCUMENTO */
+                        strcat(sLinea, ";");
+                    }
+                    if(!risnull(CDOUBLETYPE, (char *) &regCli.nro_doc)){
+                        /* NRO DOCUMENTO */
+                        sprintf(sLinea, "%s\"%.0f\";", sLinea, regCli.nro_doc);
+                    }else{
+                        /* NRO DOCUMENTO */
+                        strcat(sLinea, "\"\";");
+                    }
+                }else{
+                    /* TIPO DOCUMENTO */
+                    strcat(sLinea, "\"\";");
+                    /* NRO DOCUMENTO */
+                    strcat(sLinea, "\"\";");
+                }
+            }else{
+                /* TIPO DOCUMENTO */
+                strcat(sLinea, "\"\";");
+                /* NRO DOCUMENTO */
+                strcat(sLinea, "\"\";");
+            }
+                    
 		}
 	}else{
-		if(strcmp(regCli.tip_doc, "")!=0){
-			/* TIPO DOCUMENTO */
-			sprintf(sLinea, "%s\"%s\";", sLinea, regCli.tip_doc_SF);
-		}else{
-			/* TIPO DOCUMENTO */
-			strcat(sLinea, "\"\";");
-		}
-		if(!risnull(CDOUBLETYPE, (char *) &regCli.nro_doc)){
-			/* NRO DOCUMENTO */
-			sprintf(sLinea, "%s\"%.0f\";", sLinea, regCli.nro_doc);
-		}else{
-			/* NRO DOCUMENTO */
-			strcat(sLinea, "\"\";");
-		}
+        if(strcmp(regCli.tip_doc, "DEF")!=0){
+            if(!risnull(CDOUBLETYPE, (char *) &regCli.nro_doc) && regCli.nro_doc > 0 && regCli.nro_doc != 11111111){
+        
+                if(strcmp(regCli.tip_doc, "")!=0){
+                    /* TIPO DOCUMENTO */
+                    sprintf(sLinea, "%s\"%s\";", sLinea, regCli.tip_doc_SF);
+                }else{
+                    /* TIPO DOCUMENTO */
+                    strcat(sLinea, "\"\";");
+                }
+                if(!risnull(CDOUBLETYPE, (char *) &regCli.nro_doc)){
+                    /* NRO DOCUMENTO */
+                    sprintf(sLinea, "%s\"%.0f\";", sLinea, regCli.nro_doc);
+                }else{
+                    /* NRO DOCUMENTO */
+                    strcat(sLinea, "\"\";");
+                }
+            }else{
+                /* TIPO DOCUMENTO */
+                strcat(sLinea, "\"\";");
+                /* NRO DOCUMENTO */
+                strcat(sLinea, "\"\";");
+            }
+        }else{
+            /* TIPO DOCUMENTO */
+            strcat(sLinea, "\"\";");
+            /* NRO DOCUMENTO */
+            strcat(sLinea, "\"\";");
+        }
+            
+            
 	}
 	
 	/* EMAIL 1 */
@@ -2024,7 +2091,7 @@ ClsClientes	regCli;
    if(strcmp(regCli.papa_t23, "")!=0){
       sprintf(sLinea, "%s\"%sARG\";", sLinea, regCli.papa_t23);
    }else if(regCli.minist_repart > 0){
-      sprintf(sLinea, "%s\"%ld\";", sLinea, regCli.minist_repart);
+      sprintf(sLinea, "%s\"%ldARG\";", sLinea, regCli.minist_repart);
    }else{
       strcat(sLinea, "\"\";");
    }
@@ -2067,21 +2134,35 @@ ClsClientes	regCli;
 	/* GENERO (VACIO) */
 	strcat(sLinea, "\"\";");
 
-	if(strcmp(regCli.tip_doc, "")!=0){
-		/* TIPO DOCUMENTO */
-		sprintf(sLinea, "%s\"%s\";", sLinea, regCli.tip_doc);
-	}else{
-		/* TIPO DOCUMENTO */
-		strcat(sLinea, "\"\";");
-	}
-	if(!risnull(CDOUBLETYPE, (char *) &regCli.nro_doc)){
-		/* NRO DOCUMENTO */
-		sprintf(sLinea, "%s\"%.0f\";", sLinea, regCli.nro_doc);
-	}else{
-		/* NRO DOCUMENTO */
-		strcat(sLinea, "\"\";");
-	}
-	
+    if(strcmp(regCli.tip_doc, "DEF")!=0){
+        if(!risnull(CDOUBLETYPE, (char *) &regCli.nro_doc) && regCli.nro_doc > 0 && regCli.nro_doc != 11111111){
+            
+            if(strcmp(regCli.tip_doc, "")!=0){
+                /* TIPO DOCUMENTO */
+                sprintf(sLinea, "%s\"%s\";", sLinea, regCli.tip_doc);
+            }else{
+                /* TIPO DOCUMENTO */
+                strcat(sLinea, "\"\";");
+            }
+            if(!risnull(CDOUBLETYPE, (char *) &regCli.nro_doc)){
+                /* NRO DOCUMENTO */
+                sprintf(sLinea, "%s\"%.0f\";", sLinea, regCli.nro_doc);
+            }else{
+                /* NRO DOCUMENTO */
+                strcat(sLinea, "\"\";");
+            }
+        }else{
+            /* TIPO DOCUMENTO */
+            strcat(sLinea, "\"\";");
+            /* NRO DOCUMENTO */
+            strcat(sLinea, "\"\";");
+        }
+    }else{
+        /* TIPO DOCUMENTO */
+        strcat(sLinea, "\"\";");
+        /* NRO DOCUMENTO */
+        strcat(sLinea, "\"\";");
+    }
 	/* ETAPA */
 	strcat(sLinea, "\"Active Customer\";");
 	
@@ -2260,8 +2341,9 @@ ClsClientes	regCli;
 	
 	/* COMUNA (VACIO) */
 	strcat(sLinea, "\"\";");
-	/* TIPO SEGMENTO (VACIO) */
-	strcat(sLinea, "\"\";");
+	/* TIPO SEGMENTO */
+	strcat(sLinea, "\"BT\";");
+    
 	/* MED.DICIPLINA (VACIO) */
 	strcat(sLinea, "\"\";");
 	
@@ -2326,9 +2408,9 @@ ClsClientes	regCli;
 
    if(strcmp(regCli.cod_voltaje, "")!=0){
       if(atoi(regCli.cod_voltaje)==1){
-         strcat(sLinea, "\"M\";");
+         strcat(sLinea, "\"MF\";");
       }else{
-         strcat(sLinea, "\"T\";");
+         strcat(sLinea, "\"TF\";");
       }
 		
 	}else{

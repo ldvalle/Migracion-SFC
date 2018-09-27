@@ -37,6 +37,9 @@ $typedef struct{
    char  sTasaAP[10];
    char  sPatidaMuni[14];
    char  sMarcaTarjeta[2];
+    char    dgFechaEmision[11];
+    long    dgGarante;
+   
 }ClsCliente;
 
 $typedef struct{
@@ -47,6 +50,13 @@ $typedef struct{
    char  nombre[31];
 }ClsFormaPago;
 
+
+$typedef struct{
+    long    nroDg;
+    char    sFechaEmision[11];
+    long    lGarante;
+    char    motivo[10];
+}ClsGarantia;
 
 /* Prototipos de Funciones */
 short	AnalizarParametros(int, char **);

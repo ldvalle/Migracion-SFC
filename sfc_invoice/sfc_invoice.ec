@@ -678,7 +678,7 @@ $ClsFactura		reg;
    sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_impuestos);
    
    /* External ID */
-   sprintf(sLinea, "%s\"%sAR\";", sLinea, reg.id_factura);
+   sprintf(sLinea, "%s\"%ld%sINVARG\";", sLinea,reg.numero_cliente, reg.id_factura);
    
    /* Numero Factura */
    sprintf(sLinea, "%s\"%s\";", sLinea, reg.id_factura);

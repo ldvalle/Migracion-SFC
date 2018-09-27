@@ -506,7 +506,7 @@ $ClsConve		reg;
 	memset(sLinea, '\0', sizeof(sLinea));
 
    /* External Id */
-   sprintf(sLinea, "\"%ld%dAR\";", reg.numero_cliente, reg.corr_convenio );
+   sprintf(sLinea, "\"%ld%dAGRARG\";", reg.numero_cliente, reg.corr_convenio );
    /* Tipo */
    strcat(sLinea, "\"\";");
    /* Opción de Convenio */

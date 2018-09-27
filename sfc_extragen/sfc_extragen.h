@@ -161,7 +161,7 @@ short LeoContactos(ClsClientes *, int *);
 
 short	GenerarPlanos(ClsClientes);
 void	GeneraStreet(FILE *, ClsClientes);
-void	GeneraAddress(FILE *, ClsClientes);
+void	GeneraAddress(FILE *, ClsClientes, char *);
 void	GeneraCuentas(FILE *, ClsClientes);
 void	GeneraContactos(FILE *, ClsClientes);
 void	GeneraCuentasContacto(FILE *, ClsClientes);

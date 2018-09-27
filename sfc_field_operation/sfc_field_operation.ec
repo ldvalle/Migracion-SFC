@@ -614,7 +614,7 @@ char           sTipo[2];
          break;
       case 'R':
          /* Tipo de registro */
-         strcpy(sLinea, "\"REINSTATEMEN\";");
+         strcpy(sLinea, "\"REINSTATEMENT\";");
          /* Fecha actual */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.fecha_reposicion);
          /* Monto */

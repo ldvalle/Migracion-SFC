@@ -703,6 +703,13 @@ if(giTipoCorrida == 1){
    
    $PREPARE selTasa FROM $sql;
    
+   /*** GARANTE ****/
+   $PREPARE selGarante FROM "SELECT numero_dg,
+        TO_CHAR(fecha_emision, '%Y-%m-%dT%H:%M:%S.000Z'),
+        garante,
+        motivo
+        FROM depgar
+        WHERE numero_cliente = ? ";
    
 }
 
@@ -751,6 +758,7 @@ short LeoCliente(reg)
 $ClsCliente *reg;
 {
    $int  iCantDigital=0;
+   $ClsGarantia  regDg;
    
 	InicializaCliente(reg);
 
@@ -792,7 +800,21 @@ $ClsCliente *reg;
       }
    }
 
-
+    $EXECUTE selGarante INTO :regDg.nroDg, 
+                            :regDg.sFechaEmision,
+                            :regDg.lGarante,
+                            :regDg.motivo;
+    
+    if(SQLCODE !=0){
+        reg->dgGarante=-1;
+    }else{
+        reg->dgGarante = regDg.lGarante;
+        strcpy(reg->dgFechaEmision, regDg.sFechaEmision);
+    }
+        
+                            
+                            
+                            
    alltrim(reg->codActividadEconomica, ' ');
    alltrim(reg->tipo_titularidad, ' ');
    
@@ -827,6 +849,9 @@ $ClsCliente	*reg;
    memset(reg->sTasaAP, '\0', sizeof(reg->sTasaAP));
    memset(reg->sPatidaMuni, '\0', sizeof(reg->sPatidaMuni));
    memset(reg->sMarcaTarjeta, '\0', sizeof(reg->sMarcaTarjeta));
+   
+   rsetnull(CLONGTYPE, (char *) &(reg->dgGarante));
+   memset(reg->dgFechaEmision, '\0', sizeof(reg->dgFechaEmision));
    
 }
 
@@ -1002,13 +1027,27 @@ $ClsCliente		reg;
    sprintf(sLinea, "%s\"%s\";", sLinea, reg.codActividadEconomica);
    
    /* Garantía */
-   strcat(sLinea, "\"\";");
+   if(reg.dgGarante == -1){
+        strcat(sLinea, "\"FALSE\";");
+   }else{
+        strcat(sLinea, "\"TRUE\";");
+   }
+   
    /* Garante */
-   strcat(sLinea, "\"\";");
+    if(reg.dgGarante > 0){
+        sprintf(sLinea, "%s\"%ld\";", sLinea, reg.dgGarante);
+   }else{
+        strcat(sLinea, "\"\";");
+   }   
+   
    /* Fin de Garantía */
    strcat(sLinea, "\"\";");
    /* Comienzo de Garantía */
-   strcat(sLinea, "\"\";");
+   if(strcmp(reg.dgFechaEmision, "")!=0){
+        sprintf(sLinea, "%s\"%s\";", sLinea, reg.dgFechaEmision);
+   }else{
+        strcat(sLinea, "\"\";");
+   }
    /* Conexión Transitoria */
    strcat(sLinea, "\"\";");
    /* Tipo de Titular */
