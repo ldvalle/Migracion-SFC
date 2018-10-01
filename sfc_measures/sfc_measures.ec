@@ -310,6 +310,7 @@ short AbreArchivos()
 void CerrarArchivos(void)
 {
 	fclose(pFileMedidorUnx);
+	fclose(pFileConsumoUnx);
 
 }
 
@@ -364,7 +365,6 @@ $char sClave[7];
       	sprintf(sCommand, "chmod 777 %s", sArchConsumoDos);
       	iRcv=system(sCommand);
      
-/*      	
       	sprintf(sCommand, "cp %s %s", sArchConsumoDos, sPathCp);
       	iRcv=system(sCommand);
         
@@ -376,7 +376,7 @@ $char sClave[7];
       
          sprintf(sCommand, "rm %s", sArchConsumoDos);
          iRcv=system(sCommand);
-*/         
+         
          break;               
       case 1:
          sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchMedidorUnx, sArchMedidorAux);
@@ -413,7 +413,6 @@ $char sClave[7];
       	sprintf(sCommand, "chmod 777 %s", sArchConsumoDos);
       	iRcv=system(sCommand);
      
-/*      	
       	sprintf(sCommand, "cp %s %s", sArchConsumoDos, sPathCp);
       	iRcv=system(sCommand);
         
@@ -425,7 +424,7 @@ $char sClave[7];
       
          sprintf(sCommand, "rm %s", sArchConsumoDos);
          iRcv=system(sCommand);
-*/   
+
          break;   
    }
 
@@ -583,6 +582,7 @@ $char clave[7];
         printf("ERROR.\nSe produjo un error al tratar de recuperar el path destino del archivo.\n");
         exit(1);
     }
+
 }
 
 long getCorrelativo(sTipoArchivo)
@@ -711,7 +711,9 @@ short LeoReactiva(regLec)
 $ClsLectura *regLec;
 {
    char  sRefactu[2];
-   
+   $double  lLectura=0.00;
+   $long    lConsumo=0;
+    
    strcpy(sRefactu, regLec->indica_refact);
    
    InicializaLectuReac(regLec);
@@ -730,16 +732,17 @@ $ClsLectura *regLec;
    }         
 
    if(sRefactu[0]=='S'){
-      $EXECUTE selHislecReacRefac INTO :regLec->lectura_facturac, :regLec->consumo
+      $EXECUTE selHislecReacRefac INTO :lLectura, :lConsumo
          USING :regLec->numero_cliente,
                :regLec->corr_facturacion,
                :regLec->tipo_lectura;
 
          if ( SQLCODE != 0 ){
             printf("No se encontro Reactiva Refac para cliente %ld correlativo %ld\n", regLec->numero_cliente, regLec->corr_facturacion);
-            return 0;
+         }else{
+            regLec->lectura_facturac=lLectura;
+            regLec->consumo=lConsumo;   
          }         
-   
    }
   
    return 1;
@@ -776,8 +779,7 @@ char           sTipo[2];
    
    /* Constante */
    sprintf(sLinea, "%s\"%.05lf\";", sLinea, regLec.constante);
-   
-   
+      
    /* Consumo */
    sprintf(sLinea, "%s\"%ld\";", sLinea, regLec.consumo);
 
@@ -801,10 +803,13 @@ char           sTipo[2];
    strcat(sLinea, "\"\";");
 
    /* Factura */
-   sprintf(sLinea, "%s\"%s\";", sLinea, regLec.id_factura);
+   sprintf(sLinea, "%s\"%ld%sINVARG\";", sLinea, regLec.numero_cliente, regLec.id_factura);
    
    /* External ID */
-   sprintf(sLinea, "%s\"%ld%ldAR\";", sLinea, regLec.numero_cliente, regLec.corr_facturacion);
+   if(sTipo[0]=='A')
+        sprintf(sLinea, "%s\"%ld%dACTIMEDARG\";", sLinea, regLec.numero_cliente, regLec.corr_facturacion);
+   else
+        sprintf(sLinea, "%s\"%ld%dREACMEDARG\";", sLinea, regLec.numero_cliente, regLec.corr_facturacion);
    
    /* Fecha Prox.Lectura (vacio) */
    strcat(sLinea, "\"\";");
@@ -814,7 +819,6 @@ char           sTipo[2];
 
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);
    iRcv=fprintf(fp, sLinea);
    if(iRcv<0){
       printf("Error al grabar lecturas\n");
@@ -840,7 +844,7 @@ char           sTipo[2];
    sprintf(sLinea, "\"%ldAR\";", regLec.numero_cliente);
    
    /* Factura */
-   sprintf(sLinea, "%s\"%sAR\";", sLinea, regLec.id_factura);
+   sprintf(sLinea, "%s\"%ld%sINVARG\";", sLinea, regLec.numero_cliente, regLec.id_factura);
 
    /* Tipo de Consumo */
    if(sTipo[0]=='A'){
@@ -863,21 +867,22 @@ char           sTipo[2];
    }
    
    /* External ID */
-   sprintf(sLinea, "%s\"%ld%dAR\";", sLinea, regLec.numero_cliente, regLec.corr_facturacion);
+   if(sTipo[0]=='A')
+        sprintf(sLinea, "%s\"%dACTI%ldCNSARG\";", sLinea, regLec.corr_facturacion, regLec.numero_cliente);
+   else
+        sprintf(sLinea, "%s\"%dREAC%ldCNSARG\";", sLinea, regLec.corr_facturacion, regLec.numero_cliente);
    
    /* Fecha Facturacion */
-   sprintf(sLinea, "%s\"%s\"", sLinea, regLec.fecha_facturacion);
+   sprintf(sLinea, "%s\"%s\";", sLinea, regLec.fecha_facturacion);
 
    /* Nro.de Medidor + marca + modelo */
-   sprintf(sLinea, "%s\"%ld%s%s\"", sLinea, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
+   sprintf(sLinea, "%s\"%ld%s%s\";", sLinea, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
    
    /* Coseno Phi */
    sprintf(sLinea, "%s\"%.02f\";", sLinea, regLec.coseno_phi);
 
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);	
-
 	iRcv=fprintf(fp, sLinea);
 
    if(iRcv < 0){

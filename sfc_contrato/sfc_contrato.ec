@@ -704,12 +704,15 @@ if(giTipoCorrida == 1){
    $PREPARE selTasa FROM $sql;
    
    /*** GARANTE ****/
-   $PREPARE selGarante FROM "SELECT numero_dg,
-        TO_CHAR(fecha_emision, '%Y-%m-%dT%H:%M:%S.000Z'),
-        garante,
-        motivo
-        FROM depgar
-        WHERE numero_cliente = ? ";
+   $PREPARE selGarante FROM "SELECT FIRST 1 d1.numero_dg,
+        TO_CHAR(d1.fecha_emision, '%Y-%m-%dT%H:%M:%S.000Z'),
+        d1.garante,
+        d1.motivo
+        FROM depgar d1
+        WHERE d1.numero_cliente = ?
+        AND d1.fecha_emision = (SELECT MAX(d2.fecha_emision) FROM
+            depgar d2
+            WHERE d2.numero_cliente = d1.numero_cliente)";
    
 }
 
@@ -803,7 +806,8 @@ $ClsCliente *reg;
     $EXECUTE selGarante INTO :regDg.nroDg, 
                             :regDg.sFechaEmision,
                             :regDg.lGarante,
-                            :regDg.motivo;
+                            :regDg.motivo
+                        USING :reg->numero_cliente;
     
     if(SQLCODE !=0){
         reg->dgGarante=-1;

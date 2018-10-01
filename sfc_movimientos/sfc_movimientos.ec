@@ -366,7 +366,7 @@ if(giTipoCorrida==1){
 	$DECLARE curPagos CURSOR WITH HOLD FOR selPagos;
 
 	/******** Select Cajero ****************/
-	strcpy(sql, "SELECT FIRST 1 nombre FROM ccb@pagos_test:cajer ");
+	strcpy(sql, "SELECT FIRST 1 nombre FROM cajer ");
 	strcat(sql, "WHERE sucursal = ? ");
 	strcat(sql, "AND cajero = ? ");
 
