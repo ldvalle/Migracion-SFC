@@ -1,6 +1,7 @@
 package ppal;
 
 import java.util.Date;
+import java.util.Locale;
 import java.text.SimpleDateFormat;
 import servicios.FieldOperationSRV;
 
@@ -17,6 +18,11 @@ public class sfc_fieldOperation {
 		if(!ValidaArgumentos(args)) {
 			System.exit(1);
 		}
+		
+		if(sOS.equals("DOS")) {
+			Locale.setDefault(Locale.Category.FORMAT, java.util.Locale.US);
+		}
+		
 		System.out.println("Procesando Cortes/Repos Extensiones ...");
 		
 		if(!miSrv.ProcesaCortes(iModoExtraccion, sOS)) {

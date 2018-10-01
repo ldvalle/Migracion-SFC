@@ -2,15 +2,16 @@ package ppal;
 
 import java.util.Date;
 import java.util.Locale;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import servicios.DeviceSRV;
+import servicios.ExtragenSRV;
 
-public class sfc_device {
+public class sfc_extragen {
 	static private int iModoExtraccion; 
 	static private String sOS;
 
-	public static void main(String[] args) {
-		DeviceSRV miSrv = new DeviceSRV();
+	public static void main(String[] args) throws SQLException {
+		ExtragenSRV miSrv = new ExtragenSRV();
 		SimpleDateFormat fechaF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 		
 		Date fechaInicio = new Date();
@@ -18,15 +19,14 @@ public class sfc_device {
 		if(!ValidaArgumentos(args)) {
 			System.exit(1);
 		}
-
 		if(sOS.equals("DOS")) {
 			Locale.setDefault(Locale.Category.FORMAT, java.util.Locale.US);
 		}
 		
-		System.out.println("Procesando DEVICES ...");
+		System.out.println("Procesando Datos Generales ...");
 		
 
-		if(!miSrv.ProcesaDevice(iModoExtraccion, sOS)) {
+		if(!miSrv.ProcesoGral(iModoExtraccion, 0, sOS)) {
 			System.out.println("Fallo el proceso");
 			System.exit(1);
 		}
@@ -37,7 +37,6 @@ public class sfc_device {
 		
 		System.out.println("Inicio: " + fechaF.format(fechaInicio));
 		System.out.println("Fin:    " + fechaF.format(fechaFin));
-
 	}
 
 	static private Boolean ValidaArgumentos(String[] args) {
@@ -55,6 +54,4 @@ public class sfc_device {
 		
 		return true;
 	}
-	
-
 }

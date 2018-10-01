@@ -77,7 +77,7 @@ public class DeviceDAO {
 				reg.constante = rs0.getDouble(11);
 				reg.med_anio = rs0.getInt(12);
 				
-				reg.estado_sfc = miSrv.getEstadoSFC(reg.estado, reg.med_codubic);
+				reg.estado_sfc = miSrv.getEstadoSFC(reg.estado, reg.med_ubic);
 				
 				if(!miSrv.InformaDevice(reg)) {
 					System.out.println(String.format("Fallo al informar medidor para cliente %d", reg.numero_cliente));

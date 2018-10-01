@@ -85,10 +85,9 @@ public class sfcContrato {
 		miContra.papa_t23 = miDAO.getCorpoT23(nroCliente);
 		
 		//Carga Forma de Pago
-		if(miContra.tipo_fpago.equals("D")) {
+		if(miContra.tipo_fpago.trim().equals("D")) {
 			miFPago = miDAO.getFormaPago(nroCliente);
-			
-			if(miFPago.fp_banco.trim().equals("")) {
+			if(miFPago.fp_banco.trim().equals("") || miFPago.fp_banco == null) {
 				miContra.tipo_fpago="N";
 			}else {
 				miContra.fp_banco = miFPago.fp_banco.trim();
@@ -502,14 +501,19 @@ public class sfcContrato {
 	
 	void GenerarPlanoBilling(ContratoDTO reg) {
 		String sLinea = "";
-
+		
 	   // Cuenta
 		sLinea = String.format("\"%dARG\";", reg.numero_cliente);
 	   
 	   // Tipo
 		if(reg.tipo_fpago.trim().contentEquals("D")) {
 			if(reg.cbu.trim().equals("")) {
-				sLinea += String.format("\"%s\";", reg.sMarcaTarjeta);
+				if(reg.sMarcaTarjeta != null) {
+					sLinea += String.format("\"%s\";", reg.sMarcaTarjeta);
+				}else {
+					sLinea += "\"\";";
+				}
+				
 			}else {
 				sLinea += "\"D\";";
 			}
@@ -561,8 +565,9 @@ public class sfcContrato {
 		}
 		
 	   // Numero Tarjeta Crédito
-		if(reg.nroTarjeta != null) {
-			sLinea += String.format("\"%s\";", reg.nroTarjeta.trim());
+		if(reg.fp_nroTarjeta != null) {
+			//sLinea += String.format("\"%s\";", reg.nroTarjeta.trim());
+			sLinea += String.format("\"%s\";", reg.fp_nroTarjeta);
 		}else {
 			sLinea += "\"\";";
 		}

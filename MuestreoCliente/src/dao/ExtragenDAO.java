@@ -1,22 +1,52 @@
 package dao;
 
-import conectBD.UConnection;
 import entidades.ExtragenDTO;
+/*import servicios.CnrSRV;*/
 import servicios.ExtragenSRV;
 
+/*import java.lang.*;*/
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+/*
 import java.sql.Statement;
 
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Vector;
 import java.util.Date;
+*/
+import org.apache.commons.lang3.StringUtils;
+
+
+import conectBD.UConnection;
 
 public class ExtragenDAO {
-
+	Connection con = null;
+	PreparedStatement pstm0 = null;
+	ResultSet rs0 = null;
+	
+	PreparedStatement stCliente = null;
+	PreparedStatement stEmail = null;
+	PreparedStatement stTele = null;
+	PreparedStatement stTeleCerta = null;
+	PreparedStatement stVip = null;
+	PreparedStatement stValCalle = null;
+	
+	private long lNroCli;
+	
+	public ExtragenDAO () throws SQLException {
+		con = UConnection.getConnection();
+		
+		stCliente = con.prepareStatement(SEL_CLIENTE);
+		stEmail = con.prepareStatement(SEL_EMAIL);
+		stTele = con.prepareStatement(SEL_TELEFONOS);
+		stTeleCerta = con.prepareStatement(SEL_TELE_CERTA);
+		stVip = con.prepareStatement(SEL_VIP);
+		stValCalle = con.prepareStatement(SEL_VAL_CALLE);
+	}
+	
 	public String getRuta(String sCodigo) {
 		String sRuta="";
 		Connection con = null;
@@ -44,37 +74,61 @@ public class ExtragenDAO {
 
 	public Boolean ProcesoPpal(int iTipoCorrida, int iEstadoCliente) {
 		long lCantClientes=0;
-		long lNroCliente=0;
+		
+		/*
 		Connection con = null;
 		PreparedStatement pstm0 = null;
 		ResultSet rs0 = null;
+		*/
 		ExtragenSRV miSrv = new ExtragenSRV();
+		/*ExtragenDTO miClie = new ExtragenDTO();*/
 		
 		String sql = getCursorClientes(iTipoCorrida, iEstadoCliente);
 
 		try {
+			/*
 			con = UConnection.getConnection();
+			*/
+			
 			con.setAutoCommit(false);
 			con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+			
 			pstm0 = con.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE , ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
 			pstm0.setQueryTimeout(120);
 			pstm0.setFetchSize(1);
 			rs0 = pstm0.executeQuery();
 
-			while(rs0.next() ){
-				lNroCliente = rs0.getLong(1);
+			while (rs0.next()) {
+				ExtragenDTO miClie = new ExtragenDTO(rs0.getLong(1));
+				/*miClie.numero_cliente = rs0.getLong(1);*/
+				lNroCli = miClie.numero_cliente;
+				
+				//Cargo Datos Generales
+				getClienteGral(miClie);
 
-				if(! miSrv.ProcesaCliente(lNroCliente)) {
-					System.out.println("No se proceso cliente " + lNroCliente);
-				}
+				//Cargo Email
+				getEmail(miClie);
+
+				//Cargo Telefonos
+				getTelefonos(miClie);
+				
+				//Cargo VIP
+				getVip(miClie);
 
 				lCantClientes++;
+
+				//Informamos 
+				if(!miSrv.InformaExtragen(miClie)) {
+					System.out.println("Fallo informar Extragen para Cliente " + miClie.numero_cliente);
+					return false;
+				}
+				
 			}
 			System.out.println("Clientes Procesados " + lCantClientes);
 			rs0.close();
 			pstm0.close();
 		}catch(Exception ex){
-			System.out.println("revento en la vuelta " + lCantClientes + " Ultimo Cliente " + lNroCliente);
+			System.out.println("revento en la vuelta " + lCantClientes + " Ultimo Cliente " + lNroCli);
 			ex.printStackTrace();
 			throw new RuntimeException(ex);
 		}
@@ -84,102 +138,94 @@ public class ExtragenDAO {
 	}
 	
 	
-	public ExtragenDTO getClienteGral(long lNroCliente) {
-		ExtragenDTO reg = new ExtragenDTO();
-		
-		Connection con = null;
-		PreparedStatement st = null;
+	public void getClienteGral(ExtragenDTO reg) {
+		/*Connection con = null;*/
+		/*PreparedStatement stCliente = null;*/
 		ResultSet rs = null;
 
 		try {
-			con = UConnection.getConnection();
-			st = con.prepareStatement(SEL_CLIENTE);
-			st.setLong(1, lNroCliente);
+			/*con = UConnection.getConnection();*/
+			/*st = con.prepareStatement(SEL_CLIENTE);*/
+			stCliente.setLong(1, reg.numero_cliente);
 
-			rs=st.executeQuery();
-			if(rs.next()) {
-				ExtragenDTO regMail = null;
-				
-				reg.numero_cliente = rs.getLong(1);
-				reg.nombre = rs.getString(2).trim();
-				reg.cod_calle = rs.getString(3);
-				reg.nom_calle =rs.getString(4).trim();
-				reg.nom_partido = rs.getString(5).trim();
-				reg.provincia = rs.getString(6);
-				reg.nom_comuna = rs.getString(7).trim();
-				reg.nro_dir = rs.getString(8).trim();
-				reg.obs_dir = rs.getString(9).trim();
-				reg.cod_postal = rs.getInt(10);
-				reg.piso_dir = rs.getString(11);
-				reg.depto_dir = rs.getString(12);
-				reg.tip_doc = rs.getString(13).trim();
-				reg.tip_doc_SF = rs.getString(14).trim();
-				reg.nro_doc = rs.getDouble(15);
-				reg.telefono = rs.getString(16).trim();
-				reg.tipo_cliente = rs.getString(17);
-				reg.rut = rs.getString(18);
-				reg.tipo_reparto = rs.getString(19);
-				reg.sucursal = rs.getString(20).trim();
-				reg.sector = rs.getInt(21);
-				reg.zona = rs.getInt(22);
-				reg.tarifa = rs.getString(23);
-				reg.correlativo_ruta = rs.getLong(24);
-				reg.sClaseServicio = rs.getString(25).trim();
-				reg.sSubClaseServ = rs.getString(26);
-				reg.partido = rs.getString(27);
-				reg.comuna = rs.getString(28);
-				reg.tec_cod_calle = rs.getString(29);
-				reg.nom_barrio = rs.getString(30).trim();
-				reg.potencia_inst_fp = rs.getDouble(31);
-				reg.entre_calle1 = rs.getString(32).trim();
-				reg.entre_calle2 = rs.getString(33).trim();
-				reg.tipoIva = rs.getString(34).trim();
-				reg.minist_repart = rs.getLong(35);
+			rs=stCliente.executeQuery();
+			if(rs.next()) 
+				//Copia datos de cliente
+				CopiaDatos(reg, rs);
 
-				if(reg.cod_calle.trim() == null || reg.cod_calle.trim().equals("-1")) {
-					if(reg.tec_cod_calle.trim() != null || !reg.tec_cod_calle.trim().equals("-1")) {
-						reg.cod_calle = reg.tec_cod_calle;
-					}
-					
-				}
-				//Cargo Email
-				regMail = getEmail(lNroCliente);
-				reg.email_1 = regMail.email_1;
-				reg.email_2 = regMail.email_2;
-				reg.email_3 = regMail.email_3;
-
-				//Cargo Telefonos
-				
-				
-			}
 			rs.close();
-			st.close();
+			/*stCliente.close();*/
 			
 		}catch(Exception ex){
 			ex.printStackTrace();
 			throw new RuntimeException(ex);
 		}
-		
-		return reg;
 	}
 	
-	public ExtragenDTO getEmail(long lNroCliente) {
-		Connection con = null;
-		PreparedStatement st = null;
+	private void CopiaDatos(ExtragenDTO reg, ResultSet rs) throws SQLException
+	{
+		reg.numero_cliente = rs.getLong(1);
+		reg.nombre = rs.getString(2).trim();
+		reg.cod_calle = StringUtils.trim(rs.getString(3));
+		reg.nom_calle =rs.getString(4).trim();
+		reg.nom_partido = rs.getString(5).trim();
+		reg.provincia = rs.getString(6);
+		reg.nom_comuna = rs.getString(7).trim();
+		reg.nro_dir = rs.getString(8).trim();
+		reg.obs_dir = StringUtils.trim(rs.getString(9));
+		reg.cod_postal = rs.getInt(10);
+		reg.piso_dir = rs.getString(11);
+		reg.depto_dir = rs.getString(12);
+		reg.tip_doc = rs.getString(13).trim();
+		reg.tip_doc_SF = rs.getString(14).trim();
+		reg.nro_doc = rs.getDouble(15);
+		reg.telefono = StringUtils.trim(rs.getString(16));
+		reg.tipo_cliente = rs.getString(17);
+		reg.rut = rs.getString(18);
+		reg.tipo_reparto = rs.getString(19);
+		reg.sucursal = rs.getString(20).trim();
+		reg.sector = rs.getInt(21);
+		reg.zona = rs.getInt(22);
+		reg.tarifa = rs.getString(23);
+		reg.correlativo_ruta = rs.getLong(24);
+		reg.sClaseServicio = rs.getString(25).trim();
+		reg.sSubClaseServ = rs.getString(26);
+		reg.partido = rs.getString(27);
+		reg.comuna = rs.getString(28);
+		reg.tec_cod_calle = StringUtils.trim(rs.getString(29));
+		reg.nom_barrio = StringUtils.trim(rs.getString(30));
+		reg.potencia_inst_fp = rs.getDouble(31);
+		reg.entre_calle1 = StringUtils.trim(rs.getString(32));
+		reg.entre_calle2 = StringUtils.trim(rs.getString(33));
+		reg.tipoIva = rs.getString(34).trim();
+		reg.minist_repart = rs.getLong(35);
+		reg.estado_cliente = rs.getString(36).trim();
+		
+		if(reg.cod_calle == null || reg.cod_calle.equals("-1")) {
+			if(reg.tec_cod_calle != null && !reg.tec_cod_calle.equals("-1")) {
+				reg.cod_calle = reg.tec_cod_calle;
+			}
+			
+		}
+	}
+	
+	/*public ExtragenDTO getEmail(long lNroCliente) {*/
+	public void getEmail(ExtragenDTO reg) {
+		/*Connection con = null;
+		PreparedStatement stEmail = null;*/
 		ResultSet rs = null;
-		ExtragenDTO reg = new ExtragenDTO();
+		/*ExtragenDTO reg = new ExtragenDTO();*/
 		
 		try {
-			con = UConnection.getConnection();
-			st = con.prepareStatement(SEL_EMAIL);
-			st.setLong(1, lNroCliente);
+			/*con = UConnection.getConnection();
+			stEmail = con.prepareStatement(SEL_EMAIL);*/
+			stEmail.setLong(1, reg.numero_cliente);
 
-			rs=st.executeQuery();
+			rs=stEmail.executeQuery();
 			if(rs.next()) {
-				reg.email_1 = rs.getString(1).trim();
-				reg.email_2 = rs.getString(2).trim();
-				reg.email_3 = rs.getString(3).trim();
-
+				reg.email_1 = rs.getString(1);
+				reg.email_2 = rs.getString(2);
+				reg.email_3 = rs.getString(3);
 			}
 			
 			if(rs.wasNull()) {
@@ -187,78 +233,136 @@ public class ExtragenDAO {
 				reg.email_2 = "NO TIENE";
 				reg.email_3 = "NO TIENE";
 			}else {
-				if(reg.email_1.trim().equals("") || reg.email_1 == null) {
+				if(reg.email_1 == null || reg.email_1.equals("")) {
 					reg.email_1 = "NO TIENE";
 				}
-				if(reg.email_2.trim().equals("") || reg.email_2 == null) {
+				if(reg.email_2 == null || reg.email_2.equals("")) {
 					reg.email_2 = "NO TIENE";
 				}
-				if(reg.email_2.trim().equals("") || reg.email_2 == null) {
-					reg.email_2 = "NO TIENE";
+				if(reg.email_3 == null || reg.email_3.equals("")) {
+					reg.email_3 = "NO TIENE";
 				}
 				
 			}
 			
 			rs.close();
-			st.close();
-			
-				
+			/*stEmail.close();*/
 		}catch(Exception ex){
 			ex.printStackTrace();
 			throw new RuntimeException(ex);
 		}
-		
-		return reg;
+		/*return reg;*/
 	}
 
-	public ExtragenDTO getTelefonos(long lNroCliente) {
-		Connection con = null;
-		PreparedStatement st = null;
+	/*public ExtragenDTO getTelefonos(long lNroCliente) {*/
+	public void getTelefonos(ExtragenDTO reg) {
+		/*Connection con = null;
+		PreparedStatement stTele = null;*/
 		ResultSet rs = null;
-		ExtragenDTO reg = new ExtragenDTO();
+		/*ExtragenDTO reg = new ExtragenDTO();*/
 		
 		try {
-			con = UConnection.getConnection();
-			st = con.prepareStatement(SEL_EMAIL);
-			st.setLong(1, lNroCliente);
+			/*con = UConnection.getConnection();
+			stTele = con.prepareStatement(SEL_TELEFONOS);*/
+			
+			stTele.setLong(1, reg.numero_cliente);
 
-			rs=st.executeQuery();
+			rs=stTele.executeQuery();
 			while(rs.next()) {
-				reg.email_1 = rs.getString(1).trim();
-				reg.email_2 = rs.getString(2).trim();
-				reg.email_3 = rs.getString(3).trim();
+				reg.tel_tipo_te = rs.getString(1);
+				reg.tel_cod_area_te = rs.getString(2);
+				reg.tel_prefijo_te = rs.getString(3);
+				reg.tel_numero_te = rs.getLong(4); 
+				reg.tel_ppal_te = rs.getString(5);
+				
+				if (Long.toString(reg.tel_numero_te).length() >= 7 ) {
+					if (reg.tel_tipo_te.equals("CE")) 
+						reg.telefono_celular = reg.tel_cod_area_te + reg.tel_prefijo_te + Long.toString(reg.tel_numero_te);   
+					else if (reg.tel_ppal_te.equals("P")) 
+						reg.telefono = reg.tel_cod_area_te + Long.toString(reg.tel_numero_te);
+					else
+						reg.telefono_secundario = reg.tel_cod_area_te + Long.toString(reg.tel_numero_te);
+				}
+			}
 
-			}
-			
-			if(rs.wasNull()) {
-				reg.email_1 = "NO TIENE";
-				reg.email_2 = "NO TIENE";
-				reg.email_3 = "NO TIENE";
-			}else {
-				if(reg.email_1.trim().equals("") || reg.email_1 == null) {
-					reg.email_1 = "NO TIENE";
-				}
-				if(reg.email_2.trim().equals("") || reg.email_2 == null) {
-					reg.email_2 = "NO TIENE";
-				}
-				if(reg.email_2.trim().equals("") || reg.email_2 == null) {
-					reg.email_2 = "NO TIENE";
-				}
-				
-			}
-			
 			rs.close();
-			st.close();
+			/*stTele.close();*/
 			
-				
+			// Telefonos de CERTA
+			/*stTeleCerta = con.prepareStatement(SEL_TELE_CERTA);*/
+			/*st.setLong(1, lNroCliente);*/
+			stTeleCerta.setLong(1, reg.numero_cliente);
+
+			rs=stTeleCerta.executeQuery();
+			if(rs.next() && !rs.wasNull()) {
+				if(rs.getString(1) != null && !rs.getString(1).equals("")) 
+					reg.telefono = rs.getString(1);
+				if(rs.getString(2) != null && !rs.getString(2).equals("")) 
+					reg.telefono_celular = rs.getString(2);
+				if(rs.getString(3) != null && !rs.getString(3).equals("")) 
+					reg.telefono_secundario = rs.getString(3);
+			}
+			
+			if (StringUtils.length(reg.telefono) < 7 || Long.parseLong(reg.telefono) < 1000000)
+				reg.telefono="";
+			if (StringUtils.length(reg.telefono_secundario) < 7 || Long.parseLong(reg.telefono_secundario) < 1000000)
+				reg.telefono_secundario="";
+			if (StringUtils.length(reg.telefono_celular) < 7 || Long.parseLong(reg.telefono_celular) < 1000000)
+				reg.telefono_celular="";
+			
 		}catch(Exception ex){
 			ex.printStackTrace();
 			throw new RuntimeException(ex);
 		}
 		
-		return reg;
+		/*return reg;*/
 	}
 	
+	public void getVip(ExtragenDTO reg) {
+		/*Connection con = null;
+		PreparedStatement st = null;*/
+		ResultSet rs = null;
+		
+		try {
+			/*con = UConnection.getConnection();
+			stVip = con.prepareStatement(SEL_VIP);*/
+			stVip.setLong(1, reg.numero_cliente);
+
+			rs=stVip.executeQuery();
+			if(rs.next()) 
+				reg.electrodependiente = Integer.parseInt(rs.getString(1)) > 0 ? "1" : "0";
+
+			rs.close();
+			/*stVip.close();*/
+		}catch(Exception ex){
+			ex.printStackTrace();
+			throw new RuntimeException(ex);
+		}
+	}
+	
+	public Boolean getValCalle(String cod_calle, Long lAltura, String partido, String comuna) {
+		ResultSet rs = null;
+		int iCant = 0;
+		
+		try {
+			stValCalle.setString(1, cod_calle);
+			stValCalle.setLong  (2, lAltura);
+			stValCalle.setLong  (3, lAltura);
+			stValCalle.setString(4, partido);
+			stValCalle.setString(5, comuna);
+
+			rs=stValCalle.executeQuery();
+			if(rs.next()) 
+				iCant = Integer.parseInt(rs.getString(1));
+				
+			rs.close();
+		}catch(Exception ex){
+			ex.printStackTrace();
+			throw new RuntimeException(ex);
+		}
+		
+		return iCant <= 0 ? false : true;
+	}
 	private static final String SQL_SEL_RUTA_FILES = "SELECT valor_alf "+
 			"FROM tabla "+
 			"WHERE nomtabla = 'PATH' "+
@@ -310,7 +414,7 @@ public class ExtragenDAO {
 			"c.tip_doc, " + 
 			"t3.cod_sf1 tipDoc, " + 
 			"c.nro_doc, " + 
-			"TRIM(REPLACE(c.telefono, '-', '')), " + 
+			"TRIM(REPLACE(c.telefono, '-', '')), " +  
 			"c.tipo_cliente, " + 
 			"c.rut, " + 
 			"c.tipo_reparto, " + 
@@ -329,7 +433,8 @@ public class ExtragenDAO {
 			"TRIM(c.nom_entre), " + 
 			"TRIM(c.nom_entre1), " + 
 			"t2.cod_sap tipoIva, " + 
-			"c.minist_repart " + 
+			"c.minist_repart, " + 
+			"c.estado_cliente " +
 			"FROM cliente c, OUTER sf_transforma t1, OUTER tecni t " + 
 			", OUTER sap_transforma t2, OUTER sf_transforma t3 " + 
 			"WHERE c.numero_cliente = ? " + 
@@ -353,19 +458,51 @@ public class ExtragenDAO {
 			"AND (fecha_baja IS NULL OR fecha_baja > TODAY) "; 
 
 	
-	private static final String SEL_TELEFONOS = "SELECT tipo_te, " + 
-			"cod_area_te, " + 
-			"NVL(prefijo_te, ' '), " + 
+	private static final String SEL_TELEFONOS = "SELECT TRIM(tipo_te), " + 
+			"TRIM(NVL(cod_area_te, '')), " + 
+			"TRIM(NVL(prefijo_te, '')), " + 
 			"numero_te, " + 
-			"ppal_te " + 
+			"TRIM(ppal_te) " + 
 			"FROM telefono " + 
 			"WHERE cliente = ? "; 
 
-	private static final String SEL_TELE_CERTA = "SELECT telefono_fijo, " + 
-			"telefono_movil, " + 
-			"telefono_secun, " + 
-			"zona_tecnica " + 
+	private static final String SEL_TELE_CERTA = "SELECT TRIM(telefono_fijo), " + 
+			"TRIM(telefono_movil), " + 
+			"TRIM(telefono_secun), " + 
+			"TRIM(zona_tecnica) " + 
 			"FROM tele_certa " + 
 			"WHERE numero_cleinte = ? "; 
 
+	private static final String SEL_VIP = "SELECT COUNT(*) " + 
+			"FROM clientes_vip v, tabla t " + 
+			"WHERE numero_cliente = ? " +
+			"AND v.fecha_activacion <= TODAY " + 
+			"AND (v.fecha_desactivac IS NULL OR v.fecha_desactivac > TODAY) " +
+			"AND t.nomtabla = 'SDCLIV' " +
+			"AND t.codigo = v.motivo " +
+			"AND t.valor_alf[4] = 'S' " +
+			"AND t.sucursal = '0000' " +
+			"AND t.fecha_activacion <= TODAY "+ 
+			"AND ( t.fecha_desactivac >= TODAY OR t.fecha_desactivac IS NULL )";    
+
+	private static final String SEL_VAL_CALLE = "SELECT COUNT(*) " + 
+			"FROM sae_nomen_calles nc, " + 
+			"SAE_ORG_GEOGRAFICA a1, SAE_TABLAS b1, " +
+			"SAE_ORG_GEOGRAFICA a2, SAE_TABLAS b2 " +
+			"WHERE nc.nom_cod_calle = ? " +
+			"AND nc.nom_altura_desde <= ? " +
+			"AND nc.nom_altura_hasta >= ? " +
+			"AND a1.org_destino = ? " +
+			"AND a2.org_destino = ? " +
+			"AND nc.nom_altura_hasta > nc.nom_altura_desde " + 
+			"AND a1.org_destino = nc.nom_partido " + 
+			"AND a1.org_tipo_relacion = 'SP' " + 
+			"AND a1.org_origen = nc.nom_sucursal " +
+			"AND a1.org_destino = b1.tbl_codigo " + 
+			"AND b1.tbl_tipo_tabla = 8 " + 
+			"AND a2.org_tipo_relacion = 'PL' " + 
+			"AND a2.org_origen = nc.nom_partido " + 
+			"AND a2.org_destino = nc.nom_localidad " + 
+			"AND a2.org_destino = b2.tbl_codigo " + 
+			"AND b2.tbl_tipo_tabla = 9 "; 
 }

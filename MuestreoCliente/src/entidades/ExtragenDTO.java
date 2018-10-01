@@ -14,7 +14,7 @@ public class ExtragenDTO {
 	public	String	nom_comuna;
 	public	String	nro_dir;
 	public	String	obs_dir;
-	public	int		cod_postal;
+	public	Integer	cod_postal;
 	public	String	piso_dir;
 	public	String	depto_dir;
 	public	String	tip_doc;
@@ -86,10 +86,11 @@ public class ExtragenDTO {
 	public	String	telCer_telefono_movil;
 	public	String	telCer_telefono_secun;
 	public	String	telCer_zona_tecnica;
-
 	
-	public ExtragenDTO() {
-		
+	public	String	estado_cliente;
+
+	public ExtragenDTO(long lNumeroCliente) {
+		numero_cliente = lNumeroCliente;
 	}
 	
 }

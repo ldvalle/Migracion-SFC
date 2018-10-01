@@ -98,7 +98,7 @@ public class FieldOperationSRV {
 			break;
 		case 'R':
 			// Tipo de registro
-			sLinea = "\"REINSTATEMEN\";";
+			sLinea = "\"REINSTATEMENT\";";
 			// Fecha actual
 			sLinea += String.format("\"%s\";", reg.fecha_reposicion);
 			// Monto */

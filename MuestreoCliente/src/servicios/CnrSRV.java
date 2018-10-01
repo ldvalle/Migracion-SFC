@@ -84,7 +84,7 @@ public class CnrSRV {
 
 		try {
 			outCnr = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(sFilePathCnr), "UTF-8"));
-			sLinea = "\"Suministro\";\"Nro. Expediente\";\"Fecha creación expediente\";\"Condicion del expediente\";\"Año del expediente\";\"Fecha Inicio\";\"Fecha Fin\";\"Fecha inicio energía\";\"Fecha fin energía\";\"Estado\";\"Monto Expediente\";\"Cantidad de cuotas\";\"Número de medidor\";\"External Id\";";
+			sLinea = "\"Suministro\";\"Nro. Expediente\";\"Fecha creación expediente\";\"Condicion del expediente\";\"Año del expediente\";\"Fecha Inicio\";\"Fecha Fin\";\"Fecha inicio energía\";\"Fecha fin energía\";\"Estado\";\"Monto Expediente\";\"Cantidad de cuotas\";\"Número de medidor\";\"External Id\";\r\n";
 			
 			try {
 				outCnr.write(sLinea);

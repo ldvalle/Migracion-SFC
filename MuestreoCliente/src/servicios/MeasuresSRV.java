@@ -318,7 +318,7 @@ public class MeasuresSRV {
 		sLinea = String.format("\"%dAR\";", reg.numero_cliente);
 	   
 	   // Factura
-		sLinea += String.format("\"%d%sINVAR\";", reg.numero_cliente, reg.id_factura);
+		sLinea += String.format("\"%d%sINVARG\";", reg.numero_cliente, reg.id_factura);
 	
 	   // Tipo de Consumo
 		if(tipoMedidor.equals("A")) {

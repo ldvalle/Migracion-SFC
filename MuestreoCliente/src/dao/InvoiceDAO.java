@@ -232,19 +232,19 @@ public class InvoiceDAO {
 				dValorCargo = rs.getDouble(2);
 				
 				if(sCodCargo.equals("020")) {
-					reg2.cargo_fijo = rs.getDouble(1);
+					reg2.cargo_fijo = dValorCargo;
 				}else if(sCodCargo.equals("030")) {
-					reg2.cargo_variable = rs.getDouble(1);
+					reg2.cargo_variable = dValorCargo;
 				}else if(sCodCargo.equals("580")) {
-					reg2.cargo_tap += rs.getDouble(1);
+					reg2.cargo_tap += dValorCargo;
 				}else if(sCodCargo.equals("581")) {
-					reg2.cargo_tap += rs.getDouble(1);
+					reg2.cargo_tap += dValorCargo;
 				}else if(sCodCargo.equals("886")) {
-					reg2.cargo_tap += rs.getDouble(1);
+					reg2.cargo_tap += dValorCargo;
 				}else if(sCodCargo.equals("887")) {
-					reg2.cargo_tap += rs.getDouble(1);
+					reg2.cargo_tap += dValorCargo;
 				}else if(sCodCargo.equals("952")) {
-					reg2.cargo_kit = rs.getDouble(1);
+					reg2.cargo_kit = dValorCargo;
 				}
 			}
 			rs.close();

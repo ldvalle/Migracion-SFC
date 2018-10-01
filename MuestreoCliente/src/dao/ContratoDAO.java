@@ -213,7 +213,8 @@ public class ContratoDAO {
 			rs=null;
 			st=null;
 			reg.codBanco = reg.fp_banco;
-			if(reg.fp_cbu.equals("")) {
+			if(reg.fp_cbu.equals("") || reg.fp_cbu == null) {
+				
 				//Es Tarjeta
 				reg.fp_nroTarjeta = reg.fp_nrocuenta;
 
@@ -225,6 +226,7 @@ public class ContratoDAO {
 					reg.codTarjetaCredito = rs.getString(1);
 					reg.sNombreBanco = rs.getString(2);
 					reg.sMarcaTarjeta = rs.getString(3);
+					
 				}
 			}else {
 				//Es Debito
@@ -403,7 +405,7 @@ public class ContratoDAO {
 
 		try{
 			con = UConnection.getConnection();
-			st = con.prepareStatement(SQL_SEL_RUTA_FILES);
+			st = con.prepareStatement(SEL_DEPGAR);
 			st.setLong(1, reg.numero_cliente);
 			rs=st.executeQuery();
 			if(rs.next()){
@@ -473,7 +475,7 @@ public class ContratoDAO {
 				"c.corr_facturacion, " + 
 				"TRIM(c.nombre), " + 
 				"c.tipo_fpago, " + 
-				"s1.cod_sf1,, " + 
+				"s1.cod_sf1, " + 
 				"c.nro_beneficiario, " + 
 				"TRIM(t1.cod_sap) || '-' || trim(t1.descripcion), " + 
 				"t2.descripcion, " + 
@@ -577,7 +579,6 @@ public class ContratoDAO {
 	}
 	
 	private static final String SEL_DEPGAR = "SELECT numero_dg, " +
-			"fecha_emision, " +
 			"TO_CHAR(fecha_emision, '%Y-%m-%dT%H:%M:%S.000Z'), " +
 			"garante, " +
 			"motivo " + 

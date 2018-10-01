@@ -142,7 +142,7 @@ public class DeviceSRV {
 
 	public String getEstadoSFC(String stsMAC, String medUbic) {
 		String stsSFC="";
-		
+	
 		switch (stsMAC.charAt(0)) {
 			case 'Z':
 			case 'U':
@@ -150,7 +150,7 @@ public class DeviceSRV {
 				stsSFC="R";
 				break;
 			default:
-				switch(medUbic.charAt(1)) {
+				switch(medUbic.charAt(0)) {
 				case 'C': //En Cliente
 					stsSFC="I";
 					break;
@@ -166,6 +166,7 @@ public class DeviceSRV {
 				}
 				break;
 		}
+
 		return stsSFC;
 	}
 	
