@@ -557,7 +557,12 @@ $char sAux[1000];
 	strcat(sql, "c.nro_doc, ");
 	strcat(sql, "TRIM(REPLACE(c.telefono, '-', '')), ");
 	strcat(sql, "c.tipo_cliente, ");
-	strcat(sql, "c.rut, ");
+   
+	strcat(sql, "CASE ");
+	strcat(sql, "	WHEN LENGTH(c.rut)=11 THEN c.rut[1,2] || '-' || c.rut[3, 10] || '-' || c.rut[11] ");
+	strcat(sql, "  ELSE '' ");
+	strcat(sql, "END, ");
+   
 	strcat(sql, "c.tipo_reparto, ");
 	strcat(sql, "c.sucursal, ");
 	strcat(sql, "c.sector, ");

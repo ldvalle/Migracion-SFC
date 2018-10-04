@@ -355,7 +355,7 @@ if(giTipoCorrida==1){
     strcat(sql, "o.nombre ");
 	strcat(sql, "FROM hispa h, conce c1, OUTER oficinas o ");
 	strcat(sql, "WHERE h.numero_cliente = ? ");
-	strcat(sql, "AND h.fecha_pago >= TODAY - 420 ");
+	strcat(sql, "AND h.fecha_pago >= TODAY - 365 ");
 	strcat(sql, "AND c1.codigo_concepto = h.tipo_pago ");
 	strcat(sql, "AND o.oficina = h.oficina ");
 	strcat(sql, "AND o.sucursal = '0000' ");

@@ -32,6 +32,7 @@ $typedef struct{
    char     modelo_medidor[3];
    char     tipo_medidor[2];
    double   coseno_phi;
+   char     proxLectura[11];
 }ClsLectura;
 
 

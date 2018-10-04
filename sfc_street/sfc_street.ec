@@ -277,6 +277,7 @@ $char sAux[1000];
    strcat(sql, "SAE_ORG_GEOGRAFICA a1, SAE_TABLAS b1, ");
 	strcat(sql, "SAE_ORG_GEOGRAFICA a2, SAE_TABLAS b2 ");
    strcat(sql, "WHERE nc.nom_altura_hasta > nc.nom_altura_desde ");
+   strcat(sql, "AND nc.nom_dig_antiguedad = 0 ");
 	strcat(sql, "AND a1.org_destino = nc.nom_partido ");
 	strcat(sql, "AND a1.org_tipo_relacion = 'SP' ");
 	strcat(sql, "AND a1.org_origen = nc.nom_sucursal ");

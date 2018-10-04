@@ -491,7 +491,7 @@ $ClsMedidor			regMed;
    }
    
    /* External ID */
-   sprintf(sLinea, "%s\"%ld%s%sDEVARG\";", sLinea, regMed.numero, regMed.marca, regMed.modelo);
+   sprintf(sLinea, "%s\"%ld%ld%s%sDEVARG\";", sLinea, regMed.numero_cliente, regMed.numero, regMed.marca, regMed.modelo);
    
    /* Estado Medidor */
    sprintf(sLinea, "%s\"%s\";", sLinea, regMed.estado_sfc);

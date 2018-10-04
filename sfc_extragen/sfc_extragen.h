@@ -35,7 +35,7 @@ $typedef struct{
 	double	nro_doc;
 	char	telefono[20];
 	char	tipo_cliente[3];
-	char	rut[12];
+	char	rut[14];
 	char	tipo_reparto[7];
 	char	sucursal[5];
 	int	sector;

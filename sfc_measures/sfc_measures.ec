@@ -483,7 +483,8 @@ if(giTipoCorrida==1){
    strcat(sql, "TO_CHAR(h2.fecha_facturacion, '%Y-%m-%d'), ");
 	strcat(sql, "h.numero_medidor, ");
 	strcat(sql, "h.marca_medidor, ");
-   strcat(sql, "NVL(h2.coseno_phi, 0)/100 ");
+   strcat(sql, "NVL(h2.coseno_phi, 0)/100, ");
+   strcat(sql, "TO_CHAR(h.fecha_lectura + 30, '%Y-%m-%d') ");
 	strcat(sql, "FROM hislec h, hisfac h2 ");
 	strcat(sql, "WHERE h.numero_cliente = ? ");
 	strcat(sql, "AND h.fecha_lectura >= TODAY - 365 ");
@@ -636,7 +637,8 @@ $ClsLectura *regLec;
       :regLec->fecha_facturacion,
       :regLec->numero_medidor,
       :regLec->marca_medidor,
-      :regLec->coseno_phi;
+      :regLec->coseno_phi,
+      :regLec->proxLectura;
 	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
@@ -694,6 +696,7 @@ $ClsLectura	*regLec;
    memset(regLec->modelo_medidor, '\0', sizeof(regLec->modelo_medidor));
    memset(regLec->tipo_medidor, '\0', sizeof(regLec->tipo_medidor));
    rsetnull(CDOUBLETYPE, (char *) &(regLec->coseno_phi));
+   memset(regLec->proxLectura, '\0', sizeof(regLec->proxLectura));
 }
 
 void InicializaLectuReac(regLec)
@@ -812,7 +815,7 @@ char           sTipo[2];
         sprintf(sLinea, "%s\"%ld%dREACMEDARG\";", sLinea, regLec.numero_cliente, regLec.corr_facturacion);
    
    /* Fecha Prox.Lectura (vacio) */
-   strcat(sLinea, "\"\";");
+   sprintf(sLinea, "%s\"%s\";", sLinea, regLec.proxLectura);
    
    /* CreatedByClient */
    strcat(sLinea, "\"False\";");
