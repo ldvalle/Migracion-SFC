@@ -60,6 +60,7 @@ FILE	*fp;
 int		iFlagMigra=0;
 int 	iFlagEmpla=0;
 $long lNroCliente;
+int   iIndex;
 
 	if(! AnalizarParametros(argc, argv)){
 		exit(0);
@@ -103,13 +104,13 @@ $long lNroCliente;
    	$OPEN curCortes USING :lNroCliente;
    
    	while(LeoCortes(&regCorte)){
-   		if (!GenerarPlano(fp, regCorte, regExt, "C")){
+   		if (!GenerarPlano(fp, regCorte, regExt, "C", 0)){
             printf("Fallo GenearPlano\n");
    			exit(1);	
    		}
          
    		if(strcmp(regCorte.fecha_reposicion, "") != 0){
-      		if (!GenerarPlano(fp, regCorte, regExt, "R")){
+      		if (!GenerarPlano(fp, regCorte, regExt, "R", 0)){
                printf("Fallo GenearPlano\n");
       			exit(1);	
       		}
@@ -118,14 +119,16 @@ $long lNroCliente;
    	}
    	$CLOSE curCortes;
       
+      iIndex=1;
       /* Cursor de Extension */
       $OPEN curExtent USING :lNroCliente;
-      
+            
    	while(LeoExtent(&regExt)){
-   		if (!GenerarPlano(fp, regCorte, regExt, "E")){
+   		if (!GenerarPlano(fp, regCorte, regExt, "E", iIndex)){
             printf("Fallo GenearPlano\n");
    			exit(1);	
    		}
+         iIndex++;
       }
             
       $CLOSE curExtent;
@@ -353,7 +356,9 @@ if(giTipoCorrida==1){
 	strcat(sql, "TO_CHAR(c.fecha_sol_repo, '%Y-%m-%dT%H:%M:00.000Z'), ");
 	strcat(sql, "c.sit_encon, ");
 	strcat(sql, "c.sit_rehab, ");
-   strcat(sql, "t1.descripcion ");
+   strcat(sql, "t1.descripcion, ");
+   strcat(sql, "c.corr_corte, ");
+   strcat(sql, "c.corr_repo ");   
 	strcat(sql, "FROM correp c, tabla t1 ");
 	strcat(sql, "WHERE c.numero_cliente = ? ");
 	strcat(sql, "AND c.fecha_corte >= TODAY-365 ");
@@ -482,7 +487,9 @@ $ClsCorte *reg;
       :reg->fecha_sol_repo,
       :reg->sit_encon,
       :reg->sit_rehab,
-      :reg->desc_motivo_corte;
+      :reg->desc_motivo_corte,
+      :reg->corr_corte,
+      :reg->corr_repo;
 	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
@@ -523,6 +530,8 @@ $ClsCorte	*reg;
    memset(reg->sit_encon, '\0', sizeof(reg->sit_encon));
    memset(reg->sit_rehab, '\0', sizeof(reg->sit_rehab));
    memset(reg->desc_motivo_corte, '\0', sizeof(reg->desc_motivo_corte));
+   rsetnull(CINTTYPE, (char *) &(reg->corr_corte));
+   rsetnull(CINTTYPE, (char *) &(reg->corr_repo));
 
 }
 
@@ -567,11 +576,12 @@ $ClsExtent *reg;
    return 1;
 }
 
-short GenerarPlano(fp, regCor, regEx, sTipo)
+short GenerarPlano(fp, regCor, regEx, sTipo, index)
 FILE 				*fp;
 $ClsCorte		regCor;
 $ClsExtent     regEx;
 char           sTipo[2];
+int            index;
 {
 	char	sLinea[1000];	
 
@@ -596,7 +606,7 @@ char           sTipo[2];
          /* Fecha evento */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.fecha_ini_evento);
          /* External Id */
-         sprintf(sLinea, "%s\"%ld%sAR\";", sLinea, regCor.numero_cliente, regCor.fecha_ini_evento);
+         sprintf(sLinea, "%s\"%ld%04dCORTFOPARG\";", sLinea, regCor.numero_cliente, regCor.corr_corte);
          /* Situación encontrada */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.sit_encon);
          /* Suministro */
@@ -630,7 +640,7 @@ char           sTipo[2];
          /* Fecha evento */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.fecha_sol_repo);
          /* External Id */
-         sprintf(sLinea, "%s\"%ld%sAR\";", sLinea, regCor.numero_cliente, regCor.fecha_sol_repo);
+         sprintf(sLinea, "%s\"%ld%04dREPOFOPARG\";", sLinea, regCor.numero_cliente, regCor.corr_repo);
          /* Situación encontrada */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.sit_rehab);
          /* Suministro */
@@ -663,7 +673,7 @@ char           sTipo[2];
          /* Fecha evento */
          strcat(sLinea, "\"\";");
          /* External Id */
-         sprintf(sLinea, "%s\"%ld%sAR\";", sLinea, regEx.numero_cliente, regEx.fecha_solicitud);
+         sprintf(sLinea, "%s\"%ld%04dPRORFOPARG\";", sLinea, regEx.numero_cliente, index);
          /* Situación encontrada */
          strcat(sLinea, "\"\";");
          /* Suministro */

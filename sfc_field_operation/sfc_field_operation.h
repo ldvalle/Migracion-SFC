@@ -31,6 +31,8 @@ $typedef struct{
    char  fecha_sol_repo[25];
    char  sit_encon[3];
    char  sit_rehab[3];
+   int   corr_corte;
+   int   corr_repo;
 }ClsCorte;
 
 $typedef struct{
@@ -41,6 +43,7 @@ $typedef struct{
    char  rol[21];
    char  estado[11];
    int   dias;
+   int   corr_rehab;
 }ClsExtent;
 
 
@@ -59,7 +62,7 @@ void  InicializaCorte(ClsCorte *);
 short LeoExtent(ClsExtent *);
 void  InicializaExtent(ClsExtent *);
 
-short	GenerarPlano(FILE *, ClsCorte, ClsExtent, char *);
+short	GenerarPlano(FILE *, ClsCorte, ClsExtent, char *, int);
 
 char 	*strReplace(char *, char *, char *);
 char	*getEmplazaSAP(char*);

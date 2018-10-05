@@ -195,7 +195,7 @@ short AbreArchivos()
 
 	sprintf( sArchUnx  , "%sT1DICIPLINA.unx", sPathSalida );
    sprintf( sArchAux  , "%sT1DICIPLINA.aux", sPathSalida );
-   sprintf( sArchDos  , "%senel_care_marketdicipline_t1_%s.csv", sPathSalida, sFecha );
+   sprintf( sArchDos  , "%senel_care_marketdiscipline_t1_%s.csv", sPathSalida, sFecha );
 
 	strcpy( sSoloArchivo, "T1DICIPLINA.unx");
 
@@ -561,7 +561,8 @@ $ClsCnr		reg;
    sprintf(sLinea, "%s\"%ld\";", sLinea, reg.nro_expediente);
    
    /* Fecha creación expediente */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_inicio);
+   /*sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_inicio);*/
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_deteccion);
    
    /* Condicion del expediente */
    /*sprintf(sLinea, "%s\"%s\";", sLinea, reg.descripcion);*/

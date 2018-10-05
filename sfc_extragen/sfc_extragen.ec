@@ -46,6 +46,7 @@ FILE	*fpPointDeliveryUnx;
 FILE	*fpServiceProductUnx;
 FILE	*fpAssetUnx;
 FILE	*fpBajasUnx;
+FILE  *fpEBillingUnx;
 
 FILE  *fpLog;
 
@@ -94,6 +95,10 @@ char	sArchBajasAux[100];
 char	sArchBajasDos[300];
 char	sSoloArchivoBajasUnx[100];
 
+char	sArchEBillingUnx[100];
+char	sArchEBillingAux[100];
+char	sArchEBillingDos[300];
+char	sSoloArchivoEBillingUnx[100];
 
 char	sPathSalida[100];
 char	FechaGeneracion[9];	
@@ -266,6 +271,11 @@ short AbreArchivos()
    memset(sArchBajasDos, '\0', sizeof(sArchBajasDos));
 	memset(sSoloArchivoBajasUnx, '\0', sizeof(sSoloArchivoBajasUnx));
 
+	memset(sArchEBillingUnx, '\0', sizeof(sArchEBillingUnx));
+   memset(sArchEBillingAux, '\0', sizeof(sArchEBillingAux));
+   memset(sArchEBillingDos, '\0', sizeof(sArchEBillingDos));
+	memset(sSoloArchivoEBillingUnx, '\0', sizeof(sSoloArchivoEBillingUnx));
+
    memset(sFecha, '\0', sizeof(sFecha));
 
    FechaGeneracionFormateada(sFecha);
@@ -306,6 +316,11 @@ short AbreArchivos()
 	sprintf(sArchAssetUnx, "%s%s", sPathSalida, sSoloArchivoAssetUnx);
    sprintf(sArchAssetAux, "%sT1ASSET.aux", sPathSalida);
    sprintf(sArchAssetDos, "%senel_care_asset_t1_%s.csv", sPathSalida, sFecha);	
+
+	strcpy(sSoloArchivoEBillingUnx, "T1EFACTURA.unx");
+	sprintf(sArchEBillingUnx, "%s%s", sPathSalida, sSoloArchivoEBillingUnx);
+   sprintf(sArchEBillingAux, "%sT1EFACTURA.aux", sPathSalida);
+   sprintf(sArchEBillingDos, "%senel_care_billingprofilecontact_t1_%s.csv", sPathSalida, sFecha);	
 
    /* Abro Archivos*/
 	fpAddressUnx=fopen( sArchAddressUnx, "w" );
@@ -362,6 +377,16 @@ short AbreArchivos()
    strcpy(sTitulos, "\"Identificador activo\";\"Nombre del activo\";\"Cuenta\";\"Contacto\";\"Suministro\";\"Descripción\";\"Producto\";\"Estado\";\"Contacto Principal\";\"Contrato\";\"Estado Contratacion\";\n");
    fprintf(fpAssetUnx, sTitulos);
 
+   /*****************/
+	fpEBillingUnx=fopen( sArchEBillingUnx, "w" );
+	if( !fpEBillingUnx ){
+		printf("ERROR al abrir archivo 8 %s.\n", sArchEBillingUnx );
+		return 0;
+	}
+
+   strcpy(sTitulos, "\"Nombre del contacto\";\"Divisa\";\"Contacto\";\"Billing Profile\";\"Fecha de vencimiento\";\"Acceso a la factura\";\"Acceso a plataforma de pago\";\"Suministro\";\"Relacion\";\"Monto total facturado\";\"Anular suscripcion\";\"External Id\";\n");
+   fprintf(fpEBillingUnx, sTitulos);
+   
 
 	return 1;	
 }
@@ -374,6 +399,7 @@ void CerrarArchivos(void)
 	fclose(fpPointDeliveryUnx);
 	fclose(fpServiceProductUnx);
 	fclose(fpAssetUnx);
+   fclose(fpEBillingUnx);
 }
 
 void FormateaArchivos(void){
@@ -517,6 +543,28 @@ $char	sPathCp[100];
    iRcv=system(sCommand);
 
    sprintf(sCommand, "rm %s", sArchAssetDos);
+   iRcv=system(sCommand);
+
+	/* ----------- */
+   sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchEBillingUnx, sArchEBillingAux);
+	iRcv=system(sCommand);
+
+   sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchEBillingAux, sArchEBillingDos);
+   iRcv=system(sCommand);
+   
+	sprintf(sCommand, "chmod 777 %s", sArchEBillingDos);
+	iRcv=system(sCommand);
+
+	sprintf(sCommand, "cp %s %s", sArchEBillingDos, sPathCp);
+	iRcv=system(sCommand);
+
+   sprintf(sCommand, "rm %s", sArchEBillingUnx);
+   iRcv=system(sCommand);
+
+   sprintf(sCommand, "rm %s", sArchEBillingAux);
+   iRcv=system(sCommand);
+
+   sprintf(sCommand, "rm %s", sArchEBillingDos);
    iRcv=system(sCommand);
    
 }
@@ -1114,6 +1162,22 @@ $ClsClientes		regCliente;
 	GeneraCuentas(fpCuentasUnx, regCliente);
 
 	GeneraContactos(fpContactosUnx, regCliente);
+   alltrim(regCliente.email_1, ' ');
+   alltrim(regCliente.email_2, ' ');
+   alltrim(regCliente.email_3, ' ');
+   if(strcmp(regCliente.email_1, "NO TIENE")!=0){
+      GeneraEFactura(fpContactosUnx, regCliente, regCliente.email_1, 1);
+      GeneraEBilling(fpEBillingUnx, regCliente, regCliente.email_1, 1);
+   }
+   if(strcmp(regCliente.email_2, "NO TIENE")!=0){
+      GeneraEFactura(fpContactosUnx, regCliente, regCliente.email_2, 2);
+      GeneraEBilling(fpEBillingUnx, regCliente, regCliente.email_2, 2);
+   }
+   if(strcmp(regCliente.email_3, "NO TIENE")!=0){
+      GeneraEFactura(fpContactosUnx, regCliente, regCliente.email_3, 3);
+      GeneraEBilling(fpEBillingUnx, regCliente, regCliente.email_3, 3);
+   }
+   
 /*
 	GeneraCuentasContacto(fpCuentasContactosUnx, regCliente);
 */
@@ -1926,7 +1990,7 @@ ClsClientes	regCli;
 	if(regCli.es_empresa[0]=='S'){
 		if(strcmp(regCli.rut, "")!=0){
 			/* TIPO DOCUMENTO */
-			strcat(sLinea, "\"CE\";");
+			strcat(sLinea, "\"CUIT\";");
 			/* NRO DOCUMENTO */
 			sprintf(sLinea, "%s\"%s\";", sLinea, regCli.rut);
 		}else{
@@ -2120,7 +2184,7 @@ ClsClientes	regCli;
 	
 	memset(sLinea, '\0', sizeof(sLinea));
 	
-	/* ID */
+	/* EXTERNAL ID */
 	sprintf(sLinea, "\"%ldARG\";", regCli.numero_cliente);
 	
 	/* NOMBRE */
@@ -2279,6 +2343,165 @@ ClsClientes	regCli;
 	
 	fprintf(fp, sLinea);	
 }
+
+
+void GeneraEFactura(fp, regCli, eMail, index)
+FILE 		*fp;
+ClsClientes	regCli;
+char     *eMail;
+int      index;
+{
+	char	sLinea[1000];
+	
+	memset(sLinea, '\0', sizeof(sLinea));
+	
+	/* ID */
+	sprintf(sLinea, "\"%ld-%04dEFACARG\";", regCli.numero_cliente, index);
+	
+	/* NOMBRE */
+	strcat(sLinea, "\".\";");
+	
+	/* APELLIDO (VACIO) */
+   alltrim(eMail, ' ');
+   sprintf(sLinea, "%s\"%s\";", sLinea, eMail);
+	
+	/* SALUDO (VACIO) */
+	strcat(sLinea, "\"\";");
+	
+	/* NOMBRE CUENTA */
+	sprintf(sLinea, "%s\"%ldARG\";", sLinea, regCli.numero_cliente);
+	
+	/* ESTADO CIVIL (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* GENERO (VACIO) */
+	strcat(sLinea, "\"\";");
+   
+   /* TIPO DOCUMENTO */
+   strcat(sLinea, "\"\";");
+   /* NRO DOCUMENTO */
+   strcat(sLinea, "\"\";");
+    
+   /* ETAPA */
+	strcat(sLinea, "\"Active Customer\";");
+	
+	/* ESTRATO (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* NIVEL EDUCATIVO (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* AUTORIZACION DATOS (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* NO LLAMAR (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* NO CORREO (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* PROFESION (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* OCUPACION (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* Fecha Nacimiento (VACIO) */
+	strcat(sLinea, "\"\";");
+	
+	/* CANAL CONTACTO */
+   strcat(sLinea, "\"CAN003\";");
+		
+	/* EMAIL 1 */
+   sprintf(sLinea, "%s\"%s\";", sLinea, eMail);
+	
+	/* EMAIL 2 */
+   strcat(sLinea, "\"\";");
+		
+	/* TELEFONO PPAL */
+   strcat(sLinea, "\"\";");
+			
+	/* TELEFONO SEC */
+   strcat(sLinea, "\"\";");
+		
+	/* CELULAR */
+   strcat(sLinea, "\"\";");
+		
+	/* MONEDA */
+	strcat(sLinea, "\"ARS\";");
+	
+	/* APELLIDO PATERNO (.) */
+	strcat(sLinea, "\".\";");
+	
+	/* APELLIDO MATERNO (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* TIPO ACREDITACION (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* DIRECC.DEL CONTACTO  */
+   strcat(sLinea, "\"\";");
+	
+	/* USR TWITTER (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* SEGUIDORES TWITTER (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* INFLUENCIA (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* TIPO INFLUENCIA (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* BIO TWITTER (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* ID USR TWITTER (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* USR FACEBOOK (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* ID USR FACBOOK (VACIO) */
+	strcat(sLinea, "\"\";");
+	/* ID EMPRESA */
+	strcat(sLinea, "\"9\";");
+
+	strcat(sLinea, "\n");
+	
+	fprintf(fp, sLinea);	
+}
+
+void GeneraEBilling(fp, regCli, eMail, index)
+FILE 		*fp;
+ClsClientes	regCli;
+char     *eMail;
+int      index;
+{
+	char	sLinea[1000];
+	
+	memset(sLinea, '\0', sizeof(sLinea));
+
+   alltrim(eMail, ' ');
+
+   /* Nombre del contacto */
+   sprintf(sLinea, "%s\"%s\";", sLinea, eMail);
+   
+   /* Divisa */
+   strcat(sLinea, "\"ARS\";");
+   
+   /* Contacto */
+   sprintf(sLinea, "\"%s%ld-%04dEFACARG\";", sLinea, regCli.numero_cliente, index);
+   
+   /* Billing Profile */
+   sprintf(sLinea, "\"%ldBPARG\";", sLinea, regCli.numero_cliente);
+   
+   /* Fecha de vencimiento */
+   strcat(sLinea, "\"\";");
+   /* Acceso a la factura */
+   strcat(sLinea, "\"\";");
+   /* Acceso a plataforma de pago */
+   strcat(sLinea, "\"\";");
+   /* Suministro */
+   strcat(sLinea, "\"\";");
+   /* Relacion */
+   strcat(sLinea, "\"\";");
+   /* Monto total facturado */
+   strcat(sLinea, "\"\";");
+   /* Anular suscripcion */
+   strcat(sLinea, "\"\";");
+   /* External Id */
+   sprintf(sLinea, "%s\"%ldBPARG%ldARG\";", sLinea, regCli.numero_cliente, regCli.numero_cliente);
+   
+	strcat(sLinea, "\n");
+	
+	fprintf(fp, sLinea);	
+}
+
 
 void GeneraCuentasContacto(fp, regCli)
 FILE 		*fp;

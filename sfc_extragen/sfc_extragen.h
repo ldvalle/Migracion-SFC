@@ -164,6 +164,9 @@ void	GeneraStreet(FILE *, ClsClientes);
 void	GeneraAddress(FILE *, ClsClientes, char *);
 void	GeneraCuentas(FILE *, ClsClientes);
 void	GeneraContactos(FILE *, ClsClientes);
+void	GeneraEFactura(FILE *, ClsClientes, char *, int);
+void  GeneraEBilling(FILE *, ClsClientes, char *, int);
+
 void	GeneraCuentasContacto(FILE *, ClsClientes);
 void	GeneraPointDelivery(FILE *, ClsClientes);
 void	GeneraServiceProduct(FILE *, ClsClientes);

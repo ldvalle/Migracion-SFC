@@ -289,7 +289,7 @@ short AbreArchivos()
       		return 0;
       	}
          
-         strcpy(sTitulos,"\"Divisa\";\"Activo\";\"Perfil de Facturación\";\"Contrato\";\"Cantidad\";\"Estado\";\"External ID\";\"CuentaContrato\";\"Perfil de Facturacion agrupador\";\n");
+         strcpy(sTitulos,"\"Divisa\";\"Activo\";\"Perfil de Facturación\";\"Contrato\";\"Cantidad\";\"Estado\";\"External ID\";\"CuentaContrato\";\"Perfil de Facturacion agrupador\";\"Company\";\n");
          fprintf(pFileLinea, sTitulos);
          
          break;      
@@ -301,7 +301,7 @@ short AbreArchivos()
       	}
          
          /*strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Banco\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Tipo de Cuenta\";\"Titular de Tarjeta\";\"Tipo de Reparto\";\"Dirección Postal\";\n");*/
-         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Dirección Postal\";\"Tipo de Reparto\";\"Fecha Factura Digital\";\n");
+         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Dirección Postal\";\"Tipo de Reparto\";\"Fecha Factura Digital\";\"Company\";\n");
          fprintf(pFileBilling, sTitulos);
          
          break;      
@@ -1125,6 +1125,8 @@ $ClsCliente		reg;
       strcat(sLinea, "\"\";");
    }
    
+   /* company */
+   strcat(sLinea, "\"9\";");
    
 	strcat(sLinea, "\n");
 	
@@ -1264,6 +1266,9 @@ $ClsCliente		reg;
    }else{
       strcat(sLinea, "\"\";");
    }  
+   
+   /* Company */
+   strcat(sLinea, "\"9\";");
    
 	strcat(sLinea, "\n");
 	
