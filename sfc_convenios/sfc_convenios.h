@@ -18,7 +18,7 @@ $include datetime.h;
 $typedef struct{
    long  numero_cliente;
    int   corr_convenio;
-   char  opcion_convenio[4];
+   char  opcion_convenio[5];
    char  estado[2];
    char  fecha_creacion[11];
    char  fecha_termino[11];

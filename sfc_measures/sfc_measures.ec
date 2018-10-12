@@ -496,13 +496,20 @@ if(giTipoCorrida==1){
 	
 	$DECLARE curLecturas CURSOR WITH HOLD FOR selLecturas;
    
-	/******** Sel Modelo Medidor *********/   
+	/******** Sel Modelo Medidor *********/
+/*      
 	strcpy(sql, "SELECT me.mod_codigo, NVL(mo.tipo_medidor, 'A') FROM medidor me, modelo mo ");
 	strcat(sql, "WHERE me.mar_codigo = ? ");
 	strcat(sql, "AND me.med_numero = ? ");
 	strcat(sql, "AND me.numero_cliente = ? ");
 	strcat(sql, "AND mo.mar_codigo = me.mar_codigo ");
 	strcat(sql, "AND mo.mod_codigo = me.mod_codigo ");
+*/
+	strcpy(sql, "SELECT FIRST 1 m.modelo_medidor, NVL(m.tipo_medidor, 'A'), m.estado ");
+	strcat(sql, "FROM medid m ");
+	strcat(sql, "WHERE m.marca_medidor = ? ");
+	strcat(sql, "AND m.numero_medidor = ? ");
+	strcat(sql, "AND m.numero_cliente = ? ");
    
    $PREPARE selModMed FROM $sql;
    
@@ -663,7 +670,7 @@ $ClsLectura *regLec;
    }
 	
    
-   $EXECUTE selModMed INTO :regLec->modelo_medidor, :regLec->tipo_medidor
+   $EXECUTE selModMed INTO :regLec->modelo_medidor, :regLec->tipo_medidor, :regLec->estado_medidor
          USING :regLec->marca_medidor,
             :regLec->numero_medidor,
             :regLec->numero_cliente;
@@ -697,6 +704,7 @@ $ClsLectura	*regLec;
    memset(regLec->tipo_medidor, '\0', sizeof(regLec->tipo_medidor));
    rsetnull(CDOUBLETYPE, (char *) &(regLec->coseno_phi));
    memset(regLec->proxLectura, '\0', sizeof(regLec->proxLectura));
+   memset(regLec->estado_medidor, '\0', sizeof(regLec->estado_medidor));
 }
 
 void InicializaLectuReac(regLec)
@@ -778,7 +786,12 @@ char           sTipo[2];
    }
    
    /* ID Medidor */
-   sprintf(sLinea, "%s\"%ld%ld%s%sDEVARG\";", sLinea, regLec.numero_cliente, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
+   if(regLec.estado_medidor[0]=='I'){
+      sprintf(sLinea, "%s\"%ld%ld%s%sDEVARG\";", sLinea, regLec.numero_cliente, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
+   }else{
+      strcat(sLinea, "\"\";");
+   }
+   
    
    /* Constante */
    sprintf(sLinea, "%s\"%.05lf\";", sLinea, regLec.constante);

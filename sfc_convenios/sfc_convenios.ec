@@ -285,10 +285,7 @@ $char sClave[7];
 */	
 	sprintf(sCommand, "cp %s %s", sArchivoDos, sPathCp);
 	iRcv=system(sCommand);
-   
   
-   
-/*  
    sprintf(sCommand, "rm %s", sArchivoUnx);
    iRcv=system(sCommand);
 
@@ -297,7 +294,7 @@ $char sClave[7];
 
    sprintf(sCommand, "rm %s", sArchivoDos);
    iRcv=system(sCommand);
-*/	
+	
 }
 
 void CreaPrepare(void){
@@ -340,25 +337,27 @@ if(giTipoCorrida==1){
 	$DECLARE curClientes CURSOR WITH HOLD FOR selClientes;
 
    /******** Cursor CONVE  ****************/
-	strcpy(sql, "SELECT numero_cliente, ");
-	strcat(sql, "corr_convenio, ");
-	strcat(sql, "opcion_convenio, ");
-	strcat(sql, "estado, ");
-	strcat(sql, "TO_CHAR(fecha_creacion, '%Y-%m-%d'), ");
-	strcat(sql, "TO_CHAR(fecha_termino, '%Y-%m-%d'), ");
-	strcat(sql, "deuda_origen, ");
-	strcat(sql, "valor_cuota_ini, ");
-	strcat(sql, "deuda_convenida, ");
-	strcat(sql, "valor_cuota, ");
-	strcat(sql, "numero_tot_cuotas, ");
-	strcat(sql, "numero_ult_cuota, ");
-	strcat(sql, "intereses, ");
-	strcat(sql, "usuario_creacion, "); 
-	strcat(sql, "usuario_termino ");
-	strcat(sql, "FROM conve ");
-	strcat(sql, "WHERE numero_cliente = ? ");
-   strcat(sql, "AND estado = 'V' ");
-	strcat(sql, "ORDER BY corr_convenio ASC ");   
+	strcpy(sql, "SELECT c.numero_cliente, ");
+	strcat(sql, "c.corr_convenio, ");
+	strcat(sql, "t1.cod_sf1, "); /* opcion convenio */
+	strcat(sql, "c.estado, ");
+	strcat(sql, "TO_CHAR(c.fecha_creacion, '%Y-%m-%d'), ");
+	strcat(sql, "TO_CHAR(c.fecha_termino, '%Y-%m-%d'), ");
+	strcat(sql, "c.deuda_origen, ");
+	strcat(sql, "c.valor_cuota_ini, ");
+	strcat(sql, "c.deuda_convenida, ");
+	strcat(sql, "c.valor_cuota, ");
+	strcat(sql, "c.numero_tot_cuotas, ");
+	strcat(sql, "c.numero_ult_cuota, ");
+	strcat(sql, "c.intereses, ");
+	strcat(sql, "c.usuario_creacion, "); 
+	strcat(sql, "c.usuario_termino ");
+	strcat(sql, "FROM conve c, OUTER sf_transforma t1 ");
+	strcat(sql, "WHERE c.numero_cliente = ? ");
+   strcat(sql, "AND c.estado = 'V' ");
+   strcat(sql, "AND t1.clave = 'OPCONVE'  ");
+   strcat(sql, "AND t1.cod_mac = c.opcion_convenio  ");
+	strcat(sql, "ORDER BY c.corr_convenio ASC ");   
    
 	$PREPARE selConve FROM $sql;
 	

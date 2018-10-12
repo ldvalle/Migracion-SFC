@@ -329,11 +329,11 @@ short AbreArchivos()
          strcat(sTitulos, "\"Tasa AP\";\"Número de Partida\";\"Cliente Peaje\";\n");
          fprintf(pFileContrato, sTitulos);
 
-         strcpy(sTitulos,"\"Divisa\";\"Activo\";\"Perfil de Facturación\";\"Contrato\";\"Cantidad\";\"Estado\";\"External ID\";\"CuentaContrato\";\"Perfil de Facturacion agrupador\";\n");
+         strcpy(sTitulos,"\"Divisa\";\"Activo\";\"Perfil de Facturación\";\"Contrato\";\"Cantidad\";\"Estado\";\"External ID\";\"CuentaContrato\";\"Perfil de Facturacion agrupador\";\"Company\";\n");
          fprintf(pFileLinea, sTitulos);
 
          /*strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Banco\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Tipo de Cuenta\";\"Titular de Tarjeta\";\"Tipo de Reparto\";\"Dirección Postal\";\n");*/
-         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Dirección Postal\";\"Tipo de Reparto\";\"Fecha Factura Digital\";\n");
+         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Dirección Postal\";\"Tipo de Reparto\";\"Fecha Factura Digital\";\"Company\";\n");
          fprintf(pFileBilling, sTitulos);
          
          break;
@@ -1039,7 +1039,7 @@ $ClsCliente		reg;
    
    /* Garante */
     if(reg.dgGarante > 0){
-        sprintf(sLinea, "%s\"%ld\";", sLinea, reg.dgGarante);
+        sprintf(sLinea, "%s\"%ldARG\";", sLinea, reg.dgGarante);
    }else{
         strcat(sLinea, "\"\";");
    }   

@@ -297,12 +297,14 @@ $char sAux[1000];
 if(giTipoCorrida == 1){
    strcat(sql, ", migra_sf ma ");
 }
+
 	strcat(sql, "WHERE m.estado = 'I' ");
 	strcat(sql, "AND me.med_numero = m.numero_medidor ");
+   
 	strcat(sql, "AND me.mar_codigo = m.marca_medidor ");
 	strcat(sql, "AND me.mod_codigo = m.modelo_medidor ");
      
-	strcat(sql, "AND me.med_tarifa = 'T1' "); 
+	strcat(sql, "AND me.cli_tarifa = 'T1' "); 
 	strcat(sql, "AND me.mar_codigo NOT IN ('000', 'AGE') "); 
 	strcat(sql, "AND me.med_anio != 2019 "); 
 	strcat(sql, "AND mo.mar_codigo = me.mar_codigo "); 
@@ -311,6 +313,7 @@ if(giTipoCorrida == 1){
    strcat(sql, "AND ma.numero_cliente = m.numero_cliente ");
 }   
 
+   
 	$PREPARE selMedidores FROM $sql;
 	
 	$DECLARE curMedidores CURSOR FOR selMedidores;	

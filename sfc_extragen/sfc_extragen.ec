@@ -2469,16 +2469,16 @@ int      index;
    alltrim(eMail, ' ');
 
    /* Nombre del contacto */
-   sprintf(sLinea, "%s\"%s\";", sLinea, eMail);
+   sprintf(sLinea, "\"%s\";", eMail);
    
    /* Divisa */
    strcat(sLinea, "\"ARS\";");
    
    /* Contacto */
-   sprintf(sLinea, "\"%s%ld-%04dEFACARG\";", sLinea, regCli.numero_cliente, index);
+   sprintf(sLinea, "%s\"%ld-%04dEFACARG\";", sLinea, regCli.numero_cliente, index);
    
    /* Billing Profile */
-   sprintf(sLinea, "\"%ldBPARG\";", sLinea, regCli.numero_cliente);
+   sprintf(sLinea, "%s\"%ldBPARG\";", sLinea, regCli.numero_cliente);
    
    /* Fecha de vencimiento */
    strcat(sLinea, "\"\";");
@@ -2495,7 +2495,7 @@ int      index;
    /* Anular suscripcion */
    strcat(sLinea, "\"\";");
    /* External Id */
-   sprintf(sLinea, "%s\"%ldBPARG%ldARG\";", sLinea, regCli.numero_cliente, regCli.numero_cliente);
+   sprintf(sLinea, "%s\"%ldBPARG%ld-%04dEFACARG\";", sLinea, regCli.numero_cliente, regCli.numero_cliente, index);
    
 	strcat(sLinea, "\n");
 	
