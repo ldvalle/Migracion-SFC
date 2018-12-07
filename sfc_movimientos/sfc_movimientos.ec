@@ -46,6 +46,11 @@ long	iContaLog;
 
 /* Variables Globales Host */
 $ClsPago	regPago;
+$char    gsFechaDesde[20];
+$char    gsFechaHasta[20];
+
+char     gsDesdeFmt[9];
+char     gsHastaFmt[9];
 
 char	sMensMail[1024];
 
@@ -59,8 +64,10 @@ FILE	*fp;
 int		iFlagMigra=0;
 int 	iFlagEmpla=0;
 $long lNroCliente;
+$long lCorrPago;
 long     iFactu;
-
+long  lCantLineas;
+int   iCantFiles;
 
 	if(! AnalizarParametros(argc, argv)){
 		exit(0);
@@ -85,10 +92,6 @@ long     iFactu;
 	/* ********************************************
 				INICIO AREA DE PROCESO
 	********************************************* */
-	if(!AbreArchivos()){
-		exit(1);
-	}
-
 	cantProcesada=0;
 	cantPreexistente=0;
 	iContaLog=0;
@@ -97,29 +100,54 @@ long     iFactu;
 	/*********************************************
 				AREA CURSOR PPAL
 	**********************************************/
-
+   iCantFiles=1;
+   lCantLineas=0;
+	if(!AbreArchivos(iCantFiles)){
+		exit(1);
+	}
+/*   
    $OPEN curClientes;
 
-   while(LeoCliente(&lNroCliente)){
-   	$OPEN curPagos USING :lNroCliente;
-
+   while(LeoCliente(&lNroCliente, &lCorrPago)){
+   
+      if(giTipoCorrida ==3){
+         $OPEN curPagos USING :lNroCliente, :gsFechaDesde, :gsFechaHasta;
+      }else{
+         $OPEN curPagos  USING :lNroCliente;
+      }
+*/
+      $OPEN curPagos USING :gsFechaDesde, :gsFechaHasta;
+      
    	while(LeoPagos(&regPago)){
    		if (!GenerarPlano(fp, regPago)){
             printf("Fallo GenearPlano\n");
    			exit(1);
    		}
    		iFactu++;
+         lCantLineas++;
+         if(lCantLineas>450000){
+            iCantFiles++;
+            fclose(pFileUnx);
+            MoverArchivos();
+         	if(!AbreArchivos(iCantFiles)){
+         		exit(1);
+         	}
+            lCantLineas=0;
+         }
+         cantProcesada++;
    	}
 
    	$CLOSE curPagos;
+/*      
       cantProcesada++;
    }
 
    $CLOSE curClientes;
-
+*/
 	CerrarArchivos();
 
-	FormateaArchivos();
+   MoverArchivos();
+	/*FormateaArchivos();*/
 
 	$CLOSE DATABASE;
 
@@ -164,27 +192,48 @@ int		argc;
 char	* argv[];
 {
 
-	if(argc != 3 ){
+	if(argc < 3 || argc > 5 ){
 		MensajeParametros();
 		return 0;
 	}
 
    giTipoCorrida=atoi(argv[2]);
 
+   memset(gsDesdeFmt, '\0', sizeof(gsDesdeFmt));
+   memset(gsHastaFmt, '\0', sizeof(gsHastaFmt));
+   
+   if(argc==5){
+      giTipoCorrida=3;
+      strcpy(gsFechaDesde, argv[3]);
+      strcat(gsFechaDesde, " 00:00:00");
+      strcpy(gsFechaHasta, argv[4]);
+      strcat(gsFechaHasta, " 23:59:59");
+      
+      sprintf(gsDesdeFmt, "%c%c%c%c%c%c%c%c", gsFechaDesde[0],gsFechaDesde[1],gsFechaDesde[2],gsFechaDesde[3],
+            gsFechaDesde[5],gsFechaDesde[6],gsFechaDesde[8],gsFechaDesde[9]);
+            
+      sprintf(gsHastaFmt, "%c%c%c%c%c%c%c%c", gsFechaHasta[0],gsFechaHasta[1],gsFechaHasta[2],gsFechaHasta[3],
+            gsFechaHasta[5],gsFechaHasta[6],gsFechaHasta[8],gsFechaHasta[9]);
+   }
+   
 	return 1;
 }
 
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-      printf("	<Tipo Corrida> 0=Normal, 1=reducida.\n");
+      printf("	<Tipo Corrida> 0=Normal, 1=reducida, 3=Delta.\n");
+      printf("	<Fecha Desde (Opcional)> aaaa-mm-dd.\n");
+      printf("	<Fecha Hasta (Opcional)> aaaa-mm-dd.\n");
 }
 
-short AbreArchivos()
+short AbreArchivos(iCant)
+int   iCant;
 {
    char  sTitulos[10000];
    $char sFecha[9];
-
+   int   iRcv;
+   
    memset(sTitulos, '\0', sizeof(sTitulos));
 
 	memset(sArchUnx,'\0',sizeof(sArchUnx));
@@ -202,7 +251,7 @@ short AbreArchivos()
 
 	sprintf( sArchUnx  , "%sT1MOVIMIENTOS.unx", sPathSalida );
    sprintf( sArchAux  , "%sT1MOVIMIENTOS.aux", sPathSalida );
-   sprintf( sArchDos  , "%senel_care_payment_t1_%s.csv", sPathSalida, sFecha );
+   sprintf( sArchDos  , "%senel_care_payment_t1_%s_%s_%d.csv", sPathSalida, gsDesdeFmt, gsHastaFmt, iCant );
 
 	strcpy( sSoloArchivo, "T1MOVIMIENTOS.unx");
 
@@ -243,9 +292,13 @@ short AbreArchivos()
    strcat(sTitulos, "\"Impuestos\";");
    strcat(sTitulos, "\"Cuota Convenio\";");
 
-   strcat(sTitulos, "\n");
+   strcat(sTitulos, "\r\n");
 
-   fprintf(pFileUnx, sTitulos);
+   iRcv=fprintf(pFileUnx, sTitulos);
+   if(iRcv < 0){
+      printf("Error al escribir Titulos Movimientos\n");
+      exit(1);
+   }	
 
 	return 1;
 }
@@ -272,7 +325,7 @@ $char sClave[7];
      printf("ERROR.\nSe produjo un error al tratar de recuperar el path destino del archivo.\n");
      exit(1);
    }
-
+/*
    sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchUnx, sArchAux);
 	iRcv=system(sCommand);
 
@@ -290,6 +343,41 @@ $char sClave[7];
    iRcv=system(sCommand);
 
    sprintf(sCommand, "rm %s", sArchAux);
+   iRcv=system(sCommand);
+
+   sprintf(sCommand, "rm %s", sArchDos);
+   iRcv=system(sCommand);
+*/
+}
+
+void MoverArchivos(){
+char	sCommand[1000];
+int	iRcv, i;
+$char	sPathCp[100];
+$char sClave[7];
+
+	memset(sCommand, '\0', sizeof(sCommand));
+	memset(sPathCp, '\0', sizeof(sPathCp));
+   strcpy(sClave, "SALEFC");
+
+	$EXECUTE selRutaPlanos INTO :sPathCp using :sClave;
+
+   if ( SQLCODE != 0 ){
+     printf("ERROR.\nSe produjo un error al tratar de recuperar el path destino del archivo.\n");
+     exit(1);
+   }
+
+   sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchUnx, sArchDos);
+   iRcv=system(sCommand);
+
+	sprintf(sCommand, "chmod 777 %s", sArchDos);
+	iRcv=system(sCommand);
+
+
+	sprintf(sCommand, "cp %s %s", sArchDos, sPathCp);
+	iRcv=system(sCommand);
+
+   sprintf(sCommand, "rm %s", sArchUnx);
    iRcv=system(sCommand);
 
    sprintf(sCommand, "rm %s", sArchDos);
@@ -315,7 +403,7 @@ $char sAux[1000];
 	$PREPARE selFechaActual FROM $sql;
 
 	/******** Cursor CLIENTES  ****************/
-	strcpy(sql, "SELECT c.numero_cliente FROM cliente c ");
+	strcpy(sql, "SELECT c.numero_cliente, c.corr_pagos FROM cliente c ");
 if(giTipoCorrida==1){
    strcat(sql, ", migra_sf ma ");
 }
@@ -331,7 +419,12 @@ if(giTipoCorrida==1){
 if(giTipoCorrida==1){
    strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 }
-
+/*
+	strcat(sql, "AND c.numero_cliente in (4800357,16438731,1264483,4653951,92925, ");
+	strcat(sql, "1713531,3462534,4059718,3993280,234141,1193843,4330513,4792161, ");
+	strcat(sql, "4720162,1265644,4598873,4718298,1889341,1179409,3462707,1072826, ");
+	strcat(sql, "1234103,563665,3173268) ");
+*/
 	$PREPARE selClientes FROM $sql;
 
 	$DECLARE curClientes CURSOR WITH HOLD FOR selClientes;
@@ -352,15 +445,30 @@ if(giTipoCorrida==1){
 	strcat(sql, "h.tipo_docto, ");
 	strcat(sql, "h.nro_docto_asociado, ");
 	strcat(sql, "c1.tipo_mov, ");
-    strcat(sql, "o.nombre ");
+   strcat(sql, "o.nombre ");
 	strcat(sql, "FROM hispa h, conce c1, OUTER oficinas o ");
-	strcat(sql, "WHERE h.numero_cliente = ? ");
-	strcat(sql, "AND h.fecha_pago >= TODAY - 365 ");
+if(giTipoCorrida==1){
+   strcat(sql, ", migra_sf ma ");
+}
+   
+
+   
+   if(giTipoCorrida==3){
+      strcat(sql, "WHERE h.fecha_pago BETWEEN ? AND ? ");   
+   }else{
+	   strcat(sql, "WHERE h.numero_cliente = ? ");   
+      strcat(sql, "AND h.fecha_actualiza >= TODAY - 370 ");
+      /*strcat(sql, "AND h.corr_pagos >= ? ");*/
+   }
 	strcat(sql, "AND c1.codigo_concepto = h.tipo_pago ");
 	strcat(sql, "AND o.oficina = h.oficina ");
 	strcat(sql, "AND o.sucursal = '0000' ");
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}
+/*   
 	strcat(sql, "ORDER BY h.corr_pagos ASC ");
-
+*/
 	$PREPARE selPagos FROM $sql;
 
 	$DECLARE curPagos CURSOR WITH HOLD FOR selPagos;
@@ -382,7 +490,6 @@ if(giTipoCorrida==1){
 	strcat(sql, "AND ( fecha_desactivac >= TODAY OR fecha_desactivac IS NULL ) ");
 
 	$PREPARE selRutaPlanos FROM $sql;
-
 
 }
 
@@ -427,18 +534,25 @@ $long iValor=0;
     return iValor;
 }
 
-short LeoCliente(lNroCliente)
+short LeoCliente(lNroCliente, lCorrPago)
 $long *lNroCliente;
+$long *lCorrPago;
 {
    $long nroCliente;
+   $long correlativo;
 
-   $FETCH curClientes INTO :nroCliente;
+   $FETCH curClientes INTO :nroCliente, :correlativo;
 
     if ( SQLCODE != 0 ){
         return 0;
     }
 
+    correlativo=correlativo-12;
+    if(correlativo <= 0)
+      correlativo=1;
+      
    *lNroCliente = nroCliente;
+   *lCorrPago=correlativo;
 
    return 1;
 }
@@ -485,7 +599,7 @@ $char sFechaFactuMax[20];
                :reg->cajero;
 
    if ( SQLCODE != 0 ){
-      printf("Error leyendo nombre Cajero para sucursal %s cajero %s", reg->sucursal, reg->cajero);
+      /*printf("Error leyendo nombre Cajero para sucursal %s cajero %s\n", reg->sucursal, reg->cajero);*/
       strcpy(reg->nombre_cajero, reg->cajero);
    }
 
@@ -531,6 +645,7 @@ FILE 				*fp;
 $ClsPago		reg;
 {
 	char	sLinea[1000];
+   int   iRcv;
 
 	memset(sLinea, '\0', sizeof(sLinea));
 
@@ -617,10 +732,14 @@ $ClsPago		reg;
    /* Cuota Convenio */
    strcat(sLinea, "\"\";");
 
-	strcat(sLinea, "\n");
+	strcat(sLinea, "\r\n");
 
-	fprintf(fp, sLinea);
+	iRcv=fprintf(pFileUnx, sLinea);
 
+   if(iRcv < 0){
+      printf("Error al escribir Movimientos\n");
+      exit(1);
+   }	
 
 	return 1;
 }

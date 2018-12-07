@@ -46,7 +46,11 @@ long	iContaLog;
 
 /* Variables Globales Host */
 $ClsFactura	regFactura;
+$long glFechaDesde;
+$long glFechaHasta;
 
+char  gsDesdeFmt[9];
+char  gsHastaFmt[9];
 char	sMensMail[1024];	
 
 $WHENEVER ERROR CALL SqlException;
@@ -61,6 +65,8 @@ int 	iFlagEmpla=0;
 $long lNroCliente;
 long     iFactu;
 double   dRecargo;
+int      iNroArchivo;
+long     lLineas;
 
 	if(! AnalizarParametros(argc, argv)){
 		exit(0);
@@ -85,7 +91,7 @@ double   dRecargo;
 	/* ********************************************
 				INICIO AREA DE PROCESO
 	********************************************* */
-	if(!AbreArchivos()){
+	if(!AbreArchivos(1)){
 		exit(1);	
 	}
 
@@ -97,14 +103,25 @@ double   dRecargo;
 	/*********************************************
 				AREA CURSOR PPAL
 	**********************************************/
-
+/*
    $OPEN curClientes;
 
    while(LeoCliente(&lNroCliente)){
       iFactu=1;
-   	$OPEN curFacturas USING :lNroCliente;
-   
+      if(giTipoCorrida==3){
+         $OPEN curFacturas USING :lNroCliente, :glFechaDesde, :glFechaHasta;
+      }else{
+         $OPEN curFacturas USING :lNroCliente;
+      }
+*/   	
+      iNroArchivo=1;
+      lLineas=0;
+
+      $OPEN curFacturas USING :glFechaDesde, :glFechaHasta;
+      
    	while(LeoFacturas(&regFactura)){
+         regFactura.recargoAnterior=getRecargo(regFactura.numero_cliente, regFactura.corr_facturacion);
+/*              
          if(iFactu==1){
             dRecargo=regFactura.suma_recargo;
          }else{
@@ -115,15 +132,34 @@ double   dRecargo;
       		}
             dRecargo=regFactura.suma_recargo;
          }
+         regFactura.recargoAnterior=dRecargo;
+*/         
+   		if (!GenerarPlano(fp, regFactura)){
+            printf("Fallo GenearPlano\n");
+   			exit(1);	
+   		}
+         /*dRecargo=regFactura.suma_recargo;*/
+         lLineas++;
+         
+         if(lLineas>4500000){
+            CerrarArchivos();
+            FormateaArchivos();
+            iNroArchivo++;
+           	if(!AbreArchivos(iNroArchivo)){
+         		exit(1);	
+         	}
+            lLineas=0;
+         }
    		iFactu++;
    	}
    	
    	$CLOSE curFacturas;
+/*
       cantProcesada++;
    }
    			
    $CLOSE curClientes;      
-   
+*/   
 	CerrarArchivos();
 
 	FormateaArchivos();
@@ -151,7 +187,8 @@ double   dRecargo;
 	printf("==============================================\n");
 	printf("Proceso Concluido.\n");
 	printf("==============================================\n");
-	printf("Clientes Procesados :       %ld \n",cantProcesada);
+/*	printf("Clientes Procesados :       %ld \n",cantProcesada);*/
+   printf("Facturas Procesadas :       %ld \n",iFactu);
 	printf("==============================================\n");
 	printf("\nHora antes de comenzar proceso : %s\n", ctime(&hora));						
 
@@ -171,12 +208,40 @@ int		argc;
 char	* argv[];
 {
 
-	if(argc != 3 ){
+   char  sFechaDesde[11];
+   char  sFechaHasta[11];
+   
+   memset(sFechaDesde, '\0', sizeof(sFechaDesde));
+   memset(sFechaHasta, '\0', sizeof(sFechaHasta));
+
+   memset(gsDesdeFmt, '\0', sizeof(gsDesdeFmt));
+   memset(gsHastaFmt, '\0', sizeof(gsHastaFmt));
+
+   
+	if(argc < 3 || argc >5 ){
 		MensajeParametros();
 		return 0;
 	}
 	
    giTipoCorrida=atoi(argv[2]);
+   
+   if(argc == 5){
+      giTipoCorrida=3;/* Modo Delta */
+      strcpy(sFechaDesde, argv[3]); 
+      strcpy(sFechaHasta, argv[4]);
+
+      sprintf(gsDesdeFmt, "%c%c%c%c%c%c%c%c", sFechaDesde[6], sFechaDesde[7],sFechaDesde[8],sFechaDesde[9],
+                  sFechaDesde[3],sFechaDesde[4], sFechaDesde[0],sFechaDesde[1]);      
+
+      sprintf(gsHastaFmt, "%c%c%c%c%c%c%c%c", sFechaHasta[6], sFechaHasta[7],sFechaHasta[8],sFechaHasta[9],
+                  sFechaHasta[3],sFechaHasta[4], sFechaHasta[0],sFechaHasta[1]);      
+      
+      rdefmtdate(&glFechaDesde, "dd/mm/yyyy", sFechaDesde); 
+      rdefmtdate(&glFechaHasta, "dd/mm/yyyy", sFechaHasta); 
+   }else{
+      glFechaDesde=-1;
+      glFechaHasta=-1;
+   }
 	
 	return 1;
 }
@@ -184,13 +249,18 @@ char	* argv[];
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Corrida> 0=Normal, 1=Reducida.\n");
+		printf("	<Tipo Corrida> 0=Normal, 1=Reducida, 3=Delta.\n");
+      printf("	<Fecha Desde (Opcional)> dd/mm/aaaa.\n");
+      printf("	<Fecha Hasta (Opcional)> dd/mm/aaaa.\n");
+
 }
 
-short AbreArchivos()
+short AbreArchivos(inx)
+int   inx;
 {
    char  sTitulos[10000];
    $char sFecha[9];
+   int   iRcv;
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
@@ -209,7 +279,7 @@ short AbreArchivos()
 
 	sprintf( sArchMedidorUnx  , "%sT1INVOICE.unx", sPathSalida );
    sprintf( sArchMedidorAux  , "%sT1INVOICE.aux", sPathSalida );
-   sprintf( sArchMedidorDos  , "%senel_care_invoice_t1_%s.csv", sPathSalida, sFecha );
+   sprintf( sArchMedidorDos  , "%senel_care_invoice_t1_%s_%s_%d.csv", sPathSalida, gsDesdeFmt, gsHastaFmt, inx );
 
 	strcpy( sSoloArchivoMedidor, "T1INVOICE.unx");
 
@@ -220,7 +290,12 @@ short AbreArchivos()
 	}
 	
    strcpy(sTitulos,"\"Fecha de emisión\";\"Fecha de vencimiento\";\"Fecha de segundo vencimiento\";\"Intereses\";\"Acceso a la factura\";\"Dirección factura\";\"Titular\";\"Otros cargos\";\"Suministro\";\"Saldo anterior\";\"Cantidad de productos y servicios\";\"Impuestos\";\"External ID\";\"Numero Factura\";\"Direccion Facturación (Historico)\";\"Pago\";\"Total\";\"Cargos Fijos\";\"Cargos Variables\";\"Factor Potencia\";\"Tasa Alumbrado Público\";\"Recargo\";\"Recargo Anterior\";\"Cuota convenio\";\"CNR\";\"Refacturación\";\"Ahorro %\";\"Factura Digital\";\"Moneda\";\"Valor Energía Activa\";\"Valor Energía Reactiva\";\"Valor Potencia\";\"Valor Ahorro\";\n");
-   fprintf(pFileMedidorUnx, sTitulos);
+   iRcv=fprintf(pFileMedidorUnx, sTitulos);
+
+   if(iRcv < 0){
+		printf("ERROR al grabar titulos %s.\n", sArchMedidorUnx );
+		return 0;
+   }
       
 	return 1;	
 }
@@ -247,29 +322,29 @@ $char sClave[7];
      printf("ERROR.\nSe produjo un error al tratar de recuperar el path destino del archivo.\n");
      exit(1);
    }
-
+/*
    sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchMedidorUnx, sArchMedidorAux);
 	iRcv=system(sCommand);
-
-   sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchMedidorAux, sArchMedidorDos);
+*/
+   sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchMedidorUnx, sArchMedidorDos);
    iRcv=system(sCommand);
    
 	sprintf(sCommand, "chmod 777 %s", sArchMedidorDos);
 	iRcv=system(sCommand);
-
 	
 	sprintf(sCommand, "cp %s %s", sArchMedidorDos, sPathCp);
 	iRcv=system(sCommand);
-  
-   sprintf(sCommand, "rm %s", sArchMedidorUnx);
-   iRcv=system(sCommand);
 
-   sprintf(sCommand, "rm %s", sArchMedidorAux);
-   iRcv=system(sCommand);
-
-   sprintf(sCommand, "rm %s", sArchMedidorDos);
-   iRcv=system(sCommand);
-	
+   if(iRcv==0){  
+      sprintf(sCommand, "rm %s", sArchMedidorUnx);
+      iRcv=system(sCommand);
+/*   
+      sprintf(sCommand, "rm %s", sArchMedidorAux);
+      iRcv=system(sCommand);
+*/   
+      sprintf(sCommand, "rm %s", sArchMedidorDos);
+      iRcv=system(sCommand);
+   }	
 }
 
 void CreaPrepare(void){
@@ -305,7 +380,13 @@ if(giTipoCorrida==1){
 	strcat(sql, "AND (cm.fecha_desactiva IS NULL OR cm.fecha_desactiva > TODAY)) ");	
 if(giTipoCorrida==1){
    strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
-}   
+}
+/*
+	strcat(sql, "AND c.numero_cliente in (4800357,16438731,1264483,4653951,92925, ");
+	strcat(sql, "1713531,3462534,4059718,3993280,234141,1193843,4330513,4792161, ");
+	strcat(sql, "4720162,1265644,4598873,4718298,1889341,1179409,3462707,1072826, ");
+	strcat(sql, "1234103,563665,3173268) ");
+*/   
 
 	$PREPARE selClientes FROM $sql;
 	
@@ -330,10 +411,18 @@ if(giTipoCorrida==1){
 	strcat(sql, "h.suma_convenio, ");
 	strcat(sql, "h.tarifa, ");
 	strcat(sql, "h.indica_refact ");
-	strcat(sql, "FROM hisfac h ");
-	strcat(sql, "WHERE h.numero_cliente = ? ");
-	strcat(sql, "AND h.fecha_facturacion >= TODAY - 420 ");
-	strcat(sql, "ORDER BY h.corr_facturacion ASC ");
+	/*strcat(sql, "FROM hisfac h, cliente c ");*/
+   strcat(sql, "FROM hisfac h ");
+   
+	
+   if(giTipoCorrida==3){
+      strcat(sql, "WHERE h.fecha_facturacion BETWEEN ? AND ? ");
+   }else{
+      strcat(sql, "WHERE h.numero_cliente = ? ");
+      strcat(sql, "AND h.fecha_facturacion >= TODAY - 420 ");
+      strcat(sql, "ORDER BY h.corr_facturacion ASC ");
+   }
+	/*strcat(sql, "AND c.numero_cliente = h.numero_cliente ");*/
    
 	$PREPARE selFacturas FROM $sql;
 	
@@ -397,7 +486,12 @@ if(giTipoCorrida==1){
 
 	$PREPARE selRutaPlanos FROM $sql;
 
+   /* Busca recargo */
+   $PREPARE selRecargo FROM "SELECT suma_recargo FROM hisfac
+      WHERE numero_cliente = ?
+      AND corr_facturacion = ?";
 
+   
 }
 
 void FechaGeneracionFormateada( Fecha )
@@ -632,7 +726,8 @@ FILE 				*fp;
 $ClsFactura		reg;
 {
 	char	sLinea[1000];	
-
+   int   iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 
    /* Fecha de emisión */
@@ -770,14 +865,38 @@ $ClsFactura		reg;
    /* Valor Ahorro % */
    strcat(sLinea, "\"\";");
 
-	strcat(sLinea, "\n");
+	strcat(sLinea, "\r\n");
 	
-	fprintf(fp, sLinea);	
-
-	
+   iRcv=fprintf(fp, sLinea);
+   if(iRcv < 0){
+      printf("Error al grabar Invoice\n");
+      exit(1);
+   }
 	return 1;
 }
 
+double getRecargo(nroCliente, corrFactu)
+$long nroCliente;
+$long corrFactu;
+{
+   $double  Recargo;
+   
+   $long corrFactuAnterior = corrFactu-1;
+   
+   if(corrFactuAnterior<=0){
+      Recargo=0.00;   
+   }
+
+   $EXECUTE selRecargo INTO :Recargo
+      USING :nroCliente,
+            :corrFactuAnterior;
+
+   if(SQLCODE != 0)
+      Recargo=0.00;
+      
+      
+   return Recargo;
+}
 
 /****************************
 		GENERALES

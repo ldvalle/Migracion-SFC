@@ -43,9 +43,13 @@ long	cantProcesada;
 long 	cantPreexistente;
 long	iContaLog;
 
+char  gsDesdeFmt[9];
+char  gsHastaFmt[9];
+
 /* Variables Globales Host */
 $ClsCnr	regCnr;
-
+$long    glFechaDesde;
+$long    glFechaHasta;
 char	sMensMail[1024];	
 
 $WHENEVER ERROR CALL SqlException;
@@ -96,7 +100,12 @@ long     iFactu;
 				AREA CURSOR PPAL
 	**********************************************/
 
-   $OPEN curCNR;
+   if(giTipoCorrida == 3){
+      $OPEN curCNR USING :glFechaDesde, :glFechaHasta;
+   }else{
+      $OPEN curCNR;
+   }
+   
 
    while(LeoCnr(&regCnr)){
 		if (!GenerarPlano(fp, regCnr)){
@@ -132,7 +141,7 @@ long     iFactu;
 	}
 */
 	printf("==============================================\n");
-	printf("MOVIMIENTOS\n");
+	printf("CNR\n");
 	printf("==============================================\n");
 	printf("Proceso Concluido.\n");
 	printf("==============================================\n");
@@ -156,12 +165,39 @@ int		argc;
 char	* argv[];
 {
 
-	if(argc != 3 ){
+   char  sFechaDesde[11];
+   char  sFechaHasta[11];
+   
+	if(argc < 3 || argc > 5){
 		MensajeParametros();
 		return 0;
 	}
 	
+   memset(sFechaDesde, '\0', sizeof(sFechaDesde));
+   memset(sFechaHasta, '\0', sizeof(sFechaHasta));
+
+   memset(gsDesdeFmt, '\0', sizeof(gsDesdeFmt));
+   memset(gsHastaFmt, '\0', sizeof(gsHastaFmt));
+   
    giTipoCorrida=atoi(argv[2]);
+   
+   if(argc==5){
+      giTipoCorrida=3;/* Modo Delta */
+      strcpy(sFechaDesde, argv[3]); 
+      strcpy(sFechaHasta, argv[4]);
+      rdefmtdate(&glFechaDesde, "dd/mm/yyyy", sFechaDesde); 
+      rdefmtdate(&glFechaHasta, "dd/mm/yyyy", sFechaHasta);
+      
+      sprintf(gsDesdeFmt, "%c%c%c%c%c%c%c%c", sFechaDesde[6], sFechaDesde[7],sFechaDesde[8],sFechaDesde[9],
+                  sFechaDesde[3],sFechaDesde[4], sFechaDesde[0],sFechaDesde[1]);      
+
+      sprintf(gsHastaFmt, "%c%c%c%c%c%c%c%c", sFechaHasta[6], sFechaHasta[7],sFechaHasta[8],sFechaHasta[9],
+                  sFechaHasta[3],sFechaHasta[4], sFechaHasta[0],sFechaHasta[1]);      
+       
+   }else{
+      glFechaDesde=-1;
+      glFechaHasta=-1;
+   }
    
 	return 1;
 }
@@ -169,6 +205,9 @@ char	* argv[];
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
+      printf("	<Tipo Corrida> = 0=Total, 1=Reducida, 3=Delta.\n");
+      printf("	<Fecha Desde (Opcional)> dd/mm/aaaa.\n");
+      printf("	<Fecha Hasta (Opcional)> dd/mm/aaaa.\n");
 }
 
 short AbreArchivos()
@@ -195,7 +234,7 @@ short AbreArchivos()
 
 	sprintf( sArchUnx  , "%sT1DICIPLINA.unx", sPathSalida );
    sprintf( sArchAux  , "%sT1DICIPLINA.aux", sPathSalida );
-   sprintf( sArchDos  , "%senel_care_marketdiscipline_t1_%s.csv", sPathSalida, sFecha );
+   sprintf( sArchDos  , "%senel_care_marketdiscipline_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
 	strcpy( sSoloArchivo, "T1DICIPLINA.unx");
 
@@ -329,8 +368,11 @@ if(giTipoCorrida==1){
 if(giTipoCorrida==1){	
    strcat(sql, ", migra_sf ma ");
 }
-   
+if(giTipoCorrida!=3){
 	strcat(sql, "WHERE c.fecha_inicio >= TODAY - 365 ");
+}else{
+	strcat(sql, "WHERE c.fecha_inicio BETWEEN ? AND ? ");
+}
    strcat(sql, "AND c.cod_estado != '99' ");
 	strcat(sql, "AND t1.nomtabla = 'CNRRE' ");
 	strcat(sql, "AND t1.sucursal = '0000' ");

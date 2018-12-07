@@ -110,6 +110,9 @@ long	cantProcesada;
 
 char	sMensMail[1024];	
 
+char  gsDesdeFmt[9];
+char  gsHastaFmt[9];
+
 /* Variables Globales Host */
 $ClsClientes	regCliente;
 $long			lFechaLimiteInferior;
@@ -209,14 +212,34 @@ short AnalizarParametros(argc, argv)
 int		argc;
 char	* argv[];
 {
+   char  sFechaDesde[11];
+   char  sFechaHasta[11];
+   
+   memset(sFechaDesde, '\0', sizeof(sFechaDesde));
+   memset(sFechaHasta, '\0', sizeof(sFechaHasta));
 
-	if(argc != 4){
+   memset(gsDesdeFmt, '\0', sizeof(gsDesdeFmt));
+   memset(gsHastaFmt, '\0', sizeof(gsHastaFmt));
+
+	if(argc < 4 || argc > 6){
 		MensajeParametros();
 		return 0;
 	}
 	
    giEstadoCliente=atoi(argv[2]);
    giTipoCorrida=atoi(argv[3]);
+   
+   if(argc == 6){
+   
+      strcpy(sFechaDesde, argv[4]); 
+      strcpy(sFechaHasta, argv[5]);
+   
+      sprintf(gsDesdeFmt, "%c%c%c%c%c%c%c%c", sFechaDesde[6], sFechaDesde[7],sFechaDesde[8],sFechaDesde[9],
+                  sFechaDesde[3],sFechaDesde[4], sFechaDesde[0],sFechaDesde[1]);      
+
+      sprintf(gsHastaFmt, "%c%c%c%c%c%c%c%c", sFechaHasta[6], sFechaHasta[7],sFechaHasta[8],sFechaHasta[9],
+                  sFechaHasta[3],sFechaHasta[4], sFechaHasta[0],sFechaHasta[1]);      
+   }
    
 	return 1;
 }
@@ -226,7 +249,10 @@ void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("\t<Base>: synergia.\n");
       printf("\t<Estado Cliente>: 0=Activo, 1=No Activo.\n");
-      printf("\t<Tipo Corrida>:   0=Normal, 1=Reducida.\n");
+      printf("\t<Tipo Corrida>:   0=Normal, 1=Reducida, 3=Delta.\n");
+      printf("	<Fecha Desde (Opcional)> dd/mm/aaaa.\n");
+      printf("	<Fecha Hasta (Opcional)> dd/mm/aaaa.\n");
+      
 }
 
 short AbreArchivos()
@@ -290,37 +316,37 @@ short AbreArchivos()
 	strcpy(sSoloArchivoAddressUnx, "T1ADDRESS.unx");
 	sprintf(sArchAddressUnx, "%s%s", sPathSalida, sSoloArchivoAddressUnx);
    sprintf(sArchAddressAux, "%sT1ADDRESS.aux", sPathSalida);
-   sprintf(sArchAddressDos, "%senel_care_address_t1_%s.csv", sPathSalida, sFecha);
+   sprintf(sArchAddressDos, "%senel_care_address_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
 	strcpy(sSoloArchivoCuentasUnx, "T1CUENTAS.unx");
 	sprintf(sArchCuentasUnx, "%s%s", sPathSalida, sSoloArchivoCuentasUnx);
    sprintf(sArchCuentasAux, "%sT1CUENTAS.aux", sPathSalida);
-   sprintf(sArchCuentasDos, "%senel_care_account_t1_%s.csv", sPathSalida, sFecha);
+   sprintf(sArchCuentasDos, "%senel_care_account_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
 	strcpy(sSoloArchivoContactosUnx, "T1CONTACTOS.unx");
 	sprintf(sArchContactosUnx, "%s%s", sPathSalida, sSoloArchivoContactosUnx);
    sprintf(sArchContactosAux, "%sT1CONTACTOS.aux", sPathSalida);
-   sprintf(sArchContactosDos, "%senel_care_contact_t1_%s.csv", sPathSalida, sFecha);
+   sprintf(sArchContactosDos, "%senel_care_contact_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
 	strcpy(sSoloArchivoPointDeliveryUnx, "T1POINT_DELIVERY.unx");
 	sprintf(sArchPointDeliveryUnx, "%s%s", sPathSalida, sSoloArchivoPointDeliveryUnx);
    sprintf(sArchPointDeliveryAux, "%sT1POINT_DELIVERY.aux", sPathSalida);
-   sprintf(sArchPointDeliveryDos, "%senel_care_pointofdelivery_t1_%s.csv", sPathSalida, sFecha);
+   sprintf(sArchPointDeliveryDos, "%senel_care_pointofdelivery_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
 	strcpy(sSoloArchivoServiceProductUnx, "T1SERVICE_PRODUCT.unx");
 	sprintf(sArchServiceProductUnx, "%s%s", sPathSalida, sSoloArchivoServiceProductUnx);
    sprintf(sArchServiceProductAux, "%sT1SERVICE_PRODUCT.aux", sPathSalida);
-   sprintf(sArchServiceProductDos, "%senel_care_serviceproduct_t1_%s.csv", sPathSalida, sFecha);
+   sprintf(sArchServiceProductDos, "%senel_care_serviceproduct_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
 	strcpy(sSoloArchivoAssetUnx, "T1ASSET.unx");
 	sprintf(sArchAssetUnx, "%s%s", sPathSalida, sSoloArchivoAssetUnx);
    sprintf(sArchAssetAux, "%sT1ASSET.aux", sPathSalida);
-   sprintf(sArchAssetDos, "%senel_care_asset_t1_%s.csv", sPathSalida, sFecha);	
+   sprintf(sArchAssetDos, "%senel_care_asset_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);	
 
 	strcpy(sSoloArchivoEBillingUnx, "T1EFACTURA.unx");
 	sprintf(sArchEBillingUnx, "%s%s", sPathSalida, sSoloArchivoEBillingUnx);
    sprintf(sArchEBillingAux, "%sT1EFACTURA.aux", sPathSalida);
-   sprintf(sArchEBillingDos, "%senel_care_billingprofilecontact_t1_%s.csv", sPathSalida, sFecha);	
+   sprintf(sArchEBillingDos, "%senel_care_billingprofilecontact_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);	
 
    /* Abro Archivos*/
 	fpAddressUnx=fopen( sArchAddressUnx, "w" );
@@ -587,8 +613,12 @@ $char sAux[1000];
 	
 	$PREPARE selFechaActual FROM $sql;	
    
-	/******** Cursor Principal  ****************/	
-	strcpy(sql, "SELECT c.numero_cliente, ");
+	/******** Cursor Principal  ****************/
+   if(giTipoCorrida == 3){
+      strcpy(sql, "SELECT DISTINCT c.numero_cliente, ");
+   }else{
+      strcpy(sql, "SELECT c.numero_cliente, ");
+   }	
 	strcat(sql, "REPLACE(TRIM(c.nombre), '\"', ' '), ");
    strcat(sql, "c.cod_calle, ");
 	strcat(sql, "c.nom_calle, ");
@@ -635,6 +665,10 @@ $char sAux[1000];
 if(giTipoCorrida == 1){
    strcat(sql, ", migra_sf ma ");
 }
+if(giTipoCorrida == 3){
+   strcat(sql, ", sf_actuclie ma ");
+}
+
    if(giEstadoCliente == 1){
       strcat(sql, ", sap_inactivos si ");
    	strcat(sql, "WHERE c.numero_cliente = si.numero_cliente ");
@@ -660,13 +694,16 @@ if(giTipoCorrida == 1){
 if(giTipoCorrida == 1){   		
    strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 }
+if(giTipoCorrida == 3){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}
 		
 	$PREPARE selClientes FROM $sql;
 	
 	$DECLARE curClientes CURSOR FOR selClientes;	
 
 	/******** E-Mail *********/
-	strcpy(sql, "SELECT TRIM(email_1), TRIM(email_2), TRIM(email_3) ");
+	strcpy(sql, "SELECT FIRST 1 TRIM(email_1), TRIM(email_2), TRIM(email_3) ");
 	strcat(sql, "FROM clientes_digital ");
 	strcat(sql, "WHERE numero_cliente = ? ");
 	strcat(sql, "AND fecha_alta <= TODAY ");
@@ -1646,14 +1683,26 @@ $ClsClientes	*regCli;
    
    if(strcmp(regCli->email_1, "")==0){
       strcpy(regCli->email_1, "NO TIENE");   
+   }else{
+      if(!ValidaEmail(regCli->email_1)){
+         strcpy(regCli->email_1, "NO TIENE");
+      }
    }
 
    if(strcmp(regCli->email_2, "")==0){
       strcpy(regCli->email_2, "NO TIENE");   
+   }else{
+      if(!ValidaEmail(regCli->email_2)){
+         strcpy(regCli->email_2, "NO TIENE");
+      }
    }
 
    if(strcmp(regCli->email_3, "")==0){
       strcpy(regCli->email_3, "NO TIENE");   
+   }else{
+      if(!ValidaEmail(regCli->email_3)){
+         strcpy(regCli->email_3, "NO TIENE");
+      }
    }
 	
 	return 1;

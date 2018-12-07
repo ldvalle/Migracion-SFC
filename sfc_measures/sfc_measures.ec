@@ -52,8 +52,13 @@ long	cantProcesada;
 long 	cantPreexistente;
 long	iContaLog;
 
+char  gsDesdeFmt[9];
+char  gsHastaFmt[9];
+
 /* Variables Globales Host */
 $ClsLectura	regLectura;
+$long glFechaDesde;
+$long glFechaHasta;
 
 char	sMensMail[1024];	
 
@@ -102,11 +107,16 @@ $long lNroCliente;
 	/*********************************************
 				AREA CURSOR PPAL
 	**********************************************/
-
+/*
    $OPEN curClientes;
 
    while(LeoCliente(&lNroCliente)){
-   	$OPEN curLecturas USING :lNroCliente;
+*/   
+      if(giTipoCorrida==3){
+         $OPEN curLecturas USING :glFechaDesde, :glFechaHasta;
+      }else{
+         $OPEN curLecturas;
+      }
    
    	while(LeoLecturas(&regLectura)){
          if(gsArchivoGenera==0 || gsArchivoGenera==1){
@@ -141,11 +151,12 @@ $long lNroCliente;
    	}
    	
    	$CLOSE curLecturas;
+/*      
       cantProcesada++;
    }
    			
    $CLOSE curClientes;      
-
+*/
 	CerrarArchivos();
 
 	FormateaArchivos();
@@ -193,22 +204,50 @@ short AnalizarParametros(argc, argv)
 int		argc;
 char	* argv[];
 {
+   char  sFechaDesde[11];
+   char  sFechaHasta[11];
+   
+   memset(sFechaDesde, '\0', sizeof(sFechaDesde));
+   memset(sFechaHasta, '\0', sizeof(sFechaHasta));
 
-	if(argc != 4 ){
+   memset(gsDesdeFmt, '\0', sizeof(gsDesdeFmt));
+   memset(gsHastaFmt, '\0', sizeof(gsHastaFmt));
+   
+	if(argc < 4 || argc > 6 ){
 		MensajeParametros();
 		return 0;
 	}
    giTipoCorrida=atoi(argv[2]);
    gsArchivoGenera=atoi(argv[3]);
 	
+   if(argc==6){
+      giTipoCorrida=3;/* Modo Delta */
+      strcpy(sFechaDesde, argv[4]); 
+      strcpy(sFechaHasta, argv[5]);
+      
+      sprintf(gsDesdeFmt, "%c%c%c%c%c%c%c%c", sFechaDesde[6], sFechaDesde[7],sFechaDesde[8],sFechaDesde[9],
+                  sFechaDesde[3],sFechaDesde[4], sFechaDesde[0],sFechaDesde[1]);      
+
+      sprintf(gsHastaFmt, "%c%c%c%c%c%c%c%c", sFechaHasta[6], sFechaHasta[7],sFechaHasta[8],sFechaHasta[9],
+                  sFechaHasta[3],sFechaHasta[4], sFechaHasta[0],sFechaHasta[1]);      
+      
+      rdefmtdate(&glFechaDesde, "dd/mm/yyyy", sFechaDesde); 
+      rdefmtdate(&glFechaHasta, "dd/mm/yyyy", sFechaHasta); 
+   }else{
+      glFechaDesde=-1;
+      glFechaHasta=-1;
+   }
 	return 1;
 }
 
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Corrida> 0=Normal, 1=Reducida.\n");
+		printf("	<Tipo Corrida> 0=Normal, 1=Reducida, 3=Delta.\n");
       printf("	<Archivos Genera> 0=Todos, 1=Measures, 2=Consumos.\n");
+      printf("	<Fecha Desde (Opcional)> dd/mm/aaaa.\n");
+      printf("	<Fecha Hasta (Opcional)> dd/mm/aaaa.\n");
+      
 }
 
 short AbreArchivos()
@@ -239,13 +278,13 @@ short AbreArchivos()
 
 	sprintf( sArchMedidorUnx  , "%sT1MEASURES.unx", sPathSalida );
    sprintf( sArchMedidorAux  , "%sT1MEASURES.aux", sPathSalida );
-   sprintf( sArchMedidorDos  , "%senel_care_measures_counters_t1_%s.csv", sPathSalida, sFecha);
+   sprintf( sArchMedidorDos  , "%senel_care_measures_counters_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
 	strcpy( sSoloArchivoMedidor, "T1MEASURES.unx");
 
 	sprintf( sArchConsumoUnx  , "%sT1CONSUMOS.unx", sPathSalida );
    sprintf( sArchConsumoAux  , "%sT1CONSUMOS.aux", sPathSalida );
-   sprintf( sArchConsumoDos  , "%senel_care_consumption_t1_%s.csv", sPathSalida, sFecha);
+   sprintf( sArchConsumoDos  , "%senel_care_consumption_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
    /*sprintf( sArchConsumoDos2  , "%sT1CONSUMOS2.csv", sPathSalida );*/
    
@@ -342,7 +381,7 @@ $char sClave[7];
       	sprintf(sCommand, "chmod 777 %s", sArchMedidorDos);
       	iRcv=system(sCommand);
      
-      	
+/*      	
       	sprintf(sCommand, "cp %s %s", sArchMedidorDos, sPathCp);
       	iRcv=system(sCommand);
         
@@ -354,7 +393,7 @@ $char sClave[7];
       
          sprintf(sCommand, "rm %s", sArchMedidorDos);
          iRcv=system(sCommand);
-         
+*/         
          /* ------------- */
          sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchConsumoUnx, sArchConsumoAux);
       	iRcv=system(sCommand);
@@ -364,7 +403,7 @@ $char sClave[7];
          
       	sprintf(sCommand, "chmod 777 %s", sArchConsumoDos);
       	iRcv=system(sCommand);
-     
+/*     
       	sprintf(sCommand, "cp %s %s", sArchConsumoDos, sPathCp);
       	iRcv=system(sCommand);
         
@@ -376,7 +415,7 @@ $char sClave[7];
       
          sprintf(sCommand, "rm %s", sArchConsumoDos);
          iRcv=system(sCommand);
-         
+*/         
          break;               
       case 1:
          sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchMedidorUnx, sArchMedidorAux);
@@ -388,7 +427,7 @@ $char sClave[7];
       	sprintf(sCommand, "chmod 777 %s", sArchMedidorDos);
       	iRcv=system(sCommand);
      
-      	
+/*      	
       	sprintf(sCommand, "cp %s %s", sArchMedidorDos, sPathCp);
       	iRcv=system(sCommand);
         
@@ -400,7 +439,7 @@ $char sClave[7];
       
          sprintf(sCommand, "rm %s", sArchMedidorDos);
          iRcv=system(sCommand);
-
+*/
          break;      
       case 2:
          sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchConsumoUnx, sArchConsumoAux);
@@ -412,7 +451,7 @@ $char sClave[7];
 
       	sprintf(sCommand, "chmod 777 %s", sArchConsumoDos);
       	iRcv=system(sCommand);
-     
+/*     
       	sprintf(sCommand, "cp %s %s", sArchConsumoDos, sPathCp);
       	iRcv=system(sCommand);
         
@@ -424,7 +463,7 @@ $char sClave[7];
       
          sprintf(sCommand, "rm %s", sArchConsumoDos);
          iRcv=system(sCommand);
-
+*/
          break;   
    }
 
@@ -485,13 +524,25 @@ if(giTipoCorrida==1){
 	strcat(sql, "h.marca_medidor, ");
    strcat(sql, "NVL(h2.coseno_phi, 0)/100, ");
    strcat(sql, "TO_CHAR(h.fecha_lectura + 30, '%Y-%m-%d') ");
-	strcat(sql, "FROM hislec h, hisfac h2 ");
-	strcat(sql, "WHERE h.numero_cliente = ? ");
-	strcat(sql, "AND h.fecha_lectura >= TODAY - 365 ");
+	strcat(sql, "FROM hislec h, hisfac h2, cliente c ");
+if(giTipoCorrida==1){	
+   strcat(sql, ", migra_sf ma ");
+}   
+	strcat(sql, "WHERE h.numero_cliente = c.numero_cliente ");
+	strcat(sql, "AND c.estado_cliente = 0 ");
+   if(giTipoCorrida == 3){
+	  strcat(sql, "AND h.fecha_lectura BETWEEN ? AND ? ");   
+   }else{
+	  strcat(sql, "AND h.fecha_lectura >= TODAY - 365 ");
+   }
+   
 	strcat(sql, "AND h.tipo_lectura NOT IN (5, 6, 7) ");
 	strcat(sql, "AND h2.numero_cliente = h.numero_cliente ");
 	strcat(sql, "AND h2.corr_facturacion = h.corr_facturacion ");
-   
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}
+
 	$PREPARE selLecturas FROM $sql;
 	
 	$DECLARE curLecturas CURSOR WITH HOLD FOR selLecturas;
@@ -528,7 +579,7 @@ if(giTipoCorrida==1){
 	$PREPARE selHislecRefac FROM $sql;
 
 	/******** Sel Hislec Reac *********/   
-	strcpy(sql, "SELECT lectu_factu_reac, ");
+	strcpy(sql, "SELECT DISTINCT lectu_factu_reac, ");
 	strcat(sql, "lectu_terreno_reac, ");
 	strcat(sql, "consumo_reac ");
 	strcat(sql, "FROM hislec_reac ");
@@ -729,6 +780,8 @@ $ClsLectura *regLec;
    
    InicializaLectuReac(regLec);
    
+   SqlErrorSetIgnoreI(-284);
+   
    $EXECUTE selHislecReac INTO
       :regLec->lectura_facturac,
       :regLec->lectura_terreno,
@@ -736,7 +789,12 @@ $ClsLectura *regLec;
    USING :regLec->numero_cliente,
          :regLec->corr_facturacion,
          :regLec->tipo_lectura;
-         
+      
+   if( SQLCODE == -284){
+      printf("Doble Reactiva para cliente %ld correlativo %ld tipo lectura %ld\n", regLec->numero_cliente, regLec->corr_facturacion, regLec->tipo_lectura);
+      return 0;
+   }
+   
    if ( SQLCODE != 0 ){
       printf("No se encontro Reactiva para cliente %ld correlativo %ld\n", regLec->numero_cliente, regLec->corr_facturacion);
       return 0;
@@ -756,6 +814,8 @@ $ClsLectura *regLec;
          }         
    }
   
+   SqlErrorClearIgnore();
+   
    return 1;
 }
 

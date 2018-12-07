@@ -43,8 +43,13 @@ long	cantProcesada;
 long 	cantPreexistente;
 long	iContaLog;
 
+char  gsDesdeFmt[9];
+char  gsHastaFmt[9];
+
 /* Variables Globales Host */
 $ClsMedidor	regMedidor;
+$long glFechaDesde;
+$long glFechaHasta;
 
 char	sMensMail[1024];	
 
@@ -93,7 +98,11 @@ int 	iFlagEmpla=0;
 				AREA CURSOR PPAL
 	**********************************************/
 
-	$OPEN curMedidores;
+   if(giTipoCorrida != 3){
+	  $OPEN curMedidores;
+   }else{
+	  $OPEN curMedidores USING :glFechaDesde, :glFechaHasta;   
+   }
 
 	fp=pFileMedidorUnx;
 
@@ -158,13 +167,39 @@ short AnalizarParametros(argc, argv)
 int		argc;
 char	* argv[];
 {
+   char  sFechaDesde[11];
+   char  sFechaHasta[11];
+   
+   memset(sFechaDesde, '\0', sizeof(sFechaDesde));
+   memset(sFechaHasta, '\0', sizeof(sFechaHasta));
 
-	if(argc != 3 ){
+   memset(gsDesdeFmt, '\0', sizeof(gsDesdeFmt));
+   memset(gsHastaFmt, '\0', sizeof(gsHastaFmt));
+
+	if(argc < 3 || argc >5 ){
 		MensajeParametros();
 		return 0;
 	}
 
    giTipoCorrida = atoi(argv[2]);
+
+   if(argc == 5){
+      giTipoCorrida=3;/* Modo Delta */
+      strcpy(sFechaDesde, argv[3]); 
+      strcpy(sFechaHasta, argv[4]);
+      
+      sprintf(gsDesdeFmt, "%c%c%c%c%c%c%c%c", sFechaDesde[6], sFechaDesde[7],sFechaDesde[8],sFechaDesde[9],
+                  sFechaDesde[3],sFechaDesde[4], sFechaDesde[0],sFechaDesde[1]);      
+
+      sprintf(gsHastaFmt, "%c%c%c%c%c%c%c%c", sFechaHasta[6], sFechaHasta[7],sFechaHasta[8],sFechaHasta[9],
+                  sFechaHasta[3],sFechaHasta[4], sFechaHasta[0],sFechaHasta[1]);      
+      
+      rdefmtdate(&glFechaDesde, "dd/mm/yyyy", sFechaDesde); 
+      rdefmtdate(&glFechaHasta, "dd/mm/yyyy", sFechaHasta); 
+   }else{
+      glFechaDesde=-1;
+      glFechaHasta=-1;
+   }
    
 	return 1;
 }
@@ -172,7 +207,10 @@ char	* argv[];
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-      printf("	<Tipo Corrida> 0=Normal, 1=Reducida.\n");
+      printf("	<Tipo Corrida> 0=Normal, 1=Reducida, 3=Delta.\n");
+      printf("	<Fecha Desde (Opcional)> dd/mm/aaaa.\n");
+      printf("	<Fecha Hasta (Opcional)> dd/mm/aaaa.\n");
+      
 }
 
 short AbreArchivos()
@@ -198,7 +236,7 @@ short AbreArchivos()
 
 	sprintf( sArchMedidorUnx  , "%sT1DEVICE.unx", sPathSalida );
    sprintf( sArchMedidorAux  , "%sT1DEVICE.aux", sPathSalida );
-   sprintf( sArchMedidorDos  , "%senel_care_device_t1_%s.csv", sPathSalida, sFecha );
+   sprintf( sArchMedidorDos  , "%senel_care_device_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
 	strcpy( sSoloArchivoMedidor, "T1DEVICE.unx");
 
@@ -299,8 +337,11 @@ if(giTipoCorrida == 1){
 }
 
 	strcat(sql, "WHERE m.estado = 'I' ");
-	strcat(sql, "AND me.med_numero = m.numero_medidor ");
    
+if(giTipoCorrida == 3){
+	strcat(sql, "AND fecha_ult_insta BETWEEN ? AND ? ");
+}   
+	strcat(sql, "AND me.med_numero = m.numero_medidor ");
 	strcat(sql, "AND me.mar_codigo = m.marca_medidor ");
 	strcat(sql, "AND me.mod_codigo = m.modelo_medidor ");
      

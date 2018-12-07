@@ -43,8 +43,13 @@ long	cantProcesada;
 long 	cantPreexistente;
 long	iContaLog;
 
+char  gsDesdeFmt[9];
+char  gsHastaFmt[9];
+
 /* Variables Globales Host */
 $ClsConve	regConve;
+$long       glFechaDesde;
+$long       glFechaHasta;
 
 char	sMensMail[1024];	
 
@@ -94,12 +99,18 @@ $long lNroCliente;
 	/*********************************************
 				AREA CURSOR PPAL
 	**********************************************/
-
+/*
    $OPEN curClientes;
 
    while(LeoCliente(&lNroCliente)){
-   	$OPEN curConve USING :lNroCliente;
-   
+*/   
+   	/*$OPEN curConve USING :lNroCliente;*/
+      if(giTipoCorrida == 3){
+         $OPEN curConve USING :glFechaDesde, :glFechaHasta;
+      }else{
+         $OPEN curConve;
+      }
+
    	while(LeoConve(&regConve)){
    		if (!GenerarPlano(fp, regConve)){
             printf("Fallo GenearPlano\n");
@@ -109,10 +120,11 @@ $long lNroCliente;
    	
    	$CLOSE curConve;
       cantProcesada++;
+/*      
    }
    			
    $CLOSE curClientes;      
-   
+*/   
 	CerrarArchivos();
 
 	FormateaArchivos();
@@ -159,13 +171,39 @@ short AnalizarParametros(argc, argv)
 int		argc;
 char	* argv[];
 {
+   char  sFechaDesde[11];
+   char  sFechaHasta[11];
+   
+   memset(sFechaDesde, '\0', sizeof(sFechaDesde));
+   memset(sFechaHasta, '\0', sizeof(sFechaHasta));
 
-	if(argc != 3 ){
+   memset(gsDesdeFmt, '\0', sizeof(gsDesdeFmt));
+   memset(gsHastaFmt, '\0', sizeof(gsHastaFmt));
+   
+	if(argc < 3  || argc >5){
 		MensajeParametros();
 		return 0;
 	}
 	
    giTipoCorrida=atoi(argv[2]);
+   
+   if(argc==5){
+      giTipoCorrida=3;/* Modo Delta */
+      strcpy(sFechaDesde, argv[3]); 
+      strcpy(sFechaHasta, argv[4]);
+      rdefmtdate(&glFechaDesde, "dd/mm/yyyy", sFechaDesde); 
+      rdefmtdate(&glFechaHasta, "dd/mm/yyyy", sFechaHasta);
+      
+      sprintf(gsDesdeFmt, "%c%c%c%c%c%c%c%c", sFechaDesde[6], sFechaDesde[7],sFechaDesde[8],sFechaDesde[9],
+                  sFechaDesde[3],sFechaDesde[4], sFechaDesde[0],sFechaDesde[1]);      
+
+      sprintf(gsHastaFmt, "%c%c%c%c%c%c%c%c", sFechaHasta[6], sFechaHasta[7],sFechaHasta[8],sFechaHasta[9],
+                  sFechaHasta[3],sFechaHasta[4], sFechaHasta[0],sFechaHasta[1]);      
+       
+   }else{
+      glFechaDesde=-1;
+      glFechaDesde=-1;
+   }
 	
 	return 1;
 }
@@ -173,7 +211,10 @@ char	* argv[];
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Generación> G = Generación, R = Regeneración.\n");
+		printf("	<Tipo Corrida> 0=total, 1=Reducida, 3=Delta.\n");
+      printf("	<Fecha Desde> = dd/mm/aaaa.\n");
+      printf("	<Fecha Hasta> = dd/mm/aaaa.\n");
+      
 }
 
 short AbreArchivos()
@@ -199,7 +240,7 @@ short AbreArchivos()
 
 	sprintf( sArchivoUnx  , "%sT1CONVENIOS.unx", sPathSalida );
    sprintf( sArchivoAux  , "%sT1CONVENIOS.aux", sPathSalida );
-   sprintf( sArchivoDos  , "%senel_care_agreement_t1_%s.csv", sPathSalida, sFecha);
+   sprintf( sArchivoDos  , "%senel_care_agreement_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
 	strcpy( sSoloArchivo, "T1CONVENIOS.unx");
 
@@ -352,11 +393,24 @@ if(giTipoCorrida==1){
 	strcat(sql, "c.intereses, ");
 	strcat(sql, "c.usuario_creacion, "); 
 	strcat(sql, "c.usuario_termino ");
-	strcat(sql, "FROM conve c, OUTER sf_transforma t1 ");
-	strcat(sql, "WHERE c.numero_cliente = ? ");
+	strcat(sql, "FROM conve c, cliente l, OUTER sf_transforma t1 ");
+if(giTipoCorrida==1){
+   strcat(sql, ", migra_sf ma ");
+}
+	strcat(sql, "WHERE c.numero_cliente = l.numero_cliente ");
    strcat(sql, "AND c.estado = 'V' ");
+   
+if(giTipoCorrida==3){
+   strcat(sql, "AND c.fecha_creacion BETWEEN ? AND ? ");
+}   
+   strcat(sql, "AND l.estado_cliente = 0 ");
    strcat(sql, "AND t1.clave = 'OPCONVE'  ");
    strcat(sql, "AND t1.cod_mac = c.opcion_convenio  ");
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}
+
+   
 	strcat(sql, "ORDER BY c.corr_convenio ASC ");   
    
 	$PREPARE selConve FROM $sql;

@@ -39,12 +39,12 @@ $typedef struct{
 /* Prototipos de Funciones */
 short	AnalizarParametros(int, char **);
 void	MensajeParametros(void);
-short	AbreArchivos(void);
+short	AbreArchivos(int);
 void  CreaPrepare(void);
 void 	FechaGeneracionFormateada( char *);
 void 	RutaArchivos( char*, char * );
 
-short LeoCliente( long *);
+short LeoCliente( long *, long *);
 short LeoPagos(ClsPago *);
 void  InicializaPago(ClsPago *);
 
@@ -53,6 +53,7 @@ short	GenerarPlano(FILE *, ClsPago);
 char 	*strReplace(char *, char *, char *);
 void	CerrarArchivos(void);
 void	FormateaArchivos(void);
+void  MoverArchivos(void);
 
 /*
 short	EnviarMail( char *, char *);

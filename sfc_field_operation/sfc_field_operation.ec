@@ -44,9 +44,14 @@ long	cantProcesada;
 long 	cantPreexistente;
 long	iContaLog;
 
+char     gsDesdeFmt[9];
+char     gsHastaFmt[9];
+
 /* Variables Globales Host */
 $ClsCorte	regCorte;
 $ClsExtent  regExt;
+$char       gsFechaDesde[20];
+$char       gsFechaHasta[20];
 
 char	sMensMail[1024];	
 
@@ -61,6 +66,9 @@ int		iFlagMigra=0;
 int 	iFlagEmpla=0;
 $long lNroCliente;
 int   iIndex;
+long  lCantCorte=0;
+long  lCantRepo=0;
+long  lCantExtent=0;
 
 	if(! AnalizarParametros(argc, argv)){
 		exit(0);
@@ -96,32 +104,43 @@ int   iIndex;
 	/*********************************************
 				AREA CURSOR PPAL
 	**********************************************/
-
+/*
    $OPEN curClientes;
 
    while(LeoCliente(&lNroCliente)){
+*/   
       /* Cursor de Cortes */
-   	$OPEN curCortes USING :lNroCliente;
+   	/*$OPEN curCortes USING :lNroCliente;*/
+      if(giTipoCorrida==3){
+         $OPEN curCortes USING :gsFechaDesde, :gsFechaHasta;
+      }else{
+         $OPEN curCortes;
+      }
    
    	while(LeoCortes(&regCorte)){
    		if (!GenerarPlano(fp, regCorte, regExt, "C", 0)){
             printf("Fallo GenearPlano\n");
    			exit(1);	
    		}
-         
+         lCantCorte++;         
    		if(strcmp(regCorte.fecha_reposicion, "") != 0){
       		if (!GenerarPlano(fp, regCorte, regExt, "R", 0)){
                printf("Fallo GenearPlano\n");
       			exit(1);	
       		}
-        
+            lCantRepo++;
          }			
    	}
    	$CLOSE curCortes;
       
       iIndex=1;
       /* Cursor de Extension */
-      $OPEN curExtent USING :lNroCliente;
+      /*$OPEN curExtent USING :lNroCliente;*/
+      if(giTipoCorrida==3){
+         $OPEN curExtent USING :gsFechaDesde, :gsFechaHasta;
+      }else{
+         $OPEN curExtent;
+      }
             
    	while(LeoExtent(&regExt)){
    		if (!GenerarPlano(fp, regCorte, regExt, "E", iIndex)){
@@ -129,15 +148,16 @@ int   iIndex;
    			exit(1);	
    		}
          iIndex++;
+         lCantExtent++;
       }
             
       $CLOSE curExtent;
-      
+/*      
       cantProcesada++;
    }
    			
    $CLOSE curClientes;      
-   
+*/   
 	CerrarArchivos();
 
 	FormateaArchivos();
@@ -165,7 +185,9 @@ int   iIndex;
 	printf("==============================================\n");
 	printf("Proceso Concluido.\n");
 	printf("==============================================\n");
-	printf("Clientes Procesados :       %ld \n",cantProcesada);
+   printf("Cortes Procesados :      %ld \n",lCantCorte);
+   printf("Repos Procesados :       %ld \n",lCantRepo);
+   printf("Extents Procesados :     %ld \n",lCantExtent);
 	printf("==============================================\n");
 	printf("\nHora antes de comenzar proceso : %s\n", ctime(&hora));						
 
@@ -184,13 +206,33 @@ short AnalizarParametros(argc, argv)
 int		argc;
 char	* argv[];
 {
+   memset(gsFechaDesde, '\0', sizeof(gsFechaDesde));
+   memset(gsFechaHasta, '\0', sizeof(gsFechaHasta));
 
-	if(argc != 3 ){
+   memset(gsDesdeFmt, '\0', sizeof(gsDesdeFmt));
+   memset(gsHastaFmt, '\0', sizeof(gsHastaFmt));
+
+	if(argc < 3 || argc >5 ){
 		MensajeParametros();
 		return 0;
 	}
 	
    giTipoCorrida=atoi(argv[2]);
+   
+   if(argc == 5){
+      giTipoCorrida=3;
+      strcpy(gsFechaDesde, argv[3]);
+      strcat(gsFechaDesde, " 00:00");
+      strcpy(gsFechaHasta, argv[4]);
+      strcat(gsFechaHasta, " 23:59");
+      
+      sprintf(gsDesdeFmt, "%c%c%c%c%c%c%c%c", gsFechaDesde[0],gsFechaDesde[1],gsFechaDesde[2],gsFechaDesde[3],
+            gsFechaDesde[5],gsFechaDesde[6],gsFechaDesde[8],gsFechaDesde[9]);
+            
+      sprintf(gsHastaFmt, "%c%c%c%c%c%c%c%c", gsFechaHasta[0],gsFechaHasta[1],gsFechaHasta[2],gsFechaHasta[3],
+            gsFechaHasta[5],gsFechaHasta[6],gsFechaHasta[8],gsFechaHasta[9]);
+      
+   }
 	
 	return 1;
 }
@@ -198,7 +240,10 @@ char	* argv[];
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Corrida> 0=Normal, 1=Reducida.\n");
+		printf("	<Tipo Corrida> 0=Normal, 1=Reducida, 3=Delta.\n");
+      printf("	<Fecha Desde (Opcional)> aaaa-mm-dd.\n");
+      printf("	<Fecha Hasta (Opcional)> aaaa-mm-dd.\n");
+      
 }
 
 short AbreArchivos()
@@ -223,7 +268,7 @@ short AbreArchivos()
 
 	sprintf( sArchMedidorUnx  , "%sT1FIELD_OPERATION.unx", sPathSalida );
    sprintf( sArchMedidorAux  , "%sT1FIELD_OPERATION.aux", sPathSalida );
-   sprintf( sArchMedidorDos  , "%senel_care_fieldoperation_t1_%s.csv", sPathSalida, sFecha );
+   sprintf( sArchMedidorDos  , "%senel_care_fieldoperation_t1_%s_%s.csv", sPathSalida, gsFechaDesde, gsHastaFmt);
 
 	strcpy( sSoloArchivoMedidor, "T1FIELD_OPERATION.unx");
 
@@ -359,16 +404,25 @@ if(giTipoCorrida==1){
    strcat(sql, "t1.descripcion, ");
    strcat(sql, "c.corr_corte, ");
    strcat(sql, "c.corr_repo ");   
-	strcat(sql, "FROM correp c, tabla t1 ");
-	strcat(sql, "WHERE c.numero_cliente = ? ");
-	strcat(sql, "AND c.fecha_corte >= TODAY-365 ");
-
+	strcat(sql, "FROM correp c, cliente l, tabla t1 ");
+if(giTipoCorrida==1){
+   strcat(sql, ", migra_sf ma ");
+}   
+	strcat(sql, "WHERE c.numero_cliente = l.numero_cliente ");
+   if(giTipoCorrida==3){
+      strcat(sql, "AND c.fecha_corte BETWEEN ? AND ? ");
+   }else{
+      strcat(sql, "AND c.fecha_corte >= TODAY-365 ");
+   }
+   strcat(sql, "AND l.estado_cliente = 0 ");
 	strcat(sql, "AND t1.nomtabla = 'CORMOT' ");
 	strcat(sql, "AND t1.sucursal = '0000' ");
 	strcat(sql, "AND t1.codigo = c.motivo_corte ");
 	strcat(sql, "AND t1.fecha_activacion <= TODAY ");
 	strcat(sql, "AND (t1.fecha_desactivac IS NULL OR t1.fecha_desactivac > TODAY) ");   
-   
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}   
 	strcat(sql, "ORDER BY 2 ASC ");   
    
 	$PREPARE selCortes FROM $sql;
@@ -386,9 +440,21 @@ if(giTipoCorrida==1){
 	strcat(sql, "  ELSE 'Completed' ");
 	strcat(sql, "END estado, ");
 	strcat(sql, "c.dias ");
-	strcat(sql, "FROM corplazo c ");
-	strcat(sql, "WHERE c.numero_cliente = ? ");
-	strcat(sql, "AND c.fecha_solicitud >= TODAY-365 ");
+	strcat(sql, "FROM corplazo c, cliente l ");
+if(giTipoCorrida==1){
+   strcat(sql, ", migra_sf ma ");
+}   
+	strcat(sql, "WHERE c.numero_cliente = l.numero_cliente ");
+   strcat(sql, "AND l.estado_cliente = 0 ");
+   if(giTipoCorrida==3){
+      strcat(sql, "AND c.fecha_solicitud BETWEEN ? AND ? ");
+   }else{
+      strcat(sql, "AND c.fecha_solicitud >= TODAY-365 ");
+   }
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}   
+   
 	strcat(sql, "ORDER BY 2 ASC ");
    
 	$PREPARE selExtent FROM $sql;
@@ -640,7 +706,7 @@ int            index;
          /* Fecha evento */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.fecha_sol_repo);
          /* External Id */
-         sprintf(sLinea, "%s\"%ld%04dREPOFOPARG\";", sLinea, regCor.numero_cliente, regCor.corr_repo);
+         sprintf(sLinea, "%s\"%ld%02d%02dREPOFOPARG\";", sLinea, regCor.numero_cliente, regCor.corr_corte, regCor.corr_repo);
          /* Situación encontrada */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.sit_rehab);
          /* Suministro */

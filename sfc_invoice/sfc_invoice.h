@@ -48,7 +48,7 @@ $typedef struct{
 /* Prototipos de Funciones */
 short	AnalizarParametros(int, char **);
 void	MensajeParametros(void);
-short	AbreArchivos(void);
+short	AbreArchivos(int);
 void  CreaPrepare(void);
 void 	FechaGeneracionFormateada( char *);
 void 	RutaArchivos( char*, char * );
@@ -59,6 +59,8 @@ void  InicializaFactura(ClsFactura *);
 short LeoDetalle(ClsFactura *, int);
 
 short	GenerarPlano(FILE *, ClsFactura);
+
+double   getRecargo(long, long);
 
 char 	*strReplace(char *, char *, char *);
 void	CerrarArchivos(void);

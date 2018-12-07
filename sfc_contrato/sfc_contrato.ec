@@ -60,6 +60,10 @@ long	cantProcesada;
 long 	cantPreexistente;
 long	iContaLog;
 
+char  gsDesdeFmt[9];
+char  gsHastaFmt[9];
+
+
 /* Variables Globales Host */
 $ClsCliente	regCliente;
 $long lFechaRti;
@@ -201,8 +205,16 @@ short AnalizarParametros(argc, argv)
 int		argc;
 char	* argv[];
 {
+   char  sFechaDesde[11];
+   char  sFechaHasta[11];
+   
+   memset(sFechaDesde, '\0', sizeof(sFechaDesde));
+   memset(sFechaHasta, '\0', sizeof(sFechaHasta));
 
-	if(argc != 4 ){
+   memset(gsDesdeFmt, '\0', sizeof(gsDesdeFmt));
+   memset(gsHastaFmt, '\0', sizeof(gsHastaFmt));
+
+	if(argc < 4  || argc > 6){
 		MensajeParametros();
 		return 0;
 	}
@@ -210,14 +222,28 @@ char	* argv[];
    giTipoCorrida=atoi(argv[2]);
 	gsArchivoGenera=atoi(argv[3]);
    
+   if(argc == 6){
+      strcpy(sFechaDesde, argv[4]); 
+      strcpy(sFechaHasta, argv[5]);
+   
+      sprintf(gsDesdeFmt, "%c%c%c%c%c%c%c%c", sFechaDesde[6], sFechaDesde[7],sFechaDesde[8],sFechaDesde[9],
+                  sFechaDesde[3],sFechaDesde[4], sFechaDesde[0],sFechaDesde[1]);      
+
+      sprintf(gsHastaFmt, "%c%c%c%c%c%c%c%c", sFechaHasta[6], sFechaHasta[7],sFechaHasta[8],sFechaHasta[9],
+                  sFechaHasta[3],sFechaHasta[4], sFechaHasta[0],sFechaHasta[1]);      
+   }
+   
 	return 1;
 }
 
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Corrida> 0=Normal, 1=Reducida.\n");
+		printf("	<Tipo Corrida> 0=Normal, 1=Reducida, 3=Delta.\n");
       printf("	<Archivos> 0=Todos; 1=Contrato; 2=Linea; 3= Billing.\n");
+      printf("	<Fecha Desde (Opcional)> dd/mm/aaaa.\n");
+      printf("	<Fecha Hasta (Opcional)> dd/mm/aaaa.\n");
+      
 }
 
 short AbreArchivos()
@@ -254,17 +280,17 @@ short AbreArchivos()
 
 	sprintf( sArchContratoUnx  , "%sT1CONTRATO.unx", sPathSalida );
    sprintf( sArchContratoAux  , "%sT1CONTRATO.aux", sPathSalida );
-   sprintf( sArchContratoDos  , "%senel_care_contract_t1_%s.csv", sPathSalida, sFecha );
+   sprintf( sArchContratoDos  , "%senel_care_contract_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 	strcpy( sSoloContrato, "T1CONTRATO.unx");
 
 	sprintf( sArchLineaUnx  , "%sT1LINEA.unx", sPathSalida );
    sprintf( sArchLineaAux  , "%sT1LINEA.aux", sPathSalida );
-   sprintf( sArchLineaDos  , "%senel_care_contract_line_t1_%s.csv", sPathSalida, sFecha );
+   sprintf( sArchLineaDos  , "%senel_care_contract_line_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 	strcpy( sSoloLinea, "T1LINEA.unx");
 
 	sprintf( sArchBillingUnx  , "%sT1BILLING_PROFILE.unx", sPathSalida );
    sprintf( sArchBillingAux  , "%sT1BILLING_PROFILE.aux", sPathSalida );
-   sprintf( sArchBillingDos  , "%senel_care_billingprofile_t1_%s.csv", sPathSalida, sFecha);
+   sprintf( sArchBillingDos  , "%senel_care_billingprofile_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 	strcpy( sSoloBilling, "T1BILLING_PROFILE.unx");
 
    switch(gsArchivoGenera){
@@ -561,7 +587,11 @@ $char sAux[1000];
    $PREPARE selFechaRti FROM $sql;
 
 	/******** Cursor CLIENTES  ****************/
-   strcpy(sql, "SELECT c.numero_cliente, ");
+   if(giTipoCorrida == 3){
+      strcpy(sql, "SELECT DISTINCT c.numero_cliente, ");
+   }else{
+      strcpy(sql, "SELECT c.numero_cliente, ");
+   }
    strcat(sql, "c.corr_facturacion, "); 
 	strcat(sql, "TRIM(c.nombre), "); 
 	strcat(sql, "c.tipo_fpago, "); 
@@ -575,8 +605,12 @@ $char sAux[1000];
 if(giTipoCorrida == 1){	
    strcat(sql, ", migra_sf ma ");
 }   
-	
+if(giTipoCorrida == 3){
+   strcat(sql, ", sf_actuclie ma ");
+}   
+
 	strcat(sql, "WHERE c.estado_cliente = 0 ");
+   
    strcat(sql, "AND c.tipo_sum != 5 ");
 	/*strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");*/
 	/*strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");*/
@@ -596,6 +630,9 @@ if(giTipoCorrida == 1){
 	strcat(sql, "AND s1.cod_mac = c.tipo_reparto ");   
    	
 if(giTipoCorrida == 1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}
+if(giTipoCorrida == 3){
    strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 }
 
@@ -640,12 +677,11 @@ if(giTipoCorrida == 1){
 
 
    /********* Factura Digital **********/
-	strcpy(sql, "SELECT TO_CHAR(fecha_alta, '%Y-%m-%d'),  COUNT(*) "); 
+	strcpy(sql, "SELECT FIRST 1 TO_CHAR(fecha_alta, '%Y-%m-%d') "); 
 	strcat(sql, "FROM clientes_digital ");
 	strcat(sql, "WHERE numero_cliente = ? ");
 	strcat(sql, "AND fecha_alta <= TODAY ");
 	strcat(sql, "AND fecha_baja IS NULL OR fecha_baja > TODAY ");
-   strcat(sql, "GROUP BY 1 ");
    
    $PREPARE selDigital  FROM $sql;
 
@@ -785,6 +821,17 @@ $ClsCliente *reg;
 		}
     }			
 
+   $EXECUTE selDigital INTO :reg->sFechaAltaFactuDigital USING :reg->numero_cliente;
+
+   if(SQLCODE != 0){
+      if(SQLCODE != SQLNOTFOUND){
+			printf("Error al buscar factura digital para cliente %ld !!!\nProceso Abortado.\n", reg->numero_cliente);
+      }else{
+         strcpy(reg->factu_digital, "N");
+         memset(reg->sFechaAltaFactuDigital, '\0', sizeof(reg->sFechaAltaFactuDigital));
+      }	
+   }
+/*
    $EXECUTE selDigital INTO :reg->sFechaAltaFactuDigital :iCantDigital USING :reg->numero_cliente;
 
    if(SQLCODE != 0){
@@ -802,7 +849,7 @@ $ClsCliente *reg;
          strcpy(reg->factu_digital, "N");   
       }
    }
-
+*/
     $EXECUTE selGarante INTO :regDg.nroDg, 
                             :regDg.sFechaEmision,
                             :regDg.lGarante,
