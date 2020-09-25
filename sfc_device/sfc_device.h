@@ -13,7 +13,40 @@ $include datetime.h;
 
 #define SYN_CLAVE "DD_NOVOUT"
 
-/* Estructuras ---*/
+/* --- Estructuras ----*/
+$typedef struct{
+   long	numero_cliente;
+   char  codModif[4];
+   char  proced[21];
+   char  dtFechaModif[20];
+   char  sFechaModif[17];
+   long  lFechaModif;
+   char  datoViejo[56];
+   char  datoNuevo[56];
+   
+   long  nroMedidorRet;
+   char  marcaMedidorRet[4];
+   char  modeloMedidorRet[3];
+   
+   long  nroMedidorInst;
+   char  marcaMedidorInst[4];
+   char  modeloMedidorInst[3];
+   
+   double lecturaInstalacion;
+   double lecturaRetiro;
+     
+}ClsModif;
+
+$typedef struct{
+   long	nroClienteAnterior;
+   long  nroClienteActual;
+   char  sFechaEvento[11];
+
+   double lecturaInstalacion;
+   double lecturaRetiro;
+   
+}ClsCamTit;
+
 
 $typedef struct{
    long	numero;
@@ -42,10 +75,23 @@ void  CreaPrepare(void);
 void 	FechaGeneracionFormateada( char *);
 void 	RutaArchivos( char*, char * );
 
+short LeoModif(ClsModif *);
+short LeoEstoc(ClsModif *);
+void  InicializoModif(ClsModif *);
+void  ExtraeMedidores(ClsModif *);
+short getDataMedidor(ClsModif, ClsMedidor *, char *);
+
 short  LeoMedidores(ClsMedidor *);
 void   InicializaMedidor(ClsMedidor *);
 short CargaEstadoSFC(ClsMedidor *);
-short	GenerarPlano(FILE *, ClsMedidor);
+short	GenerarPlano(FILE *, ClsModif, ClsMedidor, char *);
+
+short LeoCamTit(ClsCamTit *, ClsMedidor *);
+void InicializaCamTit(ClsCamTit *);
+short GenerarPlanoCT(FILE *, ClsCamTit, ClsMedidor, char *);
+
+short getLecturaFecha(ClsModif *, char *, char *);
+short getLecturaCT(ClsCamTit *, char *);
 
 char 	*strReplace(char *, char *, char *);
 char	*getEmplazaSAP(char*);

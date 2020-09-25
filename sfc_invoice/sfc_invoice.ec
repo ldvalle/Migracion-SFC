@@ -13,7 +13,7 @@
 		<Base de Datos> : Base de Datos <synergia>
 		<Tipo Corrida>: 0=Normal 1=Reducida
 		
-********************************************************************************/
+*********************************************************************************/
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
@@ -101,65 +101,143 @@ long     lLineas;
 	
    fp=pFileMedidorUnx;
 	/*********************************************
-				AREA CURSOR PPAL
+				FACTURAS DE ENERGIA
 	**********************************************/
-/*
-   $OPEN curClientes;
+	iNroArchivo=1;
+	lLineas=0;
 
-   while(LeoCliente(&lNroCliente)){
-      iFactu=1;
-      if(giTipoCorrida==3){
-         $OPEN curFacturas USING :lNroCliente, :glFechaDesde, :glFechaHasta;
-      }else{
-         $OPEN curFacturas USING :lNroCliente;
-      }
-*/   	
-      iNroArchivo=1;
-      lLineas=0;
+	$OPEN curFacturas USING :glFechaDesde, :glFechaHasta;
+	
+	while(LeoFacturas(&regFactura)){
+		/*regFactura.recargoAnterior=getRecargo(regFactura.numero_cliente, regFactura.corr_facturacion);*/
+		
+		if(!getRecargo(&regFactura)){
+			printf("No pude ver periodo anterior Cliente %ld Correlativo %d\n", regFactura.numero_cliente, regFactura.corr_facturacion);
+		}
+		if (!GenerarPlano(fp, regFactura, "FA")){
+			printf("Fallo GenearPlano Factura Energia\n");
+			exit(1);	
+		}
 
-      $OPEN curFacturas USING :glFechaDesde, :glFechaHasta;
-      
-   	while(LeoFacturas(&regFactura)){
-         regFactura.recargoAnterior=getRecargo(regFactura.numero_cliente, regFactura.corr_facturacion);
-/*              
-         if(iFactu==1){
-            dRecargo=regFactura.suma_recargo;
-         }else{
-            regFactura.recargoAnterior=dRecargo;
-      		if (!GenerarPlano(fp, regFactura)){
-               printf("Fallo GenearPlano\n");
-      			exit(1);	
-      		}
-            dRecargo=regFactura.suma_recargo;
-         }
-         regFactura.recargoAnterior=dRecargo;
-*/         
-   		if (!GenerarPlano(fp, regFactura)){
-            printf("Fallo GenearPlano\n");
-   			exit(1);	
-   		}
-         /*dRecargo=regFactura.suma_recargo;*/
-         lLineas++;
-         
-         if(lLineas>4500000){
-            CerrarArchivos();
-            FormateaArchivos();
-            iNroArchivo++;
-           	if(!AbreArchivos(iNroArchivo)){
-         		exit(1);	
-         	}
-            lLineas=0;
-         }
-   		iFactu++;
-   	}
-   	
-   	$CLOSE curFacturas;
-/*
-      cantProcesada++;
-   }
-   			
-   $CLOSE curClientes;      
-*/   
+		lLineas++;
+		
+		if(lLineas>4500000){
+			CerrarArchivos();
+			FormateaArchivos();
+			iNroArchivo++;
+			if(!AbreArchivos(iNroArchivo)){
+				exit(1);	
+			}
+			lLineas=0;
+		}
+		iFactu++;
+	}
+	
+	$CLOSE curFacturas;
+	
+	/*********************************************
+				REFACTURACION
+	**********************************************/	
+	$OPEN curRefac USING :glFechaDesde, :glFechaHasta;
+	
+	while(LeoRefac(&regFactura)){
+		if (!GenerarPlano(fp, regFactura, regFactura.tipoDocumento)){
+			printf("Fallo GenearPlano Refac\n");
+			exit(1);	
+		}	
+		lLineas++;
+		
+		if(lLineas>4500000){
+			CerrarArchivos();
+			FormateaArchivos();
+			iNroArchivo++;
+			if(!AbreArchivos(iNroArchivo)){
+				exit(1);	
+			}
+			lLineas=0;
+		}		
+		iFactu++;
+	}
+	
+	$CLOSE curRefac;
+
+	/*********************************************
+				FACTURAS CNR
+	**********************************************/
+	$OPEN curCNR USING :glFechaDesde, :glFechaHasta;
+	
+	while(LeoCnr(&regFactura)){
+		if (!GenerarPlano(fp, regFactura, regFactura.tipoDocumento)){
+			printf("Fallo GenearPlano Refac\n");
+			exit(1);	
+		}	
+		lLineas++;
+		
+		if(lLineas>4500000){
+			CerrarArchivos();
+			FormateaArchivos();
+			iNroArchivo++;
+			if(!AbreArchivos(iNroArchivo)){
+				exit(1);	
+			}
+			lLineas=0;
+		}		
+		iFactu++;
+	}
+	
+	$CLOSE curCNR;
+		
+	/*********************************************
+				FACTURAS INTERACTIVAS
+	**********************************************/	
+	/* Nuevos Negocios */
+	$OPEN curFactuNN USING :glFechaDesde, :glFechaHasta;
+	
+	while(LeoFactuNN(&regFactura)){
+		if (!GenerarPlano(fp, regFactura, regFactura.tipoDocumento)){
+			printf("Fallo GenearPlano Refac\n");
+			exit(1);	
+		}	
+		lLineas++;
+		
+		if(lLineas>4500000){
+			CerrarArchivos();
+			FormateaArchivos();
+			iNroArchivo++;
+			if(!AbreArchivos(iNroArchivo)){
+				exit(1);	
+			}
+			lLineas=0;
+		}		
+		iFactu++;
+	}
+	
+	$CLOSE curFactuNN;
+		
+	/* Conceptos Eventuales */
+	$OPEN curFactuCE USING :glFechaDesde, :glFechaHasta;
+	
+	while(LeoFactuCE(&regFactura)){
+		if (!GenerarPlano(fp, regFactura, regFactura.tipoDocumento)){
+			printf("Fallo GenearPlano Refac\n");
+			exit(1);	
+		}	
+		lLineas++;
+		
+		if(lLineas>4500000){
+			CerrarArchivos();
+			FormateaArchivos();
+			iNroArchivo++;
+			if(!AbreArchivos(iNroArchivo)){
+				exit(1);	
+			}
+			lLineas=0;
+		}		
+		iFactu++;
+	}
+	
+	$CLOSE curFactuCE;	
+		
 	CerrarArchivos();
 
 	FormateaArchivos();
@@ -289,7 +367,7 @@ int   inx;
 		return 0;
 	}
 	
-   strcpy(sTitulos,"\"Fecha de emisión\";\"Fecha de vencimiento\";\"Fecha de segundo vencimiento\";\"Intereses\";\"Acceso a la factura\";\"Dirección factura\";\"Titular\";\"Otros cargos\";\"Suministro\";\"Saldo anterior\";\"Cantidad de productos y servicios\";\"Impuestos\";\"External ID\";\"Numero Factura\";\"Direccion Facturación (Historico)\";\"Pago\";\"Total\";\"Cargos Fijos\";\"Cargos Variables\";\"Factor Potencia\";\"Tasa Alumbrado Público\";\"Recargo\";\"Recargo Anterior\";\"Cuota convenio\";\"CNR\";\"Refacturación\";\"Ahorro %\";\"Factura Digital\";\"Moneda\";\"Valor Energía Activa\";\"Valor Energía Reactiva\";\"Valor Potencia\";\"Valor Ahorro\";\n");
+   strcpy(sTitulos,"\"Fecha de emisión\";\"Fecha de vencimiento\";\"Fecha de segundo vencimiento\";\"Intereses\";\"Acceso a la factura\";\"Dirección factura\";\"Titular\";\"Otros cargos\";\"Suministro\";\"Saldo anterior\";\"Cantidad de productos y servicios\";\"Impuestos\";\"External ID\";\"Numero Factura\";\"Direccion Facturación (Historico)\";\"Pago\";\"Total\";\"Cargos Fijos\";\"Cargos Variables\";\"Factor Potencia\";\"Tasa Alumbrado Público\";\"Recargo\";\"Recargo Anterior\";\"Cuota convenio\";\"CNR\";\"Refacturación\";\"Ahorro %\";\"Factura Digital\";\"Moneda\";\"Valor Energía Activa\";\"Valor Energía Reactiva\";\"Valor Potencia\";\"Valor Ahorro\";\"Tipo Documento\";\"Tipo Documento Refacturado\";\"Documento Refacturado\";\"Dias Actuales\";\"Cuenta Contrato\";\n");
    iRcv=fprintf(pFileMedidorUnx, sTitulos);
 
    if(iRcv < 0){
@@ -410,8 +488,8 @@ if(giTipoCorrida==1){
 	strcat(sql, "h.suma_recargo, ");
 	strcat(sql, "h.suma_convenio, ");
 	strcat(sql, "h.tarifa, ");
-	strcat(sql, "h.indica_refact ");
-	/*strcat(sql, "FROM hisfac h, cliente c ");*/
+	strcat(sql, "h.indica_refact, ");
+   strcat(sql, "h.fecha_lectura ");
    strcat(sql, "FROM hisfac h ");
    
 	
@@ -487,11 +565,86 @@ if(giTipoCorrida==1){
 	$PREPARE selRutaPlanos FROM $sql;
 
    /* Busca recargo */
-   $PREPARE selRecargo FROM "SELECT suma_recargo FROM hisfac
+   $PREPARE selRecargo FROM "SELECT suma_recargo, fecha_lectura FROM hisfac
       WHERE numero_cliente = ?
       AND corr_facturacion = ?";
 
-   
+   /* busca link pdf */
+   $PREPARE selLink FROM "SELECT link_pdf FROM import_e_factura
+      WHERE numero_cliente = ?
+      AND corr_facturacion = ? ";
+
+	/****** Cursor Ajustes *****/
+	$PREPARE selFactuRefac FROM "SELECT r.numero_cliente,
+		r.fecha_refacturac,
+		TO_CHAR(r.fecha_refacturac, '%Y-%m-%d'),
+		CASE
+			WHEN r.tipo_nota = 'C' THEN 'NC'
+			ELSE 'ND'
+		END,
+		r.centro_emisor || r.tipo_docto || r.numero_nota id_nota,
+		TO_CHAR(r.fecha_vencimiento, '%Y-%m-%d'),
+		r.total_refacturado,
+		r.total_impuestos,
+		h.centro_emisor || h.tipo_docto || h.numero_factura factura_afectada
+		FROM refac r, hisfac h
+		WHERE r.fecha_refacturac BETWEEN ? AND ?
+		AND h.numero_cliente = r.numero_cliente
+		AND h.fecha_facturacion = r.fecha_fact_afect
+		AND h.numero_factura = r.nro_docto_afect ";
+
+	$DECLARE curRefac CURSOR FOR selFactuRefac;
+	
+	/******* Cursor Facturas CNR *******/
+	$PREPARE selCnr FROM "SELECT f.numero_cliente,
+		f.fecha_emision,
+		TO_CHAR(f.fecha_emision, '%Y-%m-%d'),
+		'NR',
+		f.centro_emisor || TRIM(f.tipo_docto) || f.nro_documento id_factura,
+		TO_CHAR(f.fecha_vencimiento, '%Y-%m-%d'),
+		f.total_facturado,
+		f.total_impuestos,
+		c1.fecha_hasta - c1.fecha_desde dias
+		FROM cnr_factura f, cnr_calculo c1
+		WHERE f.fecha_emision BETWEEN ? AND ?
+		AND c1.nro_expediente = f.nro_expediente
+		AND c1.ano_expediente = f.ano_expediente
+		AND c1.sucursal = f.sucursal
+		AND c1.corr_calculo = (SELECT MAX(c2.corr_calculo) FROM cnr_calculo c2
+			WHERE c2.nro_expediente = c1.nro_expediente
+			AND c2.ano_expediente = c1.ano_expediente
+		  AND c2.sucursal = c1.sucursal ) ";
+		  
+	$DECLARE curCNR CURSOR FOR selCnr;
+		  
+	/**** Interactiva Nuevos Negocios *****/
+	$PREPARE selFactuNn FROM "SELECT nro_solicitud nro_cliente,
+		fecha,
+		TO_CHAR(fecha, '%Y-%-m%d'),
+		'FI',
+		TO_CHAR(round(nro_comprobante,0)),
+		monto,
+		monto_i
+		FROM encliq
+		WHERE fecha BETWEEN ? AND ? ";
+
+	$DECLARE curFactuNN CURSOR FOR selFactuNn;
+	
+	/*** Interactiva Conceptos Eventuales ****/
+	$PREPARE selFactuCE FROM "SELECT numero_cliente,
+		fecha_facturacion,
+		TO_CHAR(fecha_facturacion, '%Y-%m-%d'),
+		TO_CHAR(fecha_vcto, '%Y-%m-%d'),
+		'FI',
+		centro_emisor || tipo_docto || nro_documento id_factura,
+		total_facturado,
+		total_impuestos
+		FROM ned_hisfac
+		WHERE fecha_facturacion BETWEEN ? AND ? ";
+
+	$DECLARE curFactuCE CURSOR FOR selFactuCE;
+
+	
 }
 
 void FechaGeneracionFormateada( Fecha )
@@ -581,7 +734,8 @@ $char sFechaFactuMax[20];
       :reg->suma_recargo,
       :reg->suma_convenio,
       :reg->tarifa,
-      :reg->indica_refact;
+      :reg->indica_refact,
+      :reg->fecha_lectura;
 	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
@@ -646,6 +800,17 @@ $char sFechaFactuMax[20];
       strcpy(reg->factu_digital, "N");
    }
          
+   /* el link al pdf de la factura */
+   $EXECUTE selLink INTO :reg->sLinkFactura USING
+      :reg->numero_cliente,
+      :reg->corr_facturacion;
+      
+   if( SQLCODE != 0 ){
+      memset(reg->sLinkFactura, '\0', sizeof(reg->sLinkFactura));
+   }
+   
+   alltrim(reg->sLinkFactura, ' ');
+      
 	return 1;	
 }
 
@@ -676,7 +841,9 @@ $ClsFactura	*reg;
    rsetnull(CDOUBLETYPE, (char *) &(reg->cargo_tap));
    rsetnull(CDOUBLETYPE, (char *) &(reg->cargo_kit));
    memset(reg->factu_digital, '\0', sizeof(reg->factu_digital));
-
+   memset(reg->sLinkFactura, '\0', sizeof(reg->sLinkFactura));
+   rsetnull(CLONGTYPE, (char *) &(reg->fecha_lectura));
+   
 }
 
 
@@ -721,9 +888,10 @@ $double  valorCargo;
 
 
 
-short GenerarPlano(fp, reg)
+short GenerarPlano(fp, reg, tipoF)
 FILE 				*fp;
 $ClsFactura		reg;
+char				tipoF[3];
 {
 	char	sLinea[1000];	
    int   iRcv;
@@ -734,43 +902,73 @@ $ClsFactura		reg;
    sprintf(sLinea, "\"%sT00:00:00.000Z\";", reg.fecha_facturacion);
    
    /* Fecha de vencimiento */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_vencimiento1);
+   if(strcmp(reg.fecha_vencimiento1, "")!=0){
+		sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_vencimiento1);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
    
    /* Fecha de segundo vencimiento */
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_vencimiento2);
+   if(strcmp(reg.fecha_vencimiento2, "")!=0){
+		sprintf(sLinea, "%s\"%s\";", sLinea, reg.fecha_vencimiento2);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
    
    /* Intereses */
-   sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_intereses);
+	if(!risnull(CDOUBLETYPE, (char *)&reg.suma_intereses)){
+		sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_intereses);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
    
-   /* Acceso a la factura (Vacio) */
-   strcat(sLinea, "\"http://www.edesur.com.ar/\";");
+   /* Acceso a la factura  */
+   if(strcmp(reg.sLinkFactura, "")!=0){
+		sprintf(sLinea, "%s\"%s\";", sLinea, reg.sLinkFactura);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
    
-   /* Dirección factura (vacio) */
-   /*strcat(sLinea, "\"\";");*/
-   /*sprintf(sLinea, "%s\"%ld-2\";", sLinea, reg.numero_cliente);*/
+   /* Dirección factura */
    sprintf(sLinea, "%s\"%ldBPARG\";", sLinea, reg.numero_cliente);
    
    /* Titular */
    sprintf(sLinea, "%s\"%ldARG\";", sLinea, reg.numero_cliente);
    
    /* Otros cargos */
-   sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_cargos_man);
+   if(!risnull(CDOUBLETYPE, (char *)&reg.suma_cargos_man)){
+		sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_cargos_man);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
    
    /* Suministro */
    sprintf(sLinea, "%s\"%ldAR\";", sLinea, reg.numero_cliente);
    
    /* Saldo anterior */
-   sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.saldo_anterior);
+   if(!risnull(CDOUBLETYPE, (char *)&reg.saldo_anterior)){
+		sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.saldo_anterior);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
    
    /* Saldos de productos y servicios (cuota kit) */
-   if(reg.cargo_kit > 0.01){
-      sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.cargo_kit);
-   }else{
-      strcat(sLinea, "\"\";");
-   }
-   
+   if(strcmp(tipoF, "FA")==0){
+		if(reg.cargo_kit > 0.01){
+			sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.cargo_kit);
+		}else{
+			strcat(sLinea, "\"\";");
+		}
+	}else{
+		strcat(sLinea, "\"\";");
+	}
+	
    /* Impuestos */
-   sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_impuestos);
+   if(!risnull(CDOUBLETYPE, (char *)&reg.suma_impuestos)){
+		sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_impuestos);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
    
    /* External ID */
    sprintf(sLinea, "%s\"%ld%sINVARG\";", sLinea,reg.numero_cliente, reg.id_factura);
@@ -789,21 +987,33 @@ $ClsFactura		reg;
    sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.total_a_pagar);
    
    /* Cargos Fijos */
-   if(reg.cargo_fijo > 0.01){
-      sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.cargo_fijo);
-   }else{
-      strcat(sLinea, "\"\";");
-   }
-   
+   if(strcmp(tipoF, "FA")==0){
+		if(reg.cargo_fijo > 0.01){
+			sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.cargo_fijo);
+		}else{
+			strcat(sLinea, "\"\";");
+		}
+	}else{
+		strcat(sLinea, "\"\";");
+	}
+	
    /* Cargos Variables */
-   if(reg.cargo_variable > 0.01){
-      sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.cargo_variable);
-   }else{
-      strcat(sLinea, "\"\";");
-   }
-   
+   if(strcmp(tipoF, "FA")==0){
+		if(reg.cargo_variable > 0.01){
+			sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.cargo_variable);
+		}else{
+			strcat(sLinea, "\"\";");
+		}
+	}else{
+		strcat(sLinea, "\"\";");
+	}
+	
    /* Factor Potencia */
-   sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.coseno_phi);
+   if(!risnull(CDOUBLETYPE, (char *)&reg.coseno_phi)){
+		sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.coseno_phi);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
    
    /* Tasa Alumbrado Público */
    if(reg.cargo_tap > 0.01){
@@ -813,36 +1023,52 @@ $ClsFactura		reg;
    }
    
    /* Recargo */
-   if(reg.suma_recargo > 0.01){
-      sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_recargo);
-   }else{
-      strcat(sLinea, "\"\";");
-   }
-   
+   if(strcmp(tipoF, "FA")==0){
+		if(reg.suma_recargo > 0.01){
+			sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_recargo);
+		}else{
+			strcat(sLinea, "\"\";");
+		}
+	}else{
+		strcat(sLinea, "\"\";");
+	}
+	
    /* Recargo Anterior */
-   if(reg.recargoAnterior > 0.01){
-      sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.recargoAnterior);
-   }else{
-      strcat(sLinea, "\"\";");
-   }
-   
+   if(strcmp(tipoF, "FA")==0){
+		if(reg.recargoAnterior > 0.01){
+			sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.recargoAnterior);
+		}else{
+			strcat(sLinea, "\"\";");
+		}
+	}else{
+		strcat(sLinea, "\"\";");
+	}
+	
    /* Cuota convenio */
-   if(reg.suma_convenio > 0.01){
-      sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_convenio);
-   }else{
-      strcat(sLinea, "\"\";");
-   }
+   if(strcmp(tipoF, "FA")==0){
+		if(reg.suma_convenio > 0.01){
+			sprintf(sLinea, "%s\"%.02f\";", sLinea, reg.suma_convenio);
+		}else{
+			strcat(sLinea, "\"\";");
+		}
+	}else{
+		strcat(sLinea, "\"\";");
+	}
    
    /* CNR (Vacio) */
    strcat(sLinea, "\"\";");
    
    /* Refacturación */
-   if(reg.indica_refact[0]=='S'){
-      strcat(sLinea, "\"Yes\";");
-   }else{
-      strcat(sLinea, "\"No\";");
-   }
-   
+   if(strcmp(tipoF, "FA")==0){
+		if(reg.indica_refact[0]=='S'){
+			strcat(sLinea, "\"Yes\";");
+		}else{
+			strcat(sLinea, "\"No\";");
+		}
+	}else{
+		strcat(sLinea, "\"No\";");
+	}
+	
    /* Ahorro % (vacio) */
    strcat(sLinea, "\"\";");
    
@@ -865,6 +1091,33 @@ $ClsFactura		reg;
    /* Valor Ahorro % */
    strcat(sLinea, "\"\";");
 
+	/* Tipo de Documento */
+	sprintf(sLinea, "%s\"%s\";", sLinea, tipoF);
+	
+	/* Tipo Doc. Refacturado */
+	if(strcmp(tipoF, "NC")==0 || strcmp(tipoF, "ND")==0){
+		sprintf(sLinea, "%s\"%s\";", sLinea, reg.tipoDoctoRefac);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
+	
+	/* Nro.Documento Refacturado */
+	if(strcmp(tipoF, "NC")==0 || strcmp(tipoF, "ND")==0){
+		sprintf(sLinea, "%s\"%s\";", sLinea, reg.doctoAfectado);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
+	
+	/* Cant.Dias del período */
+	if(!risnull(CINTTYPE, (char *)&reg.diasPeriodo)){
+		sprintf(sLinea, "%s\"%d\";", sLinea, reg.diasPeriodo);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
+	
+	/* Nro.de Cliente */
+	sprintf(sLinea, "%s\"%ld\";", sLinea,reg.numero_cliente);
+	
 	strcat(sLinea, "\r\n");
 	
    iRcv=fprintf(fp, sLinea);
@@ -875,27 +1128,138 @@ $ClsFactura		reg;
 	return 1;
 }
 
-double getRecargo(nroCliente, corrFactu)
-$long nroCliente;
-$long corrFactu;
+short getRecargo(reg)
+$ClsFactura *reg;
 {
    $double  Recargo;
+   $long corrFactuAnterior = reg->corr_facturacion -1;
+   $long fechaLectuAnterior;
    
-   $long corrFactuAnterior = corrFactu-1;
+   rsetnull(CLONGTYPE, (char *) &(fechaLectuAnterior));
    
    if(corrFactuAnterior<=0){
-      Recargo=0.00;   
-   }
+      reg->recargoAnterior=0.00;   
+      reg->diasPeriodo=30;
+   }else{
 
-   $EXECUTE selRecargo INTO :Recargo
-      USING :nroCliente,
-            :corrFactuAnterior;
+		$EXECUTE selRecargo INTO :reg->recargoAnterior, :fechaLectuAnterior
+			USING :reg->numero_cliente,
+					:corrFactuAnterior;
 
-   if(SQLCODE != 0)
-      Recargo=0.00;
+		if(SQLCODE != 0){
+			reg->recargoAnterior=0.00;   
+			reg->diasPeriodo=30;
+		}else{
+			reg->diasPeriodo = reg->fecha_lectura - fechaLectuAnterior;
+		}
       
-      
-   return Recargo;
+	}
+   return 1;
+}
+
+short LeoRefac(reg)
+$ClsFactura *reg;
+{
+
+	InicializaFactura(reg);
+	
+	$FETCH curRefac INTO
+		:reg->numero_cliente,
+		:reg->lFecha_facturacion,
+		:reg->fecha_facturacion,
+		:reg->tipoDocumento,
+		:reg->id_factura,
+		:reg->fecha_vencimiento1,
+		:reg->total_a_pagar,
+		:reg->suma_impuestos,
+		:reg->doctoAfectado;
+
+	if(SQLCODE != 0){
+		return 0;
+	}
+	
+	strcpy(reg->tipoDoctoRefac, "FA");
+	
+	alltrim(reg->id_factura, ' ');
+	alltrim(reg->doctoAfectado, ' ');
+	
+	return 1;
+}
+
+short LeoCnr(reg)
+$ClsFactura *reg;
+{
+
+	InicializaFactura(reg);
+	
+	$FETCH curCnr INTO
+		:reg->numero_cliente,
+		:reg->lFecha_facturacion,
+		:reg->fecha_facturacion,
+		:reg->tipoDocumento,
+		:reg->id_factura,
+		:reg->fecha_vencimiento1,
+		:reg->total_a_pagar,
+		:reg->suma_impuestos,
+		:reg->diasPeriodo;
+
+	if(SQLCODE != 0){
+		return 0;
+	}
+	
+	alltrim(reg->id_factura, ' ');
+	
+	return 1;
+	
+}
+
+short LeoFactuNN(reg)
+$ClsFactura  *reg;
+{
+
+	InicializaFactura(reg);
+	
+	$FETCH curFactuNN INTO
+		:reg->numero_cliente,
+		:reg->lFecha_facturacion,
+		:reg->fecha_facturacion,
+		:reg->tipoDocumento,
+		:reg->id_factura,
+		:reg->total_a_pagar,
+		:reg->suma_impuestos;
+
+	if(SQLCODE != 0){
+		return 0;
+	}
+	
+	alltrim(reg->id_factura, ' ');	
+
+	return 1;
+}
+
+short LeoFactuCE(reg)
+$ClsFactura  *reg;
+{
+
+	InicializaFactura(reg);
+	
+	$FETCH curFactuCE INTO
+		:reg->numero_cliente,
+		:reg->lFecha_facturacion,
+		:reg->fecha_facturacion,
+		:reg->fecha_vencimiento1,
+		:reg->tipoDocumento,
+		:reg->id_factura,
+		:reg->total_a_pagar,
+		:reg->suma_impuestos;
+
+	if(SQLCODE != 0){
+		return 0;
+	}
+	
+	alltrim(reg->id_factura, ' ');	
+
+	return 1;
 }
 
 /****************************

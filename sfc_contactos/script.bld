@@ -2,7 +2,7 @@ PROGRAM = sfc_contactos.exe
 
 OBJECTS = sfc_contactos.o 
 
-OBJS_LIB = sqlerror.o ustring.o macmath.o errores.o mfecha.o
+OBJS_LIB = sqlerror.o ustring.o macmath.o
 
 OTROS =
 
@@ -16,7 +16,7 @@ LXFLAGS = -lsynmail -lmail
 
 #UPDATE#
 
-sfc_contactos.o : sfc_contactos.ec   \
+sfc_cnr.o : sfc_contactos.ec   \
               sfc_contactos.h           \
               codigos.h                    \
               sqlerror.h                   \
@@ -25,9 +25,7 @@ sfc_contactos.o : sfc_contactos.ec   \
               tabla_errores.h              \
               ustring.h					   \
               macmath.h                    \
-              synmail.h               \
-              mfecha.h
-
+              synmail.h
 
 sqlerror.o : sqlerror.ec                   \
              sqlerror.h
@@ -36,14 +34,5 @@ ustring.o : ustring.c                      \
             ustring.h
 
 macmath.o : macmath.c 
-
-errores.o : errores.ec           \
-            errores.h            \
-            tabla_errores.h 
-
-mfecha.o : mfecha.ec             \
-           mfecha.h              \
-           errores.h             \
-           tabla_errores.h
 
 #ENDUPDATE#

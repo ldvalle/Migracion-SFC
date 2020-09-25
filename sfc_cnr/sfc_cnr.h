@@ -13,7 +13,7 @@ $include datetime.h;
 
 #define SYN_CLAVE "DD_NOVOUT"
 
-/* Estructuras ---*/
+/* --- Estructuras ---*/
 
 $typedef struct{
    char  sucursal[5];
@@ -34,6 +34,10 @@ $typedef struct{
    long  numero_medidor;
    char  marca_medidor[4];
    char  modelo_medidor[3];
+   
+   char  anomalia[60];
+   char  sucur_inspeccion[5];
+   long  nro_inspeccion;
 }ClsCnr;
 
 

@@ -13,7 +13,7 @@ $include datetime.h;
 
 #define SYN_CLAVE "DD_NOVOUT"
 
-/* Estructuras ---*/
+/* --- Estructuras ---*/
 
 $typedef struct{
    long     numero_cliente;
@@ -34,8 +34,25 @@ $typedef struct{
    double   coseno_phi;
    char     proxLectura[11];
    char     estado_medidor[2];
+   
+   char     clave_lectura[60];
+   double   lectura_bim;
+   double   lectura_bim_activa;
+   double   lectura_bim_reactiva;
+   char     fecha_lectura_bim[11];
+   int		tipo_lectura_bim;
+   double   consumoRectificado;
 }ClsLectura;
 
+
+$typedef struct{
+	int		tipo_lectura;
+	char		fecha_cierre[11];
+	double   lectura_activa_cierre;
+	double   consumo_activa;
+	double   lectura_reactiva_cierre;
+	double   consumo_reactiva;
+}ClsLecturaBim;
 
 /* Prototipos de Funciones */
 short	AnalizarParametros(int, char **);
@@ -45,12 +62,15 @@ void  CreaPrepare(void);
 void 	FechaGeneracionFormateada( char *);
 void 	RutaArchivos( char*, char * );
 
-short LeoCliente( long *);
+short LeoCliente( long *, int *);
 short LeoLecturas(ClsLectura *);
 void  InicializaLectura(ClsLectura *);
 short LeoReactiva(ClsLectura *);
 void  InicializaLectuReac(ClsLectura *);
 
+short LeoAjustes(ClsLectura *);
+short LeoBimestral(ClsLectura, ClsLecturaBim *);
+void  InicializaBimestral(ClsLecturaBim *);
 short	GenerarPlano(FILE *, ClsLectura, char *);
 short	GenerarPlanoConsumo(FILE *, ClsLectura, char *);
 

@@ -101,7 +101,7 @@ long     iFactu;
 	**********************************************/
 
    if(giTipoCorrida == 3){
-      $OPEN curCNR USING :glFechaDesde, :glFechaHasta;
+      $OPEN curCNR USING :glFechaDesde, :glFechaHasta, :glFechaDesde, :glFechaHasta;
    }else{
       $OPEN curCNR;
    }
@@ -258,6 +258,8 @@ short AbreArchivos()
    strcat(sTitulos, "\"Cantidad de cuotas\";");
    strcat(sTitulos, "\"Número de medidor\";");
    strcat(sTitulos, "\"External Id\";");
+   strcat(sTitulos, "\"Tipo Anomalia\";");
+   strcat(sTitulos, "\"Nro.de Acta\";");
 
    strcat(sTitulos, "\n");
       
@@ -363,8 +365,11 @@ if(giTipoCorrida==1){
 	strcat(sql, "c.nro_solicitud, ");
 	strcat(sql, "c.cod_estado, ");
 	strcat(sql, "t1.descripcion, ");
-   strcat(sql, "c.tipo_expediente ");
-	strcat(sql, "FROM cnr_new c, tabla t1 ");
+   strcat(sql, "c.tipo_expediente, ");
+   strcat(sql, "TRIM(c.cod_anomalia) || '-' || TRIM(ac.descripcion), ");
+   strcat(sql, "i.sucursal_rol, ");
+   strcat(sql, "i.nro_inspeccion ");
+	strcat(sql, "FROM cnr_new c, tabla t1, OUTER inspecc:in_anom_comercial ac, OUTER inspecc:in_inspeccion i ");
 if(giTipoCorrida==1){	
    strcat(sql, ", migra_sf ma ");
 }
@@ -379,10 +384,46 @@ if(giTipoCorrida!=3){
 	strcat(sql, "AND t1.codigo = c.cod_estado ");
 	strcat(sql, "AND t1.fecha_activacion <= TODAY ");
 	strcat(sql, "AND (t1.fecha_desactivac IS NULL OR t1.fecha_desactivac >TODAY) ");
+	strcat(sql, "AND ac.codigo = c.cod_anomalia ");
+	strcat(sql, "AND i.nro_solicitud = c.in_solicitud_ap	");
+	
 
 if(giTipoCorrida==1){
    strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 }
+   
+   strcat(sql , "UNION " );
+   
+ 	strcpy(sql, "SELECT c.sucursal, ");
+	strcat(sql, "c.nro_expediente, ");
+	strcat(sql, "c.ano_expediente, ");
+	strcat(sql, "TO_CHAR(c.fecha_deteccion, '%Y-%m-%dT%H:%M:%S.000Z'), ");
+	strcat(sql, "TO_CHAR(c.fecha_inicio, '%Y-%m-%dT%H:%M:%S.000Z'), "); 
+	strcat(sql, "TO_CHAR(c.fecha_finalizacion, '%Y-%m-%dT%H:%M:%S.000Z'), "); 
+	strcat(sql, "c.numero_cliente, ");
+	strcat(sql, "c.nro_solicitud, ");
+	strcat(sql, "c.cod_estado, ");
+	strcat(sql, "t1.descripcion, ");
+   strcat(sql, "c.tipo_expediente ");
+	strcat(sql, "FROM cnr_new c, tabla t1 ");
+if(giTipoCorrida==1){	
+   strcat(sql, ", migra_sf ma ");
+}
+if(giTipoCorrida!=3){
+	strcat(sql, "WHERE c.fecha_finalizacion >= TODAY - 365 ");
+}else{
+	strcat(sql, "WHERE c.fecha_finalizacion BETWEEN ? AND ? ");
+}
+   strcat(sql, "AND c.cod_estado != '99' ");
+	strcat(sql, "AND t1.nomtabla = 'CNRRE' ");
+	strcat(sql, "AND t1.sucursal = '0000' ");
+	strcat(sql, "AND t1.codigo = c.cod_estado ");
+	strcat(sql, "AND t1.fecha_activacion <= TODAY ");
+	strcat(sql, "AND (t1.fecha_desactivac IS NULL OR t1.fecha_desactivac >TODAY) ");
+
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+} 
    
 	$PREPARE selCnr FROM $sql;
 	
@@ -494,8 +535,11 @@ $int  iCantidad;
       :reg->nro_solicitud,
       :reg->cod_estado,
       :reg->descripcion,
-      :reg->tipo_expediente;
-	
+      :reg->tipo_expediente,
+      :reg->anomalia,
+      :reg->sucur_inspeccion,
+      :reg->nro_inspeccion;
+   	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
 			return 0;
@@ -558,6 +602,7 @@ $int  iCantidad;
    }
    
    alltrim(reg->descripcion, ' ');
+   alltrim(reg->anomalia, ' ');
    
 	return 1;	
 }
@@ -565,6 +610,7 @@ $int  iCantidad;
 void InicializaCnr(reg)
 $ClsCnr	*reg;
 {
+	
    memset(reg->sucursal, '\0', sizeof(reg->sucursal));
    rsetnull(CLONGTYPE, (char *) &(reg->nro_expediente));
    rsetnull(CINTTYPE, (char *) &(reg->ano_expediente));
@@ -584,6 +630,10 @@ $ClsCnr	*reg;
    memset(reg->modelo_medidor, '\0', sizeof(reg->modelo_medidor));
    memset(reg->tipo_expediente, '\0', sizeof(reg->tipo_expediente));
 
+   memset(reg->anomalia, '\0', sizeof(reg->anomalia));
+   memset(reg->sucur_inspeccion, '\0', sizeof(reg->sucur_inspeccion));
+   rsetnull(CLONGTYPE, (char *) &(reg->nro_inspeccion));
+   
 }
 
 
@@ -592,7 +642,8 @@ short GenerarPlano(fp, reg)
 FILE 				*fp;
 $ClsCnr		reg;
 {
-	char	sLinea[1000];	
+	char	sLinea[1000];
+   int   iRcv;	
 
 	memset(sLinea, '\0', sizeof(sLinea));
 
@@ -655,22 +706,33 @@ $ClsCnr		reg;
    strcat(sLinea, "\"\";");
    
    /* Número de medidor */
-   sprintf(sLinea, "%s\"%ld%ld%s%sDEVARG\";", sLinea, reg.numero_cliente, reg.numero_medidor, reg.marca_medidor, reg.modelo_medidor);
+   sprintf(sLinea, "%s\"%ld%09ld%s%sDEVARG\";", sLinea, reg.numero_cliente, reg.numero_medidor, reg.marca_medidor, reg.modelo_medidor);
    
    /* External Id */
    sprintf(sLinea, "%s\"%d%s%ldMDARG\";", sLinea, reg.ano_expediente, reg.sucursal, reg.nro_expediente);
 
 
-	strcat(sLinea, "\n");
+	/* Tipo Anomalia */
+	sprintf(sLinea, "%s\"%s\";", sLinea, reg.anomalia);
 	
-	fprintf(fp, sLinea);	
+	/* Nro.de Acta */
+	sprintf(sLinea, "%s\"%s-%ld\";", sLinea, reg.sucur_inspeccion, reg.nro_inspeccion);
+
+	strcat(sLinea, "\n");
+		
+	iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar en archivo MarketDicipline.\n");
+      exit(1);
+   }
+   	
 
 	
 	return 1;
 }
 
 
-/****************************
+/*****************************
 		GENERALES
 *****************************/
 

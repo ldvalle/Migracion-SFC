@@ -116,10 +116,11 @@ $long lNroCliente;
             printf("Fallo GenearPlano\n");
    			exit(1);	
    		}
+   		cantProcesada++;
    	}
    	
    	$CLOSE curConve;
-      cantProcesada++;
+      
 /*      
    }
    			
@@ -221,6 +222,7 @@ short AbreArchivos()
 {
    char  sTitulos[10000];
    $char sFecha[9];
+   int   iRcv;
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
@@ -283,7 +285,12 @@ short AbreArchivos()
    strcat(sTitulos, "\"Company\"");
    strcat(sTitulos, "\n");
    
-   fprintf(pFileUnx, sTitulos);
+   iRcv=fprintf(pFileUnx, sTitulos);
+   if(iRcv<0){
+      printf("Error al grabar CONVENIOS\n");
+      exit(1);
+   }
+   
       
 	return 1;	
 }
@@ -377,7 +384,7 @@ if(giTipoCorrida==1){
 	
 	$DECLARE curClientes CURSOR WITH HOLD FOR selClientes;
 
-   /******** Cursor CONVE  ****************/
+   /******** Cursor CONVE SE modificó para que levante las actualizacion x facturacion ****************/
 	strcpy(sql, "SELECT c.numero_cliente, ");
 	strcat(sql, "c.corr_convenio, ");
 	strcat(sql, "t1.cod_sf1, "); /* opcion convenio */
@@ -393,25 +400,45 @@ if(giTipoCorrida==1){
 	strcat(sql, "c.intereses, ");
 	strcat(sql, "c.usuario_creacion, "); 
 	strcat(sql, "c.usuario_termino ");
-	strcat(sql, "FROM conve c, cliente l, OUTER sf_transforma t1 ");
+	strcat(sql, "FROM conve c, OUTER sf_transforma t1 ");
 if(giTipoCorrida==1){
    strcat(sql, ", migra_sf ma ");
 }
-	strcat(sql, "WHERE c.numero_cliente = l.numero_cliente ");
-   strcat(sql, "AND c.estado = 'V' ");
-   
-if(giTipoCorrida==3){
-   strcat(sql, "AND c.fecha_creacion BETWEEN ? AND ? ");
-}   
-   strcat(sql, "AND l.estado_cliente = 0 ");
+   strcat(sql, "WHERE c.estado = 'V' ");
    strcat(sql, "AND t1.clave = 'OPCONVE'  ");
    strcat(sql, "AND t1.cod_mac = c.opcion_convenio  ");
 if(giTipoCorrida==1){
    strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 }
 
-   
-	strcat(sql, "ORDER BY c.corr_convenio ASC ");   
+	strcat(sql, "UNION ");
+	
+	strcat(sql, "SELECT c2.numero_cliente, ");
+	strcat(sql, "c2.corr_convenio, ");
+	strcat(sql, "t2.cod_sf1, "); /* opcion convenio */
+	strcat(sql, "c2.estado, ");
+	strcat(sql, "TO_CHAR(c2.fecha_creacion, '%Y-%m-%d'), ");
+	strcat(sql, "TO_CHAR(c2.fecha_termino, '%Y-%m-%d'), ");
+	strcat(sql, "c2.deuda_origen, ");
+	strcat(sql, "c2.valor_cuota_ini, ");
+	strcat(sql, "c2.deuda_convenida, ");
+	strcat(sql, "c2.valor_cuota, ");
+	strcat(sql, "c2.numero_tot_cuotas, ");
+	strcat(sql, "c2.numero_ult_cuota, ");
+	strcat(sql, "c2.intereses, ");
+	strcat(sql, "c2.usuario_creacion, "); 
+	strcat(sql, "c2.usuario_termino ");
+	strcat(sql, "FROM conve c2, OUTER sf_transforma t2 ");
+if(giTipoCorrida==1){
+   strcat(sql, ", migra_sf ma2 ");
+}
+	strcat(sql, "WHERE c2.estado != 'V' ");
+   strcat(sql, "AND c2.fecha_termino BETWEEN ? AND ? ");
+   strcat(sql, "AND t2.clave = 'OPCONVE'  ");
+   strcat(sql, "AND t2.cod_mac = c2.opcion_convenio  ");
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma2.numero_cliente = c2.numero_cliente ");
+}   
    
 	$PREPARE selConve FROM $sql;
 	
@@ -555,7 +582,8 @@ FILE 				*fp;
 $ClsConve		reg;
 {
 	char	sLinea[1000];	
-
+   int   iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 
    /* External Id */
@@ -630,7 +658,12 @@ $ClsConve		reg;
 
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);	
+	iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar CONVENIOS\n");
+      exit(1);
+   }
+   	
 
 	
 	return 1;

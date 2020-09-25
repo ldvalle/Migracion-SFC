@@ -13,7 +13,7 @@
 		<Base de Datos> : Base de Datos <synergia>
 		<Tipo Corrida>: 0=Normal, 1=Reducida
 		<Archivos Genera> 0=Todos, 1=Measures, 2=Consumos
-********************************************************************************/
+**********************************************************************************/
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
@@ -57,6 +57,7 @@ char  gsHastaFmt[9];
 
 /* Variables Globales Host */
 $ClsLectura	regLectura;
+$ClsLecturaBim regLectuBim;
 $long glFechaDesde;
 $long glFechaHasta;
 
@@ -72,6 +73,7 @@ FILE	*fp;
 int		iFlagMigra=0;
 int 	iFlagEmpla=0;
 $long lNroCliente;
+$int	iCorrFactu;
 
 	if(! AnalizarParametros(argc, argv)){
 		exit(0);
@@ -107,18 +109,79 @@ $long lNroCliente;
 	/*********************************************
 				AREA CURSOR PPAL
 	**********************************************/
-/*
-   $OPEN curClientes;
+	if(giTipoCorrida==0 || giTipoCorrida==1){
+		$OPEN curClientes;
+		
+		while(LeoCliente(&lNroCliente, &iCorrFactu)){
+			
+			$OPEN curLecturas USING :lNroCliente;
+			while(LeoLecturas(&regLectura)){
+				if(regLectura.tipo_lectura==8 && regLectura.corr_facturacion==iCorrFactu){
+					if(LeoBimestral(regLectura, &regLectuBim)){
+						regLectura.lectura_bim = regLectuBim.lectura_activa_cierre;
+						strcpy(regLectura.fecha_lectura_bim, regLectuBim.fecha_cierre);
+						regLectura.tipo_lectura_bim = regLectuBim.tipo_lectura;
+					}else{
+						printf("Fallo lectura a FP_LECTU.\n");
+					}
+				}
+				if(gsArchivoGenera==0 || gsArchivoGenera==1){
+					if (!GenerarPlano(fp, regLectura, "A")){
+						printf("Fallo GenearPlano\n");
+						exit(1);	
+					}
+				}
+				if(gsArchivoGenera==0 || gsArchivoGenera==2){
+					if (!GenerarPlanoConsumo(pFileConsumoUnx, regLectura, "A")){
+						printf("Fallo GenearPlano Consumo\n");
+						exit(1);	
+					}
+				}
+				if(regLectura.tipo_medidor[0]=='R'){
+					if(LeoReactiva(&regLectura)){
+						if(regLectura.tipo_lectura==8 && regLectura.corr_facturacion==iCorrFactu){
+							regLectura.lectura_bim = regLectuBim.lectura_reactiva_cierre;
+							strcpy(regLectura.fecha_lectura_bim, regLectuBim.fecha_cierre);
+							regLectura.tipo_lectura_bim = regLectuBim.tipo_lectura;
+						}
+						
+						if(gsArchivoGenera==0 || gsArchivoGenera==1){
+							if (!GenerarPlano(fp, regLectura, "R")){
+								printf("Fallo GenearPlano\n");
+								exit(1);	
+							}
+						}
+						if(gsArchivoGenera==0 || gsArchivoGenera==2){
+							if (!GenerarPlanoConsumo(pFileConsumoUnx, regLectura, "R")){
+								printf("Fallo GenearPlano Consumo\n");
+								exit(1);	
+							}
+						}
+					}         
+				}
+				cantProcesada++;
+			}
+			
+			$CLOSE curLecturas;
+			
+			cantProcesada++;
+		}
+		$CLOSE curClientes; 
 
-   while(LeoCliente(&lNroCliente)){
-*/   
-      if(giTipoCorrida==3){
-         $OPEN curLecturas USING :glFechaDesde, :glFechaHasta;
-      }else{
-         $OPEN curLecturas;
-      }
+	}else{
+
+      $OPEN curLecturas USING :glFechaDesde, :glFechaHasta;
    
    	while(LeoLecturas(&regLectura)){
+			if(regLectura.tipo_lectura==8 && giTipoCorrida==3){
+				if(LeoBimestral(regLectura, &regLectuBim)){
+					regLectura.lectura_bim = regLectuBim.lectura_activa_cierre;
+					strcpy(regLectura.fecha_lectura_bim, regLectuBim.fecha_cierre);
+					regLectura.tipo_lectura_bim = regLectuBim.tipo_lectura;
+				}else{
+					printf("Fallo lectura a FP_LECTU.\n");
+				}
+			}
          if(gsArchivoGenera==0 || gsArchivoGenera==1){
       		if (!GenerarPlano(fp, regLectura, "A")){
                printf("Fallo GenearPlano\n");
@@ -133,6 +196,12 @@ $long lNroCliente;
          }
    		if(regLectura.tipo_medidor[0]=='R'){
             if(LeoReactiva(&regLectura)){
+					if(regLectura.tipo_lectura==8 && giTipoCorrida==3){
+						regLectura.lectura_bim = regLectuBim.lectura_reactiva_cierre;
+						strcpy(regLectura.fecha_lectura_bim, regLectuBim.fecha_cierre);
+						regLectura.tipo_lectura_bim = regLectuBim.tipo_lectura;
+					}
+					
                if(gsArchivoGenera==0 || gsArchivoGenera==1){
             		if (!GenerarPlano(fp, regLectura, "R")){
                      printf("Fallo GenearPlano\n");
@@ -146,17 +215,53 @@ $long lNroCliente;
             		}
                }
             }         
-         }			
-   		
+         }
+         cantProcesada++;
    	}
    	
    	$CLOSE curLecturas;
-/*      
-      cantProcesada++;
-   }
-   			
-   $CLOSE curClientes;      
-*/
+
+/********* Refacturaciones del periodo *************/
+		if(giTipoCorrida==3){
+			$OPEN curAjustes USING :glFechaDesde, :glFechaHasta;
+			
+			while(LeoAjustes(&regLectura)){
+				if(gsArchivoGenera==0 || gsArchivoGenera==1){
+					if (!GenerarPlano(fp, regLectura, "A")){
+						printf("Fallo GenearPlano\n");
+						exit(1);	
+					}
+				}
+				if(gsArchivoGenera==0 || gsArchivoGenera==2){
+					if (!GenerarPlanoConsumo(pFileConsumoUnx, regLectura, "A")){
+						printf("Fallo GenearPlano Consumo\n");
+						exit(1);	
+					}
+				}
+				if(regLectura.tipo_medidor[0]=='R'){
+					if(LeoReactiva(&regLectura)){
+						if(gsArchivoGenera==0 || gsArchivoGenera==1){
+							if (!GenerarPlano(fp, regLectura, "R")){
+								printf("Fallo GenearPlano\n");
+								exit(1);	
+							}
+						}
+						if(gsArchivoGenera==0 || gsArchivoGenera==2){
+							if (!GenerarPlanoConsumo(pFileConsumoUnx, regLectura, "R")){
+								printf("Fallo GenearPlano Consumo\n");
+								exit(1);	
+							}
+						}
+					}         
+				}			
+				
+				cantProcesada++;
+			}			
+			$CLOSE curAjustes;
+			
+		}
+	}
+
 	CerrarArchivos();
 
 	FormateaArchivos();
@@ -185,7 +290,7 @@ $long lNroCliente;
 	printf("==============================================\n");
 	printf("Proceso Concluido.\n");
 	printf("==============================================\n");
-	printf("Clientes Procesados :       %ld \n",cantProcesada);
+	printf("Lecturas Procesadas :       %ld \n",cantProcesada);
 	printf("==============================================\n");
 	printf("\nHora antes de comenzar proceso : %s\n", ctime(&hora));						
 
@@ -254,6 +359,7 @@ short AbreArchivos()
 {
    char  sTitulos[10000];
    $char sFecha[9];
+   int   iRcv;
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
@@ -280,7 +386,7 @@ short AbreArchivos()
    sprintf( sArchMedidorAux  , "%sT1MEASURES.aux", sPathSalida );
    sprintf( sArchMedidorDos  , "%senel_care_measures_counters_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
-	strcpy( sSoloArchivoMedidor, "T1MEASURES.unx");
+	strcpy( sSoloArchivoMedidor, "T1MEASURESv2.unx");
 
 	sprintf( sArchConsumoUnx  , "%sT1CONSUMOS.unx", sPathSalida );
    sprintf( sArchConsumoAux  , "%sT1CONSUMOS.aux", sPathSalida );
@@ -298,8 +404,12 @@ short AbreArchivos()
       		return 0;
       	}
 	
-         strcpy(sTitulos,"\"Suministro\";\"Fecha Evento\";\"Evento Medicion\";\"Tipo de Medida\";\"Numero Medidor\";\"Constante\";\"Consumo\";\"Lectura\";\"Lectura Terreno\";\"Clave Medicion\";\"Irregularidad de Lectura\";\"Caso de Atencion\";\"Factura\";\"External ID\";\"Fecha Proxima Lectura\";\"CreatedByClient\";\n");
-         fprintf(pFileMedidorUnx, sTitulos);
+         strcpy(sTitulos,"\"Suministro\";\"Fecha Evento\";\"Evento Medicion\";\"Tipo de Medida\";\"Numero Medidor\";\"Constante\";\"Consumo\";\"Lectura\";\"Lectura Terreno\";\"Clave Medicion\";\"Irregularidad de Lectura\";\"Caso de Atencion\";\"Factura\";\"External ID\";\"Fecha Proxima Lectura\";\"CreatedByClient\";\"Tipo de Lectura\";\"Clave de Lectura\";\"Lectura Bimestre\";\"Fecha de Lectura Bimestre\";\"Tipo de Lectura Bimestre\";\"Cuenta Contrato\";\n");
+         iRcv=fprintf(pFileMedidorUnx, sTitulos);
+         if(iRcv<0){
+            printf("No grabo titulos de measures\n");
+            exit(1);
+         }
          /* ---------------- */
       	pFileConsumoUnx=fopen( sArchConsumoUnx, "w" );
       	if( !pFileConsumoUnx ){
@@ -307,8 +417,13 @@ short AbreArchivos()
       		return 0;
       	}
 	
-         strcpy(sTitulos,"\"Suministro\";\"Factura\";\"Tipo de consumo\";\"Consumo facturado\";\"Clave de consumo\";\"Tipo de medida\";\"External Id\";\"Fecha del evento\";\"Número Medidor\";\"Coseno Phi\";\n");
-         fprintf(pFileConsumoUnx, sTitulos);
+         strcpy(sTitulos,"\"Suministro\";\"Factura\";\"Tipo de consumo\";\"Consumo facturado\";\"Clave de consumo\";\"Tipo de medida\";\"External Id\";\"Fecha del evento\";\"Número Medidor\";\"Coseno Phi\";\"Consumo Rectificado\";\"Nro de Cliente\";\n");
+         iRcv=fprintf(pFileConsumoUnx, sTitulos);
+         if(iRcv<0){
+            printf("No grabo titulos de consumos\n");
+            exit(1);
+         }
+         
          break;
       case 1:
       	pFileMedidorUnx=fopen( sArchMedidorUnx, "w" );
@@ -317,7 +432,7 @@ short AbreArchivos()
       		return 0;
       	}
 	
-         strcpy(sTitulos,"\"Suministro\";\"Fecha Evento\";\"Evento Medicion\";\"Tipo de Medida\";\"Numero Medidor\";\"Constante\";\"Consumo\";\"Lectura\";\"Lectura Terreno\";\"Clave Medicion\";\"Irregularidad de Lectura\";\"Caso de Atencion\";\"Factura\";\"External ID\";\"Fecha Proxima Lectura\";\"CreatedByClient\";\n");
+         strcpy(sTitulos,"\"Suministro\";\"Fecha Evento\";\"Evento Medicion\";\"Tipo de Medida\";\"Numero Medidor\";\"Constante\";\"Consumo\";\"Lectura\";\"Lectura Terreno\";\"Clave Medicion\";\"Irregularidad de Lectura\";\"Caso de Atencion\";\"Factura\";\"External ID\";\"Fecha Proxima Lectura\";\"CreatedByClient\";\"Tipo de Lectura\";\"Clave de Lectura\";\"Lectura Bimestre\";\"Fecha de Lectura Bimestre\";\"Tipo de Lectura Bimestre\";\"Cuenta Contrato\";\n");
          fprintf(pFileMedidorUnx, sTitulos);
 
          break;      
@@ -328,7 +443,7 @@ short AbreArchivos()
       		return 0;
       	}
 	
-         strcpy(sTitulos,"\"Suministro\";\"Factura\";\"Tipo de consumo\";\"Consumo facturado\";\"Clave de consumo\";\"Tipo de medida\";\"External Id\";\"Fecha del evento\";\"Número Medidor\";\"Coseno Phi\";\n");
+         strcpy(sTitulos,"\"Suministro\";\"Factura\";\"Tipo de consumo\";\"Consumo facturado\";\"Clave de consumo\";\"Tipo de medida\";\"External Id\";\"Fecha del evento\";\"Número Medidor\";\"Coseno Phi\";\"Consumo Rectificado\";\"Nro de Cliente\";\n");
          fprintf(pFileConsumoUnx, sTitulos);
          break;   
    }
@@ -372,98 +487,100 @@ $char sClave[7];
 
    switch(gsArchivoGenera){
       case 0:
+/*      
          sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchMedidorUnx, sArchMedidorAux);
       	iRcv=system(sCommand);
-      
-         sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchMedidorAux, sArchMedidorDos);
+*/      
+         sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchMedidorUnx, sArchMedidorDos);
          iRcv=system(sCommand);
          
       	sprintf(sCommand, "chmod 777 %s", sArchMedidorDos);
       	iRcv=system(sCommand);
      
-/*      	
+    	
       	sprintf(sCommand, "cp %s %s", sArchMedidorDos, sPathCp);
       	iRcv=system(sCommand);
-        
-         sprintf(sCommand, "rm %s", sArchMedidorUnx);
-         iRcv=system(sCommand);
-      
-         sprintf(sCommand, "rm %s", sArchMedidorAux);
-         iRcv=system(sCommand);
-      
-         sprintf(sCommand, "rm %s", sArchMedidorDos);
-         iRcv=system(sCommand);
-*/         
+
+         if(iRcv >= 0){        
+            sprintf(sCommand, "rm %s", sArchMedidorUnx);
+            iRcv=system(sCommand);
+         
+            sprintf(sCommand, "rm %s", sArchMedidorAux);
+            iRcv=system(sCommand);
+         
+            sprintf(sCommand, "rm %s", sArchMedidorDos);
+            iRcv=system(sCommand);
+         }         
          /* ------------- */
+/*         
          sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchConsumoUnx, sArchConsumoAux);
       	iRcv=system(sCommand);
-      
-         sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchConsumoAux, sArchConsumoDos);
+*/      
+         sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchConsumoUnx, sArchConsumoDos);
          iRcv=system(sCommand);
          
       	sprintf(sCommand, "chmod 777 %s", sArchConsumoDos);
       	iRcv=system(sCommand);
-/*     
+     
       	sprintf(sCommand, "cp %s %s", sArchConsumoDos, sPathCp);
       	iRcv=system(sCommand);
-        
-         sprintf(sCommand, "rm %s", sArchConsumoUnx);
-         iRcv=system(sCommand);
-      
-         sprintf(sCommand, "rm %s", sArchConsumoAux);
-         iRcv=system(sCommand);
-      
-         sprintf(sCommand, "rm %s", sArchConsumoDos);
-         iRcv=system(sCommand);
-*/         
+
+         if(iRcv >= 0){        
+            sprintf(sCommand, "rm %s", sArchConsumoUnx);
+            iRcv=system(sCommand);
+         
+            sprintf(sCommand, "rm %s", sArchConsumoAux);
+            iRcv=system(sCommand);
+         
+            sprintf(sCommand, "rm %s", sArchConsumoDos);
+            iRcv=system(sCommand);
+         }
+         
          break;               
       case 1:
-         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchMedidorUnx, sArchMedidorAux);
-      	iRcv=system(sCommand);
-      
-         sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchMedidorAux, sArchMedidorDos);
+         sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchMedidorUnx, sArchMedidorDos);
          iRcv=system(sCommand);
          
       	sprintf(sCommand, "chmod 777 %s", sArchMedidorDos);
       	iRcv=system(sCommand);
      
-/*      	
+    	
       	sprintf(sCommand, "cp %s %s", sArchMedidorDos, sPathCp);
       	iRcv=system(sCommand);
-        
-         sprintf(sCommand, "rm %s", sArchMedidorUnx);
-         iRcv=system(sCommand);
-      
-         sprintf(sCommand, "rm %s", sArchMedidorAux);
-         iRcv=system(sCommand);
-      
-         sprintf(sCommand, "rm %s", sArchMedidorDos);
-         iRcv=system(sCommand);
-*/
+
+         if(iRcv >= 0){        
+            sprintf(sCommand, "rm %s", sArchMedidorUnx);
+            iRcv=system(sCommand);
+         
+            sprintf(sCommand, "rm %s", sArchMedidorAux);
+            iRcv=system(sCommand);
+         
+            sprintf(sCommand, "rm %s", sArchMedidorDos);
+            iRcv=system(sCommand);
+         }         
+
          break;      
       case 2:
-         sprintf(sCommand, "unix2dos %s | tr -d '\32' > %s", sArchConsumoUnx, sArchConsumoAux);
-         /*sprintf(sCommand, "sed 's/$/\r/' < %s > %s", sArchConsumoUnx, sArchConsumoAux);*/
-      	iRcv=system(sCommand);
-      
-         sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchConsumoAux, sArchConsumoDos);
+         sprintf(sCommand, "iconv -f WINDOWS-1252 -t UTF-8 %s > %s ", sArchConsumoUnx, sArchConsumoDos);
          iRcv=system(sCommand);
-
+         
       	sprintf(sCommand, "chmod 777 %s", sArchConsumoDos);
       	iRcv=system(sCommand);
-/*     
+     
       	sprintf(sCommand, "cp %s %s", sArchConsumoDos, sPathCp);
       	iRcv=system(sCommand);
-        
-         sprintf(sCommand, "rm %s", sArchConsumoUnx);
-         iRcv=system(sCommand);
-      
-         sprintf(sCommand, "rm %s", sArchConsumoAux);
-         iRcv=system(sCommand);
-      
-         sprintf(sCommand, "rm %s", sArchConsumoDos);
-         iRcv=system(sCommand);
-*/
+
+         if(iRcv >= 0){        
+            sprintf(sCommand, "rm %s", sArchConsumoUnx);
+            iRcv=system(sCommand);
+         
+            sprintf(sCommand, "rm %s", sArchConsumoAux);
+            iRcv=system(sCommand);
+         
+            sprintf(sCommand, "rm %s", sArchConsumoDos);
+            iRcv=system(sCommand);
+         }
+
          break;   
    }
 
@@ -488,11 +605,10 @@ $char sAux[1000];
 	$PREPARE selFechaActual FROM $sql;	
 
 	/******** Cursor CLIENTES  ****************/	
-	strcpy(sql, "SELECT c.numero_cliente FROM cliente c ");
+	strcpy(sql, "SELECT c.numero_cliente, c.corr_facturacion FROM cliente c ");
 if(giTipoCorrida==1){	
    strcat(sql, ", migra_sf ma ");
 }   
-	
 	strcat(sql, "WHERE c.estado_cliente = 0 ");
    strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");
 	/*strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");*/
@@ -507,6 +623,53 @@ if(giTipoCorrida==1){
 	$PREPARE selClientes FROM $sql;
 	
 	$DECLARE curClientes CURSOR WITH HOLD FOR selClientes;
+	
+	
+	/***** Clientes con Lecturas no facturadas ***/
+/*	
+	strcpy(sql, "SELECT c.numero_cliente, c.corr_facturacion ");
+	strcat(sql, "FROM cliente c, hislec h ");
+if(giTipoCorrida==1){	
+   strcat(sql, ", migra_sf ma ");
+}   
+	strcat(sql, "WHERE c.estado_cliente = 0 ");
+	strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");
+	strcat(sql, "AND h.numero_cliente = c.numero_cliente ");
+	strcat(sql, "AND h.corr_facturacion = c.corr_facturacion ");
+	strcat(sql, "AND h.tipo_lectura = 8 ");
+	strcat(sql, "AND NOT EXISTS (SELECT 1 FROM clientes_ctrol_med cm ");
+	strcat(sql, "WHERE cm.numero_cliente = c.numero_cliente ");
+	strcat(sql, "AND cm.fecha_activacion < TODAY ");
+	strcat(sql, "AND (cm.fecha_desactiva IS NULL OR cm.fecha_desactiva > TODAY)) ");
+	strcat(sql, "AND (cm.fecha_desactiva IS NULL OR cm.fecha_desactiva > TODAY)) ");
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}
+	
+	$PREPARE selClientesNoFactu FROM $sql;
+	
+	$DECLARE curClientesNoFactu CURSOR FOR selClientesNoFactu;
+*/	
+	/*** Lecturas no facturadas ***/
+	$PREPARE selNoFactu FROM "SELECT FIRST 1 f1.tipo_lectura,
+		CASE 
+			WHEN f1.fecha_lectura_ver IS NULL THEN TO_CHAR(f1.fecha_lectura, '%Y-%m-%d')
+			ELSE TO_CHAR(f1.fecha_lectura_ver, '%Y-%m-%d')
+		END fecha_lectu_cierre,
+		CASE
+			WHEN f1.tipo_lectura = 1 THEN f1.lectura_prop
+			WHEN f1.tipo_lectura = 4 THEN f1.lectura_a_fact
+			WHEN f1.ind_verificacion='S' AND f1.tipo_lectura in (2,3) AND f1.fecha_lectura_ver IS NOT NULL THEN f1.lectura_verif
+			WHEN f1.ind_verificacion='S' AND f1.tipo_lectura = 2 AND f1.fecha_lectura_ver IS NULL THEN f1.lectura_actual
+			WHEN (f1.ind_verificacion !='S' OR f1.ind_verificacion IS NULL) AND f1.tipo_lectura = 2 THEN f1.lectura_actual  
+			ELSE -1
+		END lectura_cierre,
+		f1.cons_activa_p2,
+		f1.lectu_actual_reac,
+		cons_reac_p2
+		FROM fp_lectu f1
+		WHERE f1.numero_cliente = ?
+		AND( f1.corr_facturacion = ? OR f1.corr_fact_ant = ?) ";
 
    /******** Cursor LECTURAS  ****************/
 	strcpy(sql, "SELECT h.numero_cliente, ");
@@ -523,24 +686,35 @@ if(giTipoCorrida==1){
 	strcat(sql, "h.numero_medidor, ");
 	strcat(sql, "h.marca_medidor, ");
    strcat(sql, "NVL(h2.coseno_phi, 0)/100, ");
-   strcat(sql, "TO_CHAR(h.fecha_lectura + 30, '%Y-%m-%d') ");
-	strcat(sql, "FROM hislec h, hisfac h2, cliente c ");
+   strcat(sql, "TO_CHAR(h.fecha_lectura + 30, '%Y-%m-%d'), ");
+   strcat(sql, "TRIM(h.clave_lectura) || ' - ' || TRIM(t1.descripcion) ");
+	strcat(sql, "FROM hislec h, hisfac h2, OUTER tabla t1 ");
 if(giTipoCorrida==1){	
    strcat(sql, ", migra_sf ma ");
 }   
+/*
 	strcat(sql, "WHERE h.numero_cliente = c.numero_cliente ");
 	strcat(sql, "AND c.estado_cliente = 0 ");
+*/   
    if(giTipoCorrida == 3){
-	  strcat(sql, "AND h.fecha_lectura BETWEEN ? AND ? ");   
+	  strcat(sql, "WHERE h2.fecha_facturacion BETWEEN ? AND ? ");   
    }else{
+	  strcat(sql, "WHERE h.numero_cliente = ? ");
 	  strcat(sql, "AND h.fecha_lectura >= TODAY - 365 ");
    }
    
-	strcat(sql, "AND h.tipo_lectura NOT IN (5, 6, 7) ");
+	/*strcat(sql, "AND h.tipo_lectura NOT IN (5, 6, 7) ");*/
 	strcat(sql, "AND h2.numero_cliente = h.numero_cliente ");
 	strcat(sql, "AND h2.corr_facturacion = h.corr_facturacion ");
+	
+   strcat(sql, "AND t1.nomtabla = 'CLALEC' ");
+   strcat(sql, "AND t1.sucursal = '0000' ");
+   strcat(sql, "AND t1.codigo = h.clave_lectura ");
+   strcat(sql, "AND t1.fecha_activacion <= h.fecha_lectura ");
+   strcat(sql, "AND (t1.fecha_desactivac is null OR t1.fecha_desactivac > h.fecha_lectura) ");
+	
 if(giTipoCorrida==1){
-   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+   strcat(sql, "AND ma.numero_cliente = h.numero_cliente ");
 }
 
 	$PREPARE selLecturas FROM $sql;
@@ -563,6 +737,11 @@ if(giTipoCorrida==1){
 	strcat(sql, "AND m.numero_cliente = ? ");
    
    $PREPARE selModMed FROM $sql;
+   
+   $PREPARE selModMed2 FROM "SELECT FIRST 1 m.modelo_medidor, NVL(m.tipo_medidor, 'A'), m.estado 
+		FROM medid m 
+		WHERE m.marca_medidor = ? 
+		AND m.numero_medidor = ? ";
    
 	/******** Sel Hislec Rectificado *********/
 	strcpy(sql, "SELECT h1.lectura_rectif, h1.consumo_rectif ");
@@ -614,6 +793,37 @@ if(giTipoCorrida==1){
 
 	$PREPARE selRutaPlanos FROM $sql;
 
+	/********* Ajustes realizados en el período ********/
+	$PREPARE selAjustes FROM "SELECT r.numero_cliente,
+		h1.corr_facturacion,
+		h2.tipo_lectura, 
+		TO_CHAR(h2.fecha_lectura, '%Y-%m-%d'),
+		h2.constante,
+		h2.consumo,
+		h2.lectura_facturac,
+		h2.lectura_terreno,
+		h1.centro_emisor || h1.tipo_docto || h1.numero_factura,
+		'S',
+		TO_CHAR(h1.fecha_facturacion, '%Y-%m-%d'),
+		h2.numero_medidor,
+		h2.marca_medidor,
+		NVL(h1.coseno_phi, 0)/100,
+		TO_CHAR(h2.fecha_lectura + 30, '%Y-%m-%d'),
+		TRIM(h2.clave_lectura) || ' - ' || TRIM(t1.descripcion)
+		FROM refac r, hisfac h1, hislec h2, tabla t1
+		WHERE r.fecha_refacturac BETWEEN ? AND ? 
+		AND h1.numero_cliente = r.numero_cliente
+		AND h1.fecha_facturacion = r.fecha_fact_afect
+		AND h1.numero_factura = r.nro_docto_afect
+		AND h2.numero_cliente = r.numero_cliente
+		AND h2.corr_facturacion = h1.corr_facturacion 
+		AND t1.nomtabla = 'CLALEC'
+		AND t1.sucursal = '0000'
+		AND t1.codigo = h2.clave_lectura
+		AND t1.fecha_activacion <= h2.fecha_lectura
+		AND (t1.fecha_desactivac is null OR t1.fecha_desactivac > h2.fecha_lectura) ";
+
+	$DECLARE curAjustes CURSOR FOR selAjustes;
 
 }
 
@@ -659,18 +869,21 @@ $long iValor=0;
     return iValor;
 }
 
-short LeoCliente(lNroCliente)
+short LeoCliente(lNroCliente, iCorrFactu)
 $long *lNroCliente;
+$int  *iCorrFactu;
 {
    $long nroCliente;
-   
-   $FETCH curClientes INTO :nroCliente;
+   $int  corrFactu;
+    
+   $FETCH curClientes INTO :nroCliente, :corrFactu;
    
     if ( SQLCODE != 0 ){
         return 0;
     }
    
    *lNroCliente = nroCliente;
+   *iCorrFactu = corrFactu;
 
    return 1;
 }
@@ -696,7 +909,8 @@ $ClsLectura *regLec;
       :regLec->numero_medidor,
       :regLec->marca_medidor,
       :regLec->coseno_phi,
-      :regLec->proxLectura;
+      :regLec->proxLectura,
+      :regLec->clave_lectura;
 	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
@@ -710,7 +924,7 @@ $ClsLectura *regLec;
    if(regLec->indica_refact[0]=='S'){
       $EXECUTE selHislecRefac INTO 
          :regLec->lectura_facturac,
-         :regLec->consumo
+         :regLec->consumoRectificado
          USING :regLec->numero_cliente,
                :regLec->corr_facturacion,
                :regLec->tipo_lectura;
@@ -727,10 +941,24 @@ $ClsLectura *regLec;
             :regLec->numero_cliente;
 
    if ( SQLCODE != 0 ){
-      printf("Error leyendo medid para cliente %ld correlativo %ld\n", regLec->numero_cliente, regLec->corr_facturacion);
+		if(SQLCODE == 100){
+			$EXECUTE selModMed2 INTO :regLec->modelo_medidor, :regLec->tipo_medidor, :regLec->estado_medidor
+					USING :regLec->marca_medidor,
+						:regLec->numero_medidor;
+			
+			if ( SQLCODE != 0 ){
+				printf("Error leyendo medid para cliente %ld correlativo %ld\n", regLec->numero_cliente, regLec->corr_facturacion);
+			}
+		}else{
+			printf("Error leyendo medid para cliente %ld correlativo %ld\n", regLec->numero_cliente, regLec->corr_facturacion);
+		}
    }         
          
    alltrim(regLec->id_factura, ' ');
+   alltrim(regLec->clave_lectura, ' ');
+   if(strcmp(regLec->modelo_medidor,"")==0){
+		strcpy(regLec->modelo_medidor, " ");
+	}
             
 	return 1;	
 }
@@ -756,12 +984,21 @@ $ClsLectura	*regLec;
    rsetnull(CDOUBLETYPE, (char *) &(regLec->coseno_phi));
    memset(regLec->proxLectura, '\0', sizeof(regLec->proxLectura));
    memset(regLec->estado_medidor, '\0', sizeof(regLec->estado_medidor));
+
+   memset(regLec->clave_lectura, '\0', sizeof(regLec->clave_lectura));
+   memset(regLec->fecha_lectura_bim, '\0', sizeof(regLec->fecha_lectura_bim));
+   rsetnull(CDOUBLETYPE, (char *) &(regLec->lectura_bim));
+   rsetnull(CDOUBLETYPE, (char *) &(regLec->lectura_bim_activa));
+   rsetnull(CDOUBLETYPE, (char *) &(regLec->lectura_bim_reactiva));
+   memset(regLec->clave_lectura, '\0', sizeof(regLec->clave_lectura));
+   rsetnull(CINTTYPE, (char *) &(regLec->tipo_lectura_bim));
+	rsetnull(CDOUBLETYPE, (char *) &(regLec->consumoRectificado));
+	
 }
 
 void InicializaLectuReac(regLec)
 $ClsLectura	*regLec;
 {
-
    rsetnull(CLONGTYPE, (char *) &(regLec->consumo));  
    rsetnull(CDOUBLETYPE, (char *) &(regLec->lectura_facturac));
    rsetnull(CDOUBLETYPE, (char *) &(regLec->lectura_terreno));
@@ -786,6 +1023,7 @@ $ClsLectura *regLec;
       :regLec->lectura_facturac,
       :regLec->lectura_terreno,
       :regLec->consumo
+
    USING :regLec->numero_cliente,
          :regLec->corr_facturacion,
          :regLec->tipo_lectura;
@@ -810,13 +1048,114 @@ $ClsLectura *regLec;
             printf("No se encontro Reactiva Refac para cliente %ld correlativo %ld\n", regLec->numero_cliente, regLec->corr_facturacion);
          }else{
             regLec->lectura_facturac=lLectura;
-            regLec->consumo=lConsumo;   
+            regLec->consumoRectificado=lConsumo;   
          }         
    }
   
    SqlErrorClearIgnore();
    
    return 1;
+}
+
+short LeoAjustes(regLec)
+$ClsLectura *regLec;
+{
+	InicializaLectura(regLec);
+
+	$FETCH curAjustes into
+      :regLec->numero_cliente,
+      :regLec->corr_facturacion, 
+      :regLec->tipo_lectura,
+      :regLec->fecha_lectura,
+      :regLec->constante,
+      :regLec->consumo,  
+      :regLec->lectura_facturac,
+      :regLec->lectura_terreno,
+      :regLec->id_factura,
+      :regLec->indica_refact,
+      :regLec->fecha_facturacion,
+      :regLec->numero_medidor,
+      :regLec->marca_medidor,
+      :regLec->coseno_phi,
+      :regLec->proxLectura,
+      :regLec->clave_lectura;
+	
+    if ( SQLCODE != 0 ){
+    	if(SQLCODE == 100){
+			return 0;
+		}else{
+			printf("Error al leer Cursor de Lecturas !!!\nProceso Abortado.\n");
+			exit(1);	
+		}
+    }			
+
+   if(regLec->indica_refact[0]=='S'){
+      $EXECUTE selHislecRefac INTO 
+         :regLec->lectura_facturac,
+         :regLec->consumoRectificado
+         USING :regLec->numero_cliente,
+               :regLec->corr_facturacion,
+               :regLec->tipo_lectura;
+               
+      if ( SQLCODE != 0 ){
+         printf("No se encontro hislec rectificado para cliente %ld correlativo %ld\n", regLec->numero_cliente, regLec->corr_facturacion);
+      }         
+   }
+	
+   
+   $EXECUTE selModMed INTO :regLec->modelo_medidor, :regLec->tipo_medidor, :regLec->estado_medidor
+         USING :regLec->marca_medidor,
+            :regLec->numero_medidor,
+            :regLec->numero_cliente;
+
+   if ( SQLCODE != 0 ){
+      printf("Error leyendo medid para cliente %ld correlativo %ld\n", regLec->numero_cliente, regLec->corr_facturacion);
+   }         
+         
+   alltrim(regLec->id_factura, ' ');
+   alltrim(regLec->clave_lectura, ' ');
+            
+	return 1;	
+}
+
+short LeoBimestral(regLM, regLB)
+$ClsLectura 	regLM;
+$ClsLecturaBim	*regLB;
+{
+	$int	iCorrAux;
+	
+	iCorrAux=regLM.corr_facturacion - 1;
+	
+	InicializaBimestral(regLB);
+	
+	$EXECUTE selNoFactu INTO
+		:regLB->tipo_lectura,
+		:regLB->fecha_cierre,
+		:regLB->lectura_activa_cierre,
+		:regLB->consumo_activa,
+		:regLB->lectura_reactiva_cierre,
+		:regLB->consumo_reactiva
+		USING :regLM.numero_cliente,
+				:iCorrAux, :iCorrAux;
+				
+	if(SQLCODE != 0){
+		printf("Error leyendo FP_LECTU para cliente %ld correlativo %d\n", regLM.numero_cliente, iCorrAux);
+		return 0;
+	}
+		
+	
+	return 1;
+}
+
+void InicializaBimestral(reg)
+$ClsLecturaBim *reg;
+{
+   rsetnull(CINTTYPE, (char *) &(reg->tipo_lectura));
+   memset(reg->fecha_cierre, '\0', sizeof(reg->fecha_cierre));
+	rsetnull(CDOUBLETYPE, (char *) &(reg->lectura_activa_cierre));
+	rsetnull(CDOUBLETYPE, (char *) &(reg->consumo_activa));
+	rsetnull(CDOUBLETYPE, (char *) &(reg->lectura_reactiva_cierre));
+	rsetnull(CDOUBLETYPE, (char *) &(reg->consumo_reactiva));
 }
 
 short GenerarPlano(fp, regLec, sTipo)
@@ -847,7 +1186,7 @@ char           sTipo[2];
    
    /* ID Medidor */
    if(regLec.estado_medidor[0]=='I'){
-      sprintf(sLinea, "%s\"%ld%ld%s%sDEVARG\";", sLinea, regLec.numero_cliente, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
+      sprintf(sLinea, "%s\"%ld%09ld%s%sDEVARG\";", sLinea, regLec.numero_cliente, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
    }else{
       strcat(sLinea, "\"\";");
    }
@@ -879,7 +1218,12 @@ char           sTipo[2];
    strcat(sLinea, "\"\";");
 
    /* Factura */
-   sprintf(sLinea, "%s\"%ld%sINVARG\";", sLinea, regLec.numero_cliente, regLec.id_factura);
+   alltrim(regLec.id_factura, ' ');
+   if(strcmp(regLec.id_factura, "")!=0){
+		sprintf(sLinea, "%s\"%ld%sINVARG\";", sLinea, regLec.numero_cliente, regLec.id_factura);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
    
    /* External ID */
    if(sTipo[0]=='A')
@@ -892,16 +1236,48 @@ char           sTipo[2];
    
    /* CreatedByClient */
    strcat(sLinea, "\"False\";");
+   
+   /* Tipo de Lectura */
+   sprintf(sLinea, "%s\"%d\";", sLinea, regLec.tipo_lectura);
+   
+   /* Clave de Lectura */
+   if(strcmp(regLec.clave_lectura, "") !=0){
+			sprintf(sLinea, "%s\"%s\";", sLinea, regLec.clave_lectura);
+	}else{
+			strcat(sLinea, "\"\";");
+	}
+   
+   /* Lectura Bimestral */
+   if(!risnull(CDOUBLETYPE, (char *)&regLec.lectura_bim)){
+      sprintf(sLinea, "%s\"%.0f\";", sLinea, regLec.lectura_bim);   
+   }else{
+      strcat(sLinea, "\"\";");
+   }
+   
+   /* Fecha Lectura Bimestre */
+   if(strcmp(regLec.fecha_lectura_bim, "") !=0){
+			sprintf(sLinea, "%s\"%s\";", sLinea, regLec.fecha_lectura_bim);
+	}else{
+			strcat(sLinea, "\"\";");
+	}
+	   
+   /* Tipo Lectura Bimestre */
+   if(!risnull(CINTTYPE, (char *)&regLec.tipo_lectura_bim)){
+      sprintf(sLinea, "%s\"%d\";", sLinea, regLec.tipo_lectura_bim);   
+   }else{
+      strcat(sLinea, "\"\";");
+   }
+   
+   /* Nro.Cliente MAC */
+   sprintf(sLinea, "%s\"%d\";", sLinea, regLec.numero_cliente);
 
-	strcat(sLinea, "\n");
+	strcat(sLinea, "\r\n");
 	
-   iRcv=fprintf(fp, sLinea);
+   iRcv=fprintf(pFileMedidorUnx, sLinea);
    if(iRcv<0){
       printf("Error al grabar lecturas\n");
       exit(1);
    }
-   	
-
 	
 	return 1;
 }
@@ -952,14 +1328,24 @@ char           sTipo[2];
    sprintf(sLinea, "%s\"%s\";", sLinea, regLec.fecha_facturacion);
 
    /* Nro.de Medidor + marca + modelo */
-   sprintf(sLinea, "%s\"%ld%s%s\";", sLinea, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
+   sprintf(sLinea, "%s\"%09ld%s%s\";", sLinea, regLec.numero_medidor, regLec.marca_medidor, regLec.modelo_medidor);
    
    /* Coseno Phi */
    sprintf(sLinea, "%s\"%.02f\";", sLinea, regLec.coseno_phi);
-
-	strcat(sLinea, "\n");
+   
+   /* Consumo Rectificado */
+   if(!risnull(CDOUBLETYPE, (char *)&regLec.consumoRectificado)){
+		sprintf(sLinea, "%s\"%ld\";", sLinea, regLec.consumoRectificado);
+	}else{
+		strcat(sLinea, "\"\";");
+	}
+   
+   /* Nro.Cliente */
+	sprintf(sLinea, "%s\"%ld\";", sLinea, regLec.numero_cliente);
 	
-	iRcv=fprintf(fp, sLinea);
+	strcat(sLinea, "\r\n");
+	
+	iRcv=fprintf(pFileConsumoUnx, sLinea);
 
    if(iRcv < 0){
       printf("Error al escribir Consumos\n");
@@ -970,9 +1356,9 @@ char           sTipo[2];
 }
 
 
-/****************************
+/*****************************
 		GENERALES
-*****************************/
+******************************/
 
 void command(cmd,buff_cmd)
 char *cmd;

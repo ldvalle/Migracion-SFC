@@ -37,8 +37,18 @@ $typedef struct{
    char  sTasaAP[10];
    char  sPatidaMuni[14];
    char  sMarcaTarjeta[2];
-    char    dgFechaEmision[11];
-    long    dgGarante;
+   char  dgFechaEmision[11];
+   long  dgGarante;
+   char  sFechaDesconexion[25];
+   char  sTarifaSocial[2];
+   char  sEBP[2];
+   
+   char  sTipoSum[3];
+   char  sSinPapel[6];
+   char  sTipoDebito[3];
+   
+   char  sCompensador[2];
+   char  sDnuCovid[6];
    
 }ClsCliente;
 

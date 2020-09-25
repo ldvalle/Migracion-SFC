@@ -44,6 +44,7 @@ $typedef struct{
    char  estado[11];
    int   dias;
    int   corr_rehab;
+   char	sFechaSol[9];
 }ClsExtent;
 
 
@@ -57,6 +58,7 @@ void 	RutaArchivos( char*, char * );
 
 short LeoCliente( long *);
 short LeoCortes(ClsCorte *);
+short LeoRepo(ClsCorte *);
 void  InicializaCorte(ClsCorte *);
 
 short LeoExtent(ClsExtent *);

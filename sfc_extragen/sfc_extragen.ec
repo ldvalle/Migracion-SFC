@@ -1,4 +1,4 @@
-/*********************************************************************************
+/********************************************************************************
     Proyecto: Migracion al sistema SALES FORCE
     Aplicacion: sfc_extragen
     
@@ -259,6 +259,7 @@ short AbreArchivos()
 {
    char  sTitulos[10000];
    $char  sFecha[9];
+   int   iRcv;
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 
@@ -356,7 +357,12 @@ short AbreArchivos()
 	}
    
    strcpy(sTitulos, "\"Divisa\";\"Esquina\";\"Número\";\"Referencia\";\"Código Postal\";\"Número\";\"Identificador calle\";\"Departamento\";\"Calle\";\"Tipo de numeración\";\"Dirección concatenada\";\"Sector\";\"Coordenada X\";\"Coordenada Y\";\"Nombre agrupación\";\"Tipo de agrupación\";\"Tipo de interior\";\"Dirección larga\";\"Lote/Manzana\";\"Tipo de sector\";\"CompanyID\";\"Interseccion 1\";\"Interseccion 2\";\"Piso\";\"Departamento\";\"Edificio\";\n");
-   fprintf(fpAddressUnx, sTitulos);
+   iRcv=fprintf(fpAddressUnx, sTitulos);
+   if(iRcv<0){
+      printf("Error al grabar ADDRESS\n");
+      exit(1);
+   }
+   
 
 	fpCuentasUnx=fopen( sArchCuentasUnx, "w" );
 	if( !fpCuentasUnx ){
@@ -364,8 +370,12 @@ short AbreArchivos()
 		return 0;
 	}
 
-   strcpy(sTitulos, "\"Identificador cuenta\";\"Nombre de la cuenta\";\"Tipo de identidad\";\"Número de identidad\";\"Email principal\";\"Email secundario\";\"Teléfono principal\";\"Teléfono secundario\";\"Teléfono adicional\";\"Divisa\";\"Tipo de Registro\";\"Fecha de nacimiento\";\"Cuenta principal\";\"Apellido materno\";\"Apellido paterno\";\"Dirección\";\"Ejecutivo\";\"Giro\";\"Clase de Servicio\";\"Id Empresa\";\"Razón social de la empresa\";\"Condicion Impositiva\";\"Email Adicional\";\"Tipo de Cuenta\";\"Cuenta Cliente\";\"Cuenta Padre\";\"Clase de Cuenta\";\"Tipo de Sociedad\";\n");
-   fprintf(fpCuentasUnx, sTitulos);
+   strcpy(sTitulos, "\"Identificador cuenta\";\"Nombre de la cuenta\";\"Tipo de identidad\";\"Número de identidad\";\"Email principal\";\"Email secundario\";\"Teléfono principal\";\"Teléfono secundario\";\"Teléfono adicional\";\"Divisa\";\"Tipo de Registro\";\"Fecha de nacimiento\";\"Cuenta principal\";\"Apellido materno\";\"Apellido paterno\";\"Dirección\";\"Ejecutivo\";\"Giro\";\"Clase de Servicio\";\"Id Empresa\";\"Razón social de la empresa\";\"Condicion Impositiva\";\"Email Adicional\";\"Tipo de Cuenta\";\"Cuenta Cliente\";\"Cuenta Padre\";\"Clase de Cuenta\";\"Tipo de Sociedad\";\"Tipo de Titular\";\n");
+   iRcv=fprintf(fpCuentasUnx, sTitulos);
+   if(iRcv<0){
+      printf("Error al grabar ACCOUNT\n");
+      exit(1);
+   }
 
 	fpContactosUnx=fopen( sArchContactosUnx, "w" );
 	if( !fpContactosUnx ){
@@ -374,7 +384,11 @@ short AbreArchivos()
 	}
    
    strcpy(sTitulos, "\"Identificador cuenta\";\"Nombre\";\"Apellido\";\"Saludo\";\"Nombre de la cuenta\";\"Estado Civil\";\"Género\";\"Tipo de identificación\";\"Número de documento\";\"Fase del ciclo de vida del cliente\";\"Estrato\";\"Nivel educacional\";\"Autoriza uso de información personal\";\"No llamar\";\"No recibir correos electrónicos\";\"Profesión\";\"Ocupación\";\"Fecha nacimiento\";\"Canal preferente de contacto\";\"Correo electrónico\";\"Correo electrónico secundario\";\"Teléfono\";\"Teléfono secundario\";\"Teléfono movil\";\"Moneda\";\"Apellido paterno\";\"Apellido materno\";\"Tipo de acreditación\";\"Dirección del contacto\";\"Nombre de usuario de Twitter\";\"Recuento de seguidores de Twitter\";\"Influencia\";\"Tipo de influencia\";\"Biografía de Twitter\";\"Id.de usuario de Twitter\";\"Nombre de usuario de Facebook\";\"Id.de usuario de Facebook\";\"Id.de empresa\";\n");
-   fprintf(fpContactosUnx, sTitulos);
+   iRcv=fprintf(fpContactosUnx, sTitulos);
+   if(iRcv<0){
+      printf("Error al grabar CONTACTOS\n");
+      exit(1);
+   }
 
 	fpPointDeliveryUnx=fopen( sArchPointDeliveryUnx, "w" );
 	if( !fpPointDeliveryUnx ){
@@ -382,8 +396,12 @@ short AbreArchivos()
 		return 0;
 	}
 
-   strcpy(sTitulos, "\"Identificador PoD\";\"Número PoD\";\"Divisa\";\"DV Número de suministro\";\"Dirección\";\"Estado del suministro\";\"Pais\";\"Comuna\";\"Tipo de segmento\";\"Medida de disciplina\";\"Id empresa\";\"Electrodependiente\";\"Tarifa\";\"Tipo de agrupación\";\"Full electric\";\"Nombre boleta\";\"Ruta\";\"Dirección de reparto\";\"Comuna de reparto\";\"Número de Transformador\";\"Tipo de Transformador\";\"Tipo de Conexión\";\"Estrato socioeconómico\";\"Subestación Eléctrica Conexión\";\"Tipo de medida\";\"Número de alimentador\";\"Tipo de lectura\";\"Bloque\";\"Horario de racionamiento\";\"Estado de conexión\";\"Fecha de corte\";\"Código PRC\";\"SED\";\"SET\";\"Llave\";\"Potencia Instalada\";\"Cliente singular\";\"Clase de servicio\";\"subclase de servicio\";\"Ruta de lectura\";\"Tipo de liquidación\";\"Mercado\";\"Carga aforada\";\"Año de fabricación\";\"Cantidad de Personas\";\"Numero de DCI\";\"Ente Emisor DCI\";\"Potencia Convenida\";\"Fecha Desconexión\";\n");
-   fprintf(fpPointDeliveryUnx, sTitulos);   
+   strcpy(sTitulos, "\"Identificador PoD\";\"Número PoD\";\"Divisa\";\"DV Número de suministro\";\"Dirección\";\"Estado del suministro\";\"Pais\";\"Comuna\";\"Tipo de segmento\";\"Medida de disciplina\";\"Id empresa\";\"Electrodependiente\";\"Tarifa\";\"Tipo de agrupación\";\"Full electric\";\"Nombre boleta\";\"Ruta\";\"Dirección de reparto\";\"Comuna de reparto\";\"Número de Transformador\";\"Tipo de Transformador\";\"Tipo de Conexión\";\"Estrato socioeconómico\";\"Subestación Eléctrica Conexión\";\"Tipo de medida\";\"Número de alimentador\";\"Tipo de lectura\";\"Bloque\";\"Horario de racionamiento\";\"Estado de conexión\";\"Fecha de corte\";\"Código PRC\";\"SED\";\"SET\";\"Llave\";\"Potencia Instalada\";\"Cliente singular\";\"Clase de servicio\";\"subclase de servicio\";\"Ruta de lectura\";\"Tipo de liquidación\";\"Mercado\";\"Carga aforada\";\"Ano de fabricación\";\"Cantidad de Personas\";\"Numero de DCI\";\"Ente Emisor DCI\";\"Potencia Convenida\";\"Fecha Desconexión\";\"Tipo de Instalacion\";\"Tipo de Conexion\";\"Tension\";\n");
+   iRcv=fprintf(fpPointDeliveryUnx, sTitulos);   
+   if(iRcv<0){
+      printf("Error al grabar PointOfDelivery\n");
+      exit(1);
+   }
 
 	fpServiceProductUnx=fopen( sArchServiceProductUnx, "w" );
 	if( !fpServiceProductUnx ){
@@ -391,8 +409,12 @@ short AbreArchivos()
 		return 0;
 	}
 
-   strcpy(sTitulos, "\"Activo\";\"Contacto\";\"Cuenta\";\"Pais\";\"Compañia\";\"ExternalID\";\"Contacto Principal\";\"Electrodependiente\";\"Númeor de DCI\";\"Ente Emisor DCI\";\n");
-   fprintf(fpServiceProductUnx, sTitulos);
+   strcpy(sTitulos, "\"Activo\";\"Contacto\";\"Cuenta\";\"Pais\";\"Compania\";\"ExternalID\";\"Contacto Principal\";\"Electrodependiente\";\"Númeor de DCI\";\"Ente Emisor DCI\";\n");
+   iRcv=fprintf(fpServiceProductUnx, sTitulos);
+   if(iRcv<0){
+      printf("Error al grabar ServiceProduct\n");
+      exit(1);
+   }
 
 	fpAssetUnx=fopen( sArchAssetUnx, "w" );
 	if( !fpAssetUnx ){
@@ -401,7 +423,11 @@ short AbreArchivos()
 	}
 
    strcpy(sTitulos, "\"Identificador activo\";\"Nombre del activo\";\"Cuenta\";\"Contacto\";\"Suministro\";\"Descripción\";\"Producto\";\"Estado\";\"Contacto Principal\";\"Contrato\";\"Estado Contratacion\";\n");
-   fprintf(fpAssetUnx, sTitulos);
+   iRcv=fprintf(fpAssetUnx, sTitulos);
+   if(iRcv<0){
+      printf("Error al grabar Asset\n");
+      exit(1);
+   }
 
    /*****************/
 	fpEBillingUnx=fopen( sArchEBillingUnx, "w" );
@@ -411,7 +437,11 @@ short AbreArchivos()
 	}
 
    strcpy(sTitulos, "\"Nombre del contacto\";\"Divisa\";\"Contacto\";\"Billing Profile\";\"Fecha de vencimiento\";\"Acceso a la factura\";\"Acceso a plataforma de pago\";\"Suministro\";\"Relacion\";\"Monto total facturado\";\"Anular suscripcion\";\"External Id\";\n");
-   fprintf(fpEBillingUnx, sTitulos);
+   iRcv=fprintf(fpEBillingUnx, sTitulos);
+   if(iRcv<0){
+      printf("Error al grabar E-Billing\n");
+      exit(1);
+   }
    
 
 	return 1;	
@@ -603,7 +633,7 @@ $char sAux[1000];
 	memset(sql, '\0', sizeof(sql));
 	memset(sAux, '\0', sizeof(sAux));
 
-	/******** Fecha Actual Formateada ****************/
+	/******** Fecha Actual Formateada *****************/
 	strcpy(sql, "SELECT TO_CHAR(TODAY, '%Y%m%d') FROM dual ");
 	
 	$PREPARE selFechaActualFmt FROM $sql;
@@ -657,10 +687,14 @@ $char sAux[1000];
    strcat(sql, "TRIM(c.nom_entre), ");
    strcat(sql, "TRIM(c.nom_entre1), ");
    strcat(sql, "t2.cod_sap, ");         /* tipo IVA */
-   strcat(sql, "c.minist_repart ");
-   
-	strcat(sql, "FROM cliente c, OUTER sf_transforma t1, OUTER tecni t ");
+   strcat(sql, "c.minist_repart, ");
+   strcat(sql, "c.cod_propiedad, ");  /* Codigo Propiedad */
+   strcat(sql, "TRIM(t.tec_tipo_instala), ");
+   strcat(sql, "t.tipo_conexion, ");  /* Tipo Conexion */
+   strcat(sql, "t.codigo_voltaje ");   /* Tension */
+	strcat(sql, "FROM cliente c, OUTER sf_transforma t1, OUTER (tecni t, tabla t5, tabla t6 )");
    strcat(sql, ", OUTER sap_transforma t2, OUTER sf_transforma t3 ");
+   strcat(sql, ", OUTER tabla t4 ");
 
 if(giTipoCorrida == 1){
    strcat(sql, ", migra_sf ma ");
@@ -691,6 +725,24 @@ if(giTipoCorrida == 3){
    strcat(sql, "AND t2.cod_mac = c.tipo_iva ");
    strcat(sql, "AND t3.clave = 'TIPDOCU' ");
    strcat(sql, "AND t3.cod_mac = c.tip_doc ");
+   strcat(sql, "AND t4.nomtabla = 'CNRTU' ");
+   strcat(sql, "AND t4.sucursal = '0000' ");
+   strcat(sql, "AND t4.codigo = c.cod_propiedad ");
+   strcat(sql, "AND t4.fecha_activacion <= TODAY ");
+   strcat(sql, "AND (t4.fecha_desactivac IS NULL OR t4.fecha_desactivac > TODAY) ");
+   
+   strcat(sql, "AND t5.nomtabla = 'VOLTA' ");
+   strcat(sql, "AND t5.sucursal = '0000' ");
+   strcat(sql, "AND t5.codigo = t.codigo_voltaje ");
+   strcat(sql, "AND t5.fecha_activacion <= TODAY ");
+   strcat(sql, "AND (t5.fecha_desactivac IS NULL OR t5.fecha_desactivac > TODAY) ");
+
+   strcat(sql, "AND t6.nomtabla = 'CONEX' ");
+   strcat(sql, "AND t6.sucursal = '0000' ");
+   strcat(sql, "AND t6.codigo = t.tipo_conexion ");
+   strcat(sql, "AND t6.fecha_activacion <= TODAY ");
+   strcat(sql, "AND (t6.fecha_desactivac IS NULL OR t6.fecha_desactivac > TODAY) ");      
+   
 if(giTipoCorrida == 1){   		
    strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 }
@@ -710,6 +762,10 @@ if(giTipoCorrida == 3){
 	strcat(sql, "AND (fecha_baja IS NULL OR fecha_baja > TODAY) ");
 	
 	$PREPARE selEmail FROM $sql;
+   
+   
+   $PREPARE selEmail2 FROM "SELECT FIRST 1 TRIM(email) FROM cliente_mail
+      WHERE numero_cliente = ? ";   
 
 	/******** Telefonos ********/
 	strcpy(sql, "SELECT tipo_te, ");
@@ -978,7 +1034,11 @@ $ClsClientes *regCli;
       :regCli->entre_calle1,
       :regCli->entre_calle2,
       :regCli->tipoIva,
-      :regCli->minist_repart;
+      :regCli->minist_repart,
+      :regCli->sCodPropiedad,
+      :regCli->sTipoInstalacion,
+      :regCli->sTipoConexion,
+      :regCli->sTension;     
       
 				
     if ( SQLCODE != 0 ){
@@ -1010,6 +1070,11 @@ $ClsClientes *regCli;
    alltrim(regCli->tec_cod_calle, ' ');
    alltrim(regCli->entre_calle1, ' ');
    alltrim(regCli->entre_calle2, ' ');
+   alltrim(regCli->sCodPropiedad, ' ');
+   
+   alltrim(regCli->sTipoInstalacion, ' ');
+   alltrim(regCli->sTipoConexion, ' ');
+   alltrim(regCli->sTension, ' ');
    
    if(strcmp(regCli->cod_calle, "")==0 || strcmp(regCli->cod_calle, "-1")==0){
       if(strcmp(regCli->tec_cod_calle, "")!=0 && strcmp(regCli->tec_cod_calle, "-1")!=0){
@@ -1033,7 +1098,7 @@ $ClsClientes *regCli;
       return 0;
    }
 
-	if(strcmp(regCli->tipo_reparto, "POSTAL")){
+	if(strcmp(regCli->tipo_reparto, "POSTAL")==0){
 		if(!CargoPostal(regCli)){
 			return 0;
 		}
@@ -1177,6 +1242,11 @@ $ClsClientes	*regClie;
 
    rsetnull(CLONGTYPE, (char *) &(regClie->minist_repart));
    memset(regClie->papa_t23, '\0', sizeof(regClie->papa_t23));
+   memset(regClie->sCodPropiedad, '\0', sizeof(regClie->sCodPropiedad));
+   
+   memset(regClie->sTipoInstalacion, '\0', sizeof(regClie->sTipoInstalacion));
+   memset(regClie->sTipoConexion, '\0', sizeof(regClie->sTipoConexion));
+   memset(regClie->sTension, '\0', sizeof(regClie->sTension));
    
 }
 
@@ -1379,6 +1449,7 @@ char            sTipoReparto[2];
 	char	sAux[100];
    char  sAuxL[200];
    char  sObs[200];
+   int   iRcv;
 	
 	memset(sLinea, '\0', sizeof(sLinea));
 	memset(sAux, '\0', sizeof(sAux));
@@ -1546,7 +1617,13 @@ char            sTipoReparto[2];
    
 	strcat(sLinea, "\n");
 
-	fprintf(fp, sLinea);
+	iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar Address\n");
+      exit(1);
+   }
+   
+   
 
 }
 
@@ -1668,9 +1745,19 @@ $ClsClientes	*regCli;
 	
 	if(SQLCODE != 0){
 		if(SQLCODE == 100){
-			strcpy(regCli->email_1, "NO TIENE");
-			strcpy(regCli->email_2, "NO TIENE");
-         strcpy(regCli->email_3, "NO TIENE");
+         $EXECUTE selEmail2 INTO :regCli->email_1 USING :regCli->numero_cliente;
+         
+         if(SQLCODE != 0){
+   			strcpy(regCli->email_1, "NO TIENE");
+   			strcpy(regCli->email_2, "NO TIENE");
+            strcpy(regCli->email_3, "NO TIENE");
+         
+         }else{
+            alltrim(regCli->email_1, ' ');
+   			strcpy(regCli->email_2, "NO TIENE");
+            strcpy(regCli->email_3, "NO TIENE");
+         
+         }
 			return 1;
 		}else{
 			return 0;	
@@ -2025,7 +2112,8 @@ FILE 		*fp;
 ClsClientes	regCli;
 {
 	char	sLinea[1000];
-	
+	int  iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 	
 
@@ -2209,7 +2297,9 @@ ClsClientes	regCli;
    if(strcmp(regCli.papa_t23, "")!=0){
       sprintf(sLinea, "%s\"%sARG\";", sLinea, regCli.papa_t23);
    }else if(regCli.minist_repart > 0){
-      sprintf(sLinea, "%s\"%ldARG\";", sLinea, regCli.minist_repart);
+      /*sprintf(sLinea, "%s\"%ldARG\";", sLinea, regCli.minist_repart);*/
+      /* el 16/07/2019 Geist solicitó se infome vacio los papis T1 */
+      strcat(sLinea, "\"\";");
    }else{
       strcat(sLinea, "\"\";");
    }
@@ -2219,10 +2309,18 @@ ClsClientes	regCli;
    
    /* Tipo de Sociedad */
    strcat(sLinea, "\"\";");
-            
+   
+   /* Tipo Titularidad */
+   sprintf(sLinea, "%s\"%s\";", sLinea, regCli.sCodPropiedad);
+
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);	
+	iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar Account\n");
+      exit(1);
+   }
+   	
 }
 
 void GeneraContactos(fp, regCli)
@@ -2230,7 +2328,8 @@ FILE 		*fp;
 ClsClientes	regCli;
 {
 	char	sLinea[1000];
-	
+	int  iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 	
 	/* EXTERNAL ID */
@@ -2390,7 +2489,12 @@ ClsClientes	regCli;
 	
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);	
+	iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar Contactos\n");
+      exit(1);
+   }
+   	
 }
 
 
@@ -2401,7 +2505,8 @@ char     *eMail;
 int      index;
 {
 	char	sLinea[1000];
-	
+	int  iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 	
 	/* ID */
@@ -2502,7 +2607,12 @@ int      index;
 
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);	
+	iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar E-Factura\n");
+      exit(1);
+   }
+   	
 }
 
 void GeneraEBilling(fp, regCli, eMail, index)
@@ -2512,7 +2622,8 @@ char     *eMail;
 int      index;
 {
 	char	sLinea[1000];
-	
+	int     iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 
    alltrim(eMail, ' ');
@@ -2548,7 +2659,12 @@ int      index;
    
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);	
+	iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar E-Billing\n");
+      exit(1);
+   }
+   	
 }
 
 
@@ -2591,7 +2707,8 @@ ClsClientes	regCli;
 {
 	char	sLinea[1000];
 	char	sAux[100];
-	
+	int     iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 	memset(sAux, '\0', sizeof(sAux));
 
@@ -2792,9 +2909,23 @@ ClsClientes	regCli;
    /* Fecha Desconexion */
    strcat(sLinea, "\"\";");
    
+   /* Tipo de Instalacion */
+   sprintf(sLinea, "%s\"%s\";", sLinea, regCli.sTipoInstalacion);
+   
+   /* Tipo de Conexion */
+   sprintf(sLinea, "%s\"%s\";", sLinea, regCli.sTipoConexion);
+   
+   /* Tension */
+   sprintf(sLinea, "%s\"%s\";", sLinea, regCli.sTension);
+   
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);	
+	iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar lecturas\n");
+      exit(1);
+   }
+   	
 }
 
 void GeneraServiceProduct(fp, regCli)
@@ -2802,7 +2933,8 @@ FILE 		*fp;
 ClsClientes	regCli;
 {
 	char	sLinea[1000];
-	
+	int  iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 
 	/* ACTIVO */	
@@ -2853,7 +2985,12 @@ ClsClientes	regCli;
    
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);
+	iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar ServiceProduct\n");
+      exit(1);
+   }
+   
 }
 
 void GeneraAsset(fp, regCli)
@@ -2861,7 +2998,8 @@ FILE 		*fp;
 ClsClientes regCli;
 {
 	char	sLinea[1000];
-	
+	int   iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 	
 	/* ID */
@@ -2908,7 +3046,12 @@ ClsClientes regCli;
    
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);	
+	iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar Asset\n");
+      exit(1);
+   }
+   	
 }
 
 short ValidaCalle(reg)
@@ -3224,7 +3367,8 @@ void GeneraBaja(lNroCliente)
 long  lNroCliente;
 {
 	char	sLinea[1000];
-	
+	int  iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 	
 
@@ -3236,7 +3380,12 @@ long  lNroCliente;
    
 	strcat(sLinea, "\n");
 	
-	fprintf(fpBajasUnx, sLinea);	
+	iRcv=fprintf(fpBajasUnx, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar Bajas\n");
+      exit(1);
+   }
+   	
 
 }
 
@@ -3401,7 +3550,7 @@ int          *iEmail;
 		return 0;		
 	}
    
-	if(strcmp(regCli->tipo_reparto, "POSTAL")){
+	if(strcmp(regCli->tipo_reparto, "POSTAL")==0){
 		if(!CargoPostal(regCli)){
 			return 0;
 		}

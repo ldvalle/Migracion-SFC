@@ -131,7 +131,7 @@ int 	iFlagEmpla=0;
          printf("Falló carga alta de cliente %ld\n", regCliente.numero_cliente);
       }
       
-      if(regCliente.tipo_fpago[0]=='D'){
+      if(regCliente.tipo_fpago[0]=='D' && giTipoCorrida != 4){
          CargaFormaPago(&regCliente);      
       }
       
@@ -239,7 +239,7 @@ char	* argv[];
 void MensajeParametros(void){
 		printf("Error en Parametros.\n");
 		printf("	<Base> = synergia.\n");
-		printf("	<Tipo Corrida> 0=Normal, 1=Reducida, 3=Delta.\n");
+		printf("	<Tipo Corrida> 0=Normal, 1=Reducida, 3=Delta, 4=No Activos.\n");
       printf("	<Archivos> 0=Todos; 1=Contrato; 2=Linea; 3= Billing.\n");
       printf("	<Fecha Desde (Opcional)> dd/mm/aaaa.\n");
       printf("	<Fecha Hasta (Opcional)> dd/mm/aaaa.\n");
@@ -250,6 +250,7 @@ short AbreArchivos()
 {
    char  sTitulos[10000];
    $char sFecha[9];
+   int   iRcv;
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
@@ -301,11 +302,15 @@ short AbreArchivos()
       		return 0;
       	}
 
-         strcpy(sTitulos,"\"Divisa del contrato\";\"Duración del contrato (meses)\";\"Estado\";\"Fecha de activación\";\"Fecha de inicio del contrato\";\"Fecha final del contrato\";\"Nombre de la cuenta\";\"Nombre del contrato\";\"Tipo de contrato\";\"Compañía\";\"External Id\";\"Contacto\";\"Suministro\";");
+         strcpy(sTitulos,"\"Divisa del contrato\";\"Duración del contrato (meses)\";\"Estado\";\"Fecha de activación\";\"Fecha de inicio del contrato\";\"Fecha final del contrato\";\"Nombre de la cuenta\";\"Nombre del contrato\";\"Tipo de contrato\";\"Companía\";\"External Id\";\"Contacto\";\"Suministro\";");
          strcat(sTitulos, "\"Actividad Económica\";\"Garantía\";\"Garante\";\"Fin de Garantía\";\"Comienzo de Garantía\";\"Conexión Transitoria\";\"Tipo de Titular\";\"Motivo de Garantía\";\"Tipo de Garantía\";\"Amount To Pay\";\"Connection Charge\";\"Construction Product\";\"Deactivation Date\";\"Payment Terms\";\"Cuenta Contrato\";");
-         strcat(sTitulos, "\"Tasa AP\";\"Número de Partida\";\"Cliente Peaje\";\n");
+         strcat(sTitulos, "\"Tasa AP\";\"Número de Partida\";\"Cliente Peaje\";\"Tarifa Social\";\"Entidad Bien Publico\";\"Beneficiario DNU\";\n");
          
-         fprintf(pFileContrato, sTitulos);
+         iRcv=fprintf(pFileContrato, sTitulos);
+         if(iRcv<0){
+            printf("Error al grabar titulos Contrato\n");
+            exit(1);
+         }
          
          break;      
       case 2:
@@ -316,7 +321,12 @@ short AbreArchivos()
       	}
          
          strcpy(sTitulos,"\"Divisa\";\"Activo\";\"Perfil de Facturación\";\"Contrato\";\"Cantidad\";\"Estado\";\"External ID\";\"CuentaContrato\";\"Perfil de Facturacion agrupador\";\"Company\";\n");
-         fprintf(pFileLinea, sTitulos);
+         iRcv=fprintf(pFileLinea, sTitulos);
+         if(iRcv<0){
+            printf("Error al grabar titulos Linea Contrato\n");
+            exit(1);
+         }
+         
          
          break;      
       case 3:
@@ -327,8 +337,13 @@ short AbreArchivos()
       	}
          
          /*strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Banco\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Tipo de Cuenta\";\"Titular de Tarjeta\";\"Tipo de Reparto\";\"Dirección Postal\";\n");*/
-         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Dirección Postal\";\"Tipo de Reparto\";\"Fecha Factura Digital\";\"Company\";\n");
-         fprintf(pFileBilling, sTitulos);
+         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Dirección Postal\";\"Tipo de Reparto\";\"Fecha Factura Digital\";\"Company\";\"Renuncia Reparto Papel\";\"Tipo Debito\";\n");
+         iRcv=fprintf(pFileBilling, sTitulos);
+         if(iRcv<0){
+            printf("Error al grabar titulos Billing Profile\n");
+            exit(1);
+         }
+         
          
          break;      
       case 0:
@@ -350,17 +365,28 @@ short AbreArchivos()
       		return 0;
       	}
 
-         strcpy(sTitulos,"\"Divisa del contrato\";\"Duración del contrato (meses)\";\"Estado\";\"Fecha de activación\";\"Fecha de inicio del contrato\";\"Fecha final del contrato\";\"Nombre de la cuenta\";\"Nombre del contrato\";\"Tipo de contrato\";\"Compañía\";\"External Id\";\"Contacto\";\"Suministro\";");
+         strcpy(sTitulos,"\"Divisa del contrato\";\"Duración del contrato (meses)\";\"Estado\";\"Fecha de activación\";\"Fecha de inicio del contrato\";\"Fecha final del contrato\";\"Nombre de la cuenta\";\"Nombre del contrato\";\"Tipo de contrato\";\"Companía\";\"External Id\";\"Contacto\";\"Suministro\";");
          strcat(sTitulos, "\"Actividad Económica\";\"Garantía\";\"Garante\";\"Fin de Garantía\";\"Comienzo de Garantía\";\"Conexión Transitoria\";\"Tipo de Titular\";\"Motivo de Garantía\";\"Tipo de Garantía\";\"Amount To Pay\";\"Connection Charge\";\"Construction Product\";\"Deactivation Date\";\"Payment Terms\";\"Cuenta Contrato\";");
-         strcat(sTitulos, "\"Tasa AP\";\"Número de Partida\";\"Cliente Peaje\";\n");
-         fprintf(pFileContrato, sTitulos);
+         strcat(sTitulos, "\"Tasa AP\";\"Número de Partida\";\"Cliente Peaje\";\"Tarifa Social\";\"Entidad Bien Publico\";\"Beneficiario DNU\";\n");
+         iRcv=fprintf(pFileContrato, sTitulos);
+         if(iRcv<0){
+            printf("Error al grabar titulos Contrato\n");
+            exit(1);
+         }
 
          strcpy(sTitulos,"\"Divisa\";\"Activo\";\"Perfil de Facturación\";\"Contrato\";\"Cantidad\";\"Estado\";\"External ID\";\"CuentaContrato\";\"Perfil de Facturacion agrupador\";\"Company\";\n");
-         fprintf(pFileLinea, sTitulos);
+         iRcv=fprintf(pFileLinea, sTitulos);
+         if(iRcv<0){
+            printf("Error al grabar titulos LineaContrato\n");
+            exit(1);
+         }
 
-         /*strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Banco\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Tipo de Cuenta\";\"Titular de Tarjeta\";\"Tipo de Reparto\";\"Dirección Postal\";\n");*/
-         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Dirección Postal\";\"Tipo de Reparto\";\"Fecha Factura Digital\";\"Company\";\n");
-         fprintf(pFileBilling, sTitulos);
+         strcpy(sTitulos,"\"Cuenta\";\"Tipo\";\"Acepta Términos y Condiciones\";\"Nombre de la factura\";\"Dirección de reparto\";\"Tipo de Documento\";\"Adhesión a Factura Electrónica\";\"External ID\";\"External ID Suministro\";\"Clase de Tarjeta\";\"Numero Tarjeta Crédito\";\"CBU\";\"Entidad Bancaria\";\"CuentaContrato\";\"Número de Cuenta\";\"Dirección Postal\";\"Tipo de Reparto\";\"Fecha Factura Digital\";\"Company\";\"Renuncia Reparto Papel\";\"Tipo Debito\";\n");
+         iRcv=fprintf(pFileBilling, sTitulos);
+         if(iRcv<0){
+            printf("Error al grabar titulos Billing Profile\n");
+            exit(1);
+         }
          
          break;
    }
@@ -409,6 +435,10 @@ $char sClave[7];
      exit(1);
    }
 
+   alltrim(sPathCp, ' ');
+   
+   if(giTipoCorrida==4)
+      strcat(sPathCp, "Inactivos/");
 
    switch(gsArchivoGenera){
       case 1:
@@ -586,7 +616,7 @@ $char sAux[1000];
    
    $PREPARE selFechaRti FROM $sql;
 
-	/******** Cursor CLIENTES  ****************/
+	/******** Cursor CLIENTES  *****************/
    if(giTipoCorrida == 3){
       strcpy(sql, "SELECT DISTINCT c.numero_cliente, ");
    }else{
@@ -599,7 +629,12 @@ $char sAux[1000];
    strcat(sql, "c.nro_beneficiario, ");
    strcat(sql, "TRIM(t1.cod_sap) || ' - ' || TRIM(t1.descripcion), ");
    strcat(sql, "t2.descripcion, ");
-   strcat(sql, "c.minist_repart ");
+   strcat(sql, "c.minist_repart, ");
+   strcat(sql, "c.tipo_sum ");
+   
+if(giTipoCorrida == 4){
+   strcat(sql, ", TO_CHAR(si.fecha_baja, '%Y-%m-%dT%H:%M:%S.000Z') ");
+}   
 	strcat(sql, "FROM cliente c, OUTER sap_transforma t1, OUTER tabla t2 ");
    strcat(sql, ", sf_transforma s1 ");   	
 if(giTipoCorrida == 1){	
@@ -609,8 +644,17 @@ if(giTipoCorrida == 3){
    strcat(sql, ", sf_actuclie ma ");
 }   
 
-	strcat(sql, "WHERE c.estado_cliente = 0 ");
-   
+if(giTipoCorrida == 4){
+   strcat(sql, ", sap_inactivos si ");
+}   
+
+   if(giTipoCorrida != 4){
+	  strcat(sql, "WHERE c.estado_cliente = 0 ");
+   }else{
+	  strcat(sql, "WHERE c.estado_cliente != 0 ");
+     strcat(sql, "AND si.numero_cliente = c.numero_cliente ");   
+   }
+
    strcat(sql, "AND c.tipo_sum != 5 ");
 	/*strcat(sql, "AND c.tipo_sum NOT IN (5, 6) ");*/
 	/*strcat(sql, "AND c.sector NOT IN (81, 82, 85, 88, 90) ");*/
@@ -677,7 +721,11 @@ if(giTipoCorrida == 3){
 
 
    /********* Factura Digital **********/
-	strcpy(sql, "SELECT FIRST 1 TO_CHAR(fecha_alta, '%Y-%m-%d') "); 
+	strcpy(sql, "SELECT FIRST 1 TO_CHAR(fecha_alta, '%Y-%m-%d'), "); 
+	strcat(sql, "CASE ");
+	strcat(sql, "	WHEN sin_papel = 'S' THEN 'TRUE' ");
+	strcat(sql, "	ELSE 'FALSE' ");
+	strcat(sql, "END ");
 	strcat(sql, "FROM clientes_digital ");
 	strcat(sql, "WHERE numero_cliente = ? ");
 	strcat(sql, "AND fecha_alta <= TODAY ");
@@ -749,7 +797,32 @@ if(giTipoCorrida == 3){
         AND d1.fecha_emision = (SELECT MAX(d2.fecha_emision) FROM
             depgar d2
             WHERE d2.numero_cliente = d1.numero_cliente)";
-   
+
+   /* Tarifa Social */
+   $PREPARE selTarSoc FROM "SELECT COUNT(*) FROM tarifa_social
+      WHERE numero_cliente = ?
+      AND fecha_inicio <= TODAY
+      AND (fecha_desactivac IS NULL OR fecha_desactivac > TODAY) ";
+
+   /* EBP */
+   $PREPARE selEBP FROM "SELECT COUNT(*) FROM entid_bien_publico
+      WHERE numero_cliente = ?
+      AND fecha_inicio <= TODAY
+      AND (fecha_desactivac IS NULL OR fecha_desactivac > TODAY) ";
+
+
+	/* Entidad compensadora */
+	$PREPARE selCompensa FROM "SELECT COUNT(*) FROM entiofi
+		WHERE entidad = ?
+		AND compensa= 'S'	";
+
+	/* DNU COVID */
+	$PREPARE selCovid FROM "SELECT COUNT(*) FROM cvd19_exceptuados
+		WHERE numero_cliente = ?
+		AND fecha_inicio <= TODAY
+		AND (fecha_desactivac IS NULL OR fecha_desactivac > TODAY) ";
+
+	
 }
 
 void FechaGeneracionFormateada( Fecha )
@@ -798,20 +871,37 @@ $ClsCliente *reg;
 {
    $int  iCantDigital=0;
    $ClsGarantia  regDg;
+   $int  iRcv=0;
    
 	InicializaCliente(reg);
 
-	$FETCH curClientes INTO
-      :reg->numero_cliente,
-      :reg->corr_facturacion,
-      :reg->nombre,
-      :reg->tipo_fpago,
-      :reg->tipo_reparto,
-      :reg->nro_beneficiario,
-      :reg->codActividadEconomica,
-      :reg->tipo_titularidad,
-      :reg->minist_repart;
-	
+   if(giTipoCorrida != 4){
+   	$FETCH curClientes INTO
+         :reg->numero_cliente,
+         :reg->corr_facturacion,
+         :reg->nombre,
+         :reg->tipo_fpago,
+         :reg->tipo_reparto,
+         :reg->nro_beneficiario,
+         :reg->codActividadEconomica,
+         :reg->tipo_titularidad,
+         :reg->minist_repart,
+         :reg->sTipoSum;
+   }else{
+   	$FETCH curClientes INTO
+         :reg->numero_cliente,
+         :reg->corr_facturacion,
+         :reg->nombre,
+         :reg->tipo_fpago,
+         :reg->tipo_reparto,
+         :reg->nro_beneficiario,
+         :reg->codActividadEconomica,
+         :reg->tipo_titularidad,
+         :reg->minist_repart,
+         :reg->sTipoSum,
+         :reg->sFechaDesconexion;
+   }
+   	
     if ( SQLCODE != 0 ){
     	if(SQLCODE == 100){
 			return 0;
@@ -820,17 +910,91 @@ $ClsCliente *reg;
 			exit(1);	
 		}
     }			
-
-   $EXECUTE selDigital INTO :reg->sFechaAltaFactuDigital USING :reg->numero_cliente;
-
-   if(SQLCODE != 0){
-      if(SQLCODE != SQLNOTFOUND){
-			printf("Error al buscar factura digital para cliente %ld !!!\nProceso Abortado.\n", reg->numero_cliente);
-      }else{
-         strcpy(reg->factu_digital, "N");
-         memset(reg->sFechaAltaFactuDigital, '\0', sizeof(reg->sFechaAltaFactuDigital));
-      }	
+   
+   alltrim(reg->sTipoSum, ' ');
+   
+   /* Ver si es compensador */
+   if(strcmp(reg->sTipoSum, "4")==0){
+		iRcv=0;
+		$EXECUTE selCompensador INTO :iRcv USING :reg->numero_cliente;
+		
+		if(SQLCODE !=0 ){
+			printf("Error al buscar si es compensador para cliente %ld.\n", reg->numero_cliente);
+			strcpy(reg->sCompensador, "N");
+		}else{
+			if(iRcv > 0){
+				strcpy(reg->sCompensador, "S");
+			}else{
+				strcpy(reg->sCompensador, "N");
+			}
+		}
+	}else{
+		strcpy(reg->sCompensador, "N");
+	}
+   
+   /* Si está adherido a Factura Digital */
+   if(giTipoCorrida!= 4){
+      $EXECUTE selDigital INTO :reg->sFechaAltaFactuDigital, :reg->sSinPapel USING :reg->numero_cliente;
+   
+      if(SQLCODE != 0){
+         if(SQLCODE != SQLNOTFOUND){
+   			printf("Error al buscar factura digital para cliente %ld !!!\nProceso Abortado.\n", reg->numero_cliente);
+         }else{
+            strcpy(reg->factu_digital, "N");
+            strcpy(reg->sSinPapel, "FALSE");
+            memset(reg->sFechaAltaFactuDigital, '\0', sizeof(reg->sFechaAltaFactuDigital));
+         }	
+      }
+   }else{
+		strcpy(reg->sSinPapel, "FALSE");
+      strcpy(reg->factu_digital, "N");
    }
+   
+   /* Si tiene Tarifa Social */
+   iRcv=0;
+   $EXECUTE selTarSoc INTO :iRcv USING :reg->numero_cliente;
+   
+   if(SQLCODE != 0){
+      printf("Error al buscar Tarifa Social para cliente %ld\n", reg->numero_cliente);
+      strcpy(reg->sTarifaSocial, "N");
+   }else{
+      if(iRcv>0){
+         strcpy(reg->sTarifaSocial, "S");
+      }else{
+         strcpy(reg->sTarifaSocial, "N");
+      }
+   }
+   
+   /* Si es entidad de bien público */
+   iRcv=0;
+   $EXECUTE selEBP INTO :iRcv USING :reg->numero_cliente;
+   
+   if(SQLCODE != 0){
+      printf("Error al buscar EBP para cliente %ld\n", reg->numero_cliente);
+      strcpy(reg->sEBP, "N");
+   }else{
+      if(iRcv>0){
+         strcpy(reg->sEBP, "S");
+      }else{
+         strcpy(reg->sEBP, "N");
+      }
+   }
+   
+   /* Si tiene DNU COVID */
+   iRcv=0;
+   $EXECUTE selCovid INTO :iRcv USING :reg->numero_cliente;
+   if(SQLCODE != 0){
+      printf("Error al buscar DNU Covid para cliente %ld\n", reg->numero_cliente);
+      strcpy(reg->sDnuCovid, "FALSE");
+   }else{
+      if(iRcv>0){
+         strcpy(reg->sDnuCovid, "TRUE");
+      }else{
+         strcpy(reg->sDnuCovid, "FALSE");
+      }
+   }   
+   
+   
 /*
    $EXECUTE selDigital INTO :reg->sFechaAltaFactuDigital :iCantDigital USING :reg->numero_cliente;
 
@@ -850,19 +1014,21 @@ $ClsCliente *reg;
       }
    }
 */
-    $EXECUTE selGarante INTO :regDg.nroDg, 
-                            :regDg.sFechaEmision,
-                            :regDg.lGarante,
-                            :regDg.motivo
-                        USING :reg->numero_cliente;
-    
-    if(SQLCODE !=0){
-        reg->dgGarante=-1;
-    }else{
-        reg->dgGarante = regDg.lGarante;
-        strcpy(reg->dgFechaEmision, regDg.sFechaEmision);
-    }
-        
+
+   if(giTipoCorrida != 4){
+       $EXECUTE selGarante INTO :regDg.nroDg, 
+                               :regDg.sFechaEmision,
+                               :regDg.lGarante,
+                               :regDg.motivo
+                           USING :reg->numero_cliente;
+       
+       if(SQLCODE !=0){
+           reg->dgGarante=-1;
+       }else{
+           reg->dgGarante = regDg.lGarante;
+           strcpy(reg->dgFechaEmision, regDg.sFechaEmision);
+       }
+   }        
                             
                             
                             
@@ -903,7 +1069,17 @@ $ClsCliente	*reg;
    
    rsetnull(CLONGTYPE, (char *) &(reg->dgGarante));
    memset(reg->dgFechaEmision, '\0', sizeof(reg->dgFechaEmision));
+   memset(reg->sFechaDesconexion, '\0', sizeof(reg->sFechaDesconexion));
+
+   memset(reg->sTarifaSocial, '\0', sizeof(reg->sTarifaSocial));
+   memset(reg->sEBP, '\0', sizeof(reg->sEBP));
+
+	memset(reg->sTipoSum, '\0', sizeof(reg->sTipoSum));
+   memset(reg->sSinPapel, '\0', sizeof(reg->sSinPapel));
+   memset(reg->sTipoDebito, '\0', sizeof(reg->sTipoDebito));   
    
+   memset(reg->sCompensador, '\0', sizeof(reg->sCompensador));
+   memset(reg->sDnuCovid, '\0', sizeof(reg->sDnuCovid));
 }
 
 
@@ -946,6 +1122,11 @@ $ClsCliente *reg;
 short CargaAlta2(reg)
 $ClsCliente *reg;
 {
+   if(giTipoCorrida==4){
+      strcpy(reg->sFechaAlta, "1995-09-24");
+      return 1;   
+   }
+
 	$EXECUTE selEstoc into :reg->sFechaAlta using :reg->numero_cliente;
 
 	if(SQLCODE != 0){
@@ -1031,7 +1212,8 @@ void GeneraContrato(reg)
 $ClsCliente		reg;
 {
 	char	sLinea[1000];	
-
+   int   iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 
    /* Divisa del contrato */
@@ -1041,7 +1223,11 @@ $ClsCliente		reg;
    strcat(sLinea, "\"\";");
    
    /* Estado */
-   strcat(sLinea, "\"Activated\";");
+   if(giTipoCorrida != 4){
+      strcat(sLinea, "\"Activated\";");
+   }else{
+      strcat(sLinea, "\"Inactivated\";");
+   }
    
    /* Fecha de activación */
    sprintf(sLinea, "%s\"%sT00:00:00.000Z\";", sLinea, reg.sFechaAlta);
@@ -1050,7 +1236,11 @@ $ClsCliente		reg;
    sprintf(sLinea, "%s\"%s\";", sLinea, reg.sFechaAlta);
    
    /* Fecha final del contrato (vacio) */
-   strcat(sLinea, "\"\";");
+   if(giTipoCorrida != 4){
+      strcat(sLinea, "\"\";");
+   }else{
+      sprintf(sLinea, "%s\"%s\";", sLinea, reg.sFechaDesconexion);
+   }
    
    /* Nombre de la cuenta */
    sprintf(sLinea, "%s\"%ldARG\";", sLinea, reg.numero_cliente);
@@ -1062,7 +1252,7 @@ $ClsCliente		reg;
    /* Tipo de contrato */
    strcat(sLinea, "\"Direct Contract\";");
    
-   /* Compañía */
+   /* Companía */
    strcat(sLinea, "\"9\";");
    
    /* External Id */
@@ -1114,7 +1304,11 @@ $ClsCliente		reg;
    /* Construction Product / Budget */
    strcat(sLinea, "\"\";");
    /* Deactivation Date */
-   strcat(sLinea, "\"\";");
+   if(giTipoCorrida != 4){
+      strcat(sLinea, "\"\";");
+   }else{
+      sprintf(sLinea, "%s\"%s\";", sLinea, reg.sFechaDesconexion);
+   }
    /* Payment Terms */
    strcat(sLinea, "\"\";");
    /* Cuenta Contrato */
@@ -1126,9 +1320,32 @@ $ClsCliente		reg;
    /* Cliente Peaje */
    strcat(sLinea, "\"FALSE\";");
    
+   /* Tarifa Social */
+   if(reg.sTarifaSocial[0]=='S'){
+      strcat(sLinea, "\"TRUE\";");
+   }else{
+      strcat(sLinea, "\"FALSE\";");
+   }
+   
+   /* Entid.Bien Publico */
+   if(reg.sEBP[0]=='S'){
+      strcat(sLinea, "\"TRUE\";");
+   }else{
+      strcat(sLinea, "\"FALSE\";");
+   }
+   
+   /* Beneficiario DNU */
+	sprintf(sLinea, "%s\"%s\";", sLinea, reg.sDnuCovid);
+
+   
 	strcat(sLinea, "\n");
 	
-	fprintf(pFileContrato, sLinea);	
+	iRcv=fprintf(pFileContrato, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar CONTRATO\n");
+      exit(1);
+   }
+   	
 
 }
 
@@ -1136,7 +1353,8 @@ void GeneraLinea(reg)
 $ClsCliente		reg;
 {
 	char	sLinea[1000];	
-
+   int   iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 
    /* Divisa */
@@ -1155,7 +1373,11 @@ $ClsCliente		reg;
    strcat(sLinea, "\"1\";");
    
    /* Estado */
-   strcat(sLinea, "\"Active\";");
+   if(giTipoCorrida != 4){
+      strcat(sLinea, "\"Active\";");
+   }else{
+      strcat(sLinea, "\"Inactive\";");
+   }
    
    /* External ID */
    sprintf(sLinea, "%s\"%ldLCOARG\";", sLinea, reg.numero_cliente);
@@ -1177,7 +1399,11 @@ $ClsCliente		reg;
    
 	strcat(sLinea, "\n");
 	
-	fprintf(pFileLinea, sLinea);	
+	iRcv=fprintf(pFileLinea, sLinea);	
+   if(iRcv<0){
+      printf("Error al grabar LINEA_CONTRATO\n");
+      exit(1);
+   }
 
 }
 
@@ -1185,30 +1411,41 @@ void GeneraBilling(reg)
 $ClsCliente		reg;
 {
 	char	sLinea[1000];	
-
+   int   iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 
    /* Cuenta */
    sprintf(sLinea, "\"%ldARG\";", reg.numero_cliente);
    
    /* Tipo */
-   if(reg.tipo_fpago[0]=='D'){
-      alltrim(reg.cbu, ' ');
-      if(strcmp(reg.cbu, "")==0){
-         sprintf(sLinea, "%s\"%s\";", sLinea, reg.sMarcaTarjeta);
-      }else{
-         strcat(sLinea, "\"D\";");   
-      }
-   }else{
-      strcat(sLinea, "\"\";");   
-   }
-   
+   if(reg.sCompensador[0]=='S'){
+		strcat(sLinea, "\"L\";");
+		strcpy(reg.sTipoDebito, "03");
+	}else{
+		if(reg.tipo_fpago[0]=='D'){
+			alltrim(reg.cbu, ' ');
+			if(strcmp(reg.cbu, "")==0){
+				sprintf(sLinea, "%s\"%s\";", sLinea, reg.sMarcaTarjeta);
+				strcpy(reg.sTipoDebito, "01");
+			}else{
+				strcat(sLinea, "\"D\";"); 
+				strcpy(reg.sTipoDebito, "02");  
+			}
+		}else{
+			strcat(sLinea, "\"Empty\";");
+			strcpy(reg.sTipoDebito, "99");
+		}
+	}
    /* Acepta Términos y Condiciones */
+/*   
    if(reg.factu_digital[0]=='S'){
       strcat(sLinea, "\"TRUE\";");
    }else{
       strcat(sLinea, "\"FALSE\";");
    }
+*/
+   strcat(sLinea, "\"FALSE\";");
    
    /* Nombre de la factura */
    sprintf(sLinea, "%s\"%ldARG\";", sLinea, reg.numero_cliente);
@@ -1304,7 +1541,23 @@ $ClsCliente		reg;
    
    /* Tipo de Reparto */
    alltrim(reg.tipo_reparto, ' ');  
-   sprintf(sLinea, "%s\"%s\";", sLinea, reg.tipo_reparto);
+   if(reg.sSinPapel[0]=='S'){
+		strcat(sLinea, "\"S\";");
+	}else{
+		switch(reg.tipo_reparto[0]){
+			case 'N':
+				strcat(sLinea, "\"N\";");
+				break;
+			case 'P':
+				strcat(sLinea, "\"P\";");
+				break;			
+			case 'B':
+				strcat(sLinea, "\"F\";");
+				break;			
+		}
+		/*sprintf(sLinea, "%s\"%s\";", sLinea, reg.tipo_reparto);*/
+	}
+   
 
    /* Fecha Factura Digital */
    alltrim(reg.sFechaAltaFactuDigital, ' ');
@@ -1317,9 +1570,23 @@ $ClsCliente		reg;
    /* Company */
    strcat(sLinea, "\"9\";");
    
+   /* Renuncia Reparto Papel */
+   sprintf(sLinea, "%s\"%s\";", sLinea, reg.sSinPapel);
+   
+   /* Tipo Debito */
+   if(strcmp(reg.sTipoDebito, "99")==0){
+		strcat(sLinea, "\"\";");
+	}else{
+		sprintf(sLinea, "%s\"%s\";", sLinea, reg.sTipoDebito);
+	}
+   
 	strcat(sLinea, "\n");
 	
-	fprintf(pFileBilling, sLinea);	
+	iRcv=fprintf(pFileBilling, sLinea);	
+   if(iRcv<0){
+      printf("Error al grabar BILLING-PROFILE\n");
+      exit(1);
+   }
 
 }
 
@@ -1347,6 +1614,11 @@ void CargaTasa(reg)
 $ClsCliente *reg;
 {
 
+   if(giTipoCorrida==4){
+      strcpy(reg->sTasaAP, "FALSE");
+      return;
+   }
+   
    $EXECUTE selTasa INTO :reg->sPatidaMuni USING :reg->numero_cliente;
    
    if(SQLCODE != 0){

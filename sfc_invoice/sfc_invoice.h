@@ -34,6 +34,7 @@ $typedef struct{
    double   suma_convenio;
    char     tarifa[4];
    char     indica_refact[2];
+   long     fecha_lectura;
    
    double   cargo_fijo;
    double   cargo_variable;
@@ -41,7 +42,12 @@ $typedef struct{
    char     factu_digital[2];
    double   recargoAnterior;
    double   cargo_kit;
+   char     sLinkFactura[151];
    
+   char		tipoDocumento[3];
+   char		tipoDoctoRefac[3];
+   char		doctoAfectado[50];
+   int		diasPeriodo;
 }ClsFactura;
 
 
@@ -58,9 +64,14 @@ short LeoFacturas(ClsFactura *);
 void  InicializaFactura(ClsFactura *);
 short LeoDetalle(ClsFactura *, int);
 
-short	GenerarPlano(FILE *, ClsFactura);
+short LeoRefac(ClsFactura *);
+short LeoCnr(ClsFactura *);
+short LeoFactuNN(ClsFactura *);
+short LeoFactuCE(ClsFactura *);
 
-double   getRecargo(long, long);
+short	GenerarPlano(FILE *, ClsFactura, char *);
+
+short getRecargo(ClsFactura *);
 
 char 	*strReplace(char *, char *, char *);
 void	CerrarArchivos(void);

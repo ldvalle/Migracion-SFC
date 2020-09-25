@@ -1,4 +1,4 @@
-/*********************************************************************************
+/**********************************************************************************
     Proyecto: Migracion al sistema SALES-FORCES
     Aplicacion: sfc_field_operation
     
@@ -13,7 +13,7 @@
 		<Base de Datos> : Base de Datos <synergia>
 		<Tipo Corrida>: 0=Normal, 1=Reducida
 		
-********************************************************************************/
+*********************************************************************************/
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
@@ -116,25 +116,34 @@ long  lCantExtent=0;
       }else{
          $OPEN curCortes;
       }
-   
+		/** Los Cortes del período **/
    	while(LeoCortes(&regCorte)){
    		if (!GenerarPlano(fp, regCorte, regExt, "C", 0)){
-            printf("Fallo GenearPlano\n");
+            printf("Fallo GenerarPlano Cortes\n");
    			exit(1);	
    		}
          lCantCorte++;         
+   	}
+   	$CLOSE curCortes;
+      
+      /** Las reposiciones del período **/
+      
+      $OPEN curRepo USING :gsFechaDesde, :gsFechaHasta;
+      
+   	while(LeoRepo(&regCorte)){
    		if(strcmp(regCorte.fecha_reposicion, "") != 0){
       		if (!GenerarPlano(fp, regCorte, regExt, "R", 0)){
-               printf("Fallo GenearPlano\n");
+               printf("Fallo GenerarPlano Repo\n");
       			exit(1);	
       		}
             lCantRepo++;
          }			
    	}
-   	$CLOSE curCortes;
+   	
+   	$CLOSE curRepo;
       
       iIndex=1;
-      /* Cursor de Extension */
+      /** Las Extensiones del período **/
       /*$OPEN curExtent USING :lNroCliente;*/
       if(giTipoCorrida==3){
          $OPEN curExtent USING :gsFechaDesde, :gsFechaHasta;
@@ -144,7 +153,7 @@ long  lCantExtent=0;
             
    	while(LeoExtent(&regExt)){
    		if (!GenerarPlano(fp, regCorte, regExt, "E", iIndex)){
-            printf("Fallo GenearPlano\n");
+            printf("Fallo GenerarPlano Prorroga\n");
    			exit(1);	
    		}
          iIndex++;
@@ -250,6 +259,7 @@ short AbreArchivos()
 {
    char  sTitulos[10000];
    $char sFecha[9];
+   int   iRcv;
    
    memset(sTitulos, '\0', sizeof(sTitulos));
 	
@@ -268,9 +278,7 @@ short AbreArchivos()
 
 	sprintf( sArchMedidorUnx  , "%sT1FIELD_OPERATION.unx", sPathSalida );
    sprintf( sArchMedidorAux  , "%sT1FIELD_OPERATION.aux", sPathSalida );
-   sprintf( sArchMedidorDos  , "%senel_care_fieldoperation_t1_%s_%s.csv", sPathSalida, gsFechaDesde, gsHastaFmt);
-
-	strcpy( sSoloArchivoMedidor, "T1FIELD_OPERATION.unx");
+   sprintf( sArchMedidorDos  , "%senel_care_fieldoperation_t1_%s_%s.csv", sPathSalida, gsDesdeFmt, gsHastaFmt);
 
 	pFileMedidorUnx=fopen( sArchMedidorUnx, "w" );
 	if( !pFileMedidorUnx ){
@@ -295,7 +303,12 @@ short AbreArchivos()
    strcat(sTitulos, "\"Dias\"");
    strcat(sTitulos, "\n");                           
    
-   fprintf(pFileMedidorUnx, sTitulos);
+   iRcv=fprintf(pFileMedidorUnx, sTitulos);
+   if(iRcv<0){
+      printf("Error al grabar FieldOperation\n");
+      exit(1);
+   }
+   
       
 	return 1;	
 }
@@ -391,10 +404,10 @@ if(giTipoCorrida==1){
 	strcat(sql, "TO_CHAR(c.fecha_corte, '%Y-%m-%dT%H:%M:00.000Z'), ");
 	strcat(sql, "TO_CHAR(c.fecha_reposicion, '%Y-%m-%dT%H:%M:00.000Z'), ");
 	strcat(sql, "c.saldo_exigible, ");
-	strcat(sql, "c.motivo_corte, ");
-	strcat(sql, "c.motivo_repo, ");
-	strcat(sql, "c.accion_corte, ");
-	strcat(sql, "c.accion_rehab, ");
+	strcat(sql, "sm1.cod_sf1, "); /* motivo de corte */
+	strcat(sql, "sm2.cod_sf1, "); /* motivo de reposicion */
+	strcat(sql, "sa1.cod_sf1, "); /* accion de corte */
+	strcat(sql, "sa2.cod_sf1, "); /* accion de reposicion */
 	strcat(sql, "c.funcionario_corte, ");
 	strcat(sql, "c.funcionario_repo, ");
 	strcat(sql, "TO_CHAR(c.fecha_ini_evento, '%Y-%m-%dT%H:%M:00.000Z'), ");
@@ -404,7 +417,8 @@ if(giTipoCorrida==1){
    strcat(sql, "t1.descripcion, ");
    strcat(sql, "c.corr_corte, ");
    strcat(sql, "c.corr_repo ");   
-	strcat(sql, "FROM correp c, cliente l, tabla t1 ");
+	strcat(sql, "FROM correp c, cliente l, tabla t1, sf_transforma sm1, OUTER (sf_transforma sa1) ");
+	strcat(sql, ", sf_transforma sm2, OUTER (sf_transforma sa2)	");
 if(giTipoCorrida==1){
    strcat(sql, ", migra_sf ma ");
 }   
@@ -420,6 +434,15 @@ if(giTipoCorrida==1){
 	strcat(sql, "AND t1.codigo = c.motivo_corte ");
 	strcat(sql, "AND t1.fecha_activacion <= TODAY ");
 	strcat(sql, "AND (t1.fecha_desactivac IS NULL OR t1.fecha_desactivac > TODAY) ");   
+	strcat(sql, "AND sm1.clave = 'MOTCORTE' ");
+	strcat(sql, "AND sm1.cod_mac = c.motivo_corte ");
+	strcat(sql, "AND sa1.clave = 'ACCORTE' ");
+	strcat(sql, "AND sa1.cod_mac = c.accion_corte ");
+	strcat(sql, "AND sm2.clave = 'MOTREPO' ");
+	strcat(sql, "AND sm2.cod_mac = c.motivo_repo ");
+	strcat(sql, "AND sa2.clave = 'ACREPO' ");
+	strcat(sql, "AND sa2.cod_mac = c.accion_rehab ");
+	
 if(giTipoCorrida==1){
    strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 }   
@@ -429,23 +452,80 @@ if(giTipoCorrida==1){
 	
 	$DECLARE curCortes CURSOR WITH HOLD FOR selCortes;
    
+   /****** Cursor Repos ******/
+	strcpy(sql, "SELECT c.numero_cliente, ");
+	strcat(sql, "TO_CHAR(c.fecha_corte, '%Y-%m-%dT%H:%M:00.000Z'), ");
+	strcat(sql, "TO_CHAR(c.fecha_reposicion, '%Y-%m-%dT%H:%M:00.000Z'), ");
+	strcat(sql, "c.saldo_exigible, ");
+	strcat(sql, "sm1.cod_sf1, "); /* motivo de corte */
+	strcat(sql, "sm2.cod_sf1, "); /* motivo de reposicion */
+	strcat(sql, "sa1.cod_sf1, "); /* accion de corte */
+	strcat(sql, "sa2.cod_sf1, "); /* accion de reposicion */
+	strcat(sql, "c.funcionario_corte, ");
+	strcat(sql, "c.funcionario_repo, ");
+	strcat(sql, "TO_CHAR(c.fecha_ini_evento, '%Y-%m-%dT%H:%M:00.000Z'), ");
+	strcat(sql, "TO_CHAR(c.fecha_sol_repo, '%Y-%m-%dT%H:%M:00.000Z'), ");
+	strcat(sql, "c.sit_encon, ");
+	strcat(sql, "c.sit_rehab, ");
+   strcat(sql, "t1.descripcion, ");
+   strcat(sql, "c.corr_corte, ");
+   strcat(sql, "c.corr_repo ");   
+	strcat(sql, "FROM correp c, cliente l, tabla t1, sf_transforma sm1, OUTER (sf_transforma sa1) ");
+	strcat(sql, ", sf_transforma sm2, OUTER (sf_transforma sa2)	");
+if(giTipoCorrida==1){
+   strcat(sql, ", migra_sf ma ");
+}   
+	strcat(sql, "WHERE c.numero_cliente = l.numero_cliente ");
+   if(giTipoCorrida==3){
+      strcat(sql, "AND c.fecha_reposicion BETWEEN ? AND ? ");
+   }else{
+      strcat(sql, "AND c.fecha_reposicion >= TODAY-365 ");
+   }
+   strcat(sql, "AND l.estado_cliente = 0 ");
+	strcat(sql, "AND t1.nomtabla = 'CORMOT' ");
+	strcat(sql, "AND t1.sucursal = '0000' ");
+	strcat(sql, "AND t1.codigo = c.motivo_corte ");
+	strcat(sql, "AND t1.fecha_activacion <= TODAY ");
+	strcat(sql, "AND (t1.fecha_desactivac IS NULL OR t1.fecha_desactivac > TODAY) ");   
+	strcat(sql, "AND sm1.clave = 'MOTCORTE' ");
+	strcat(sql, "AND sm1.cod_mac = c.motivo_corte ");
+	strcat(sql, "AND sa1.clave = 'ACCORTE' ");
+	strcat(sql, "AND sa1.cod_mac = c.accion_corte ");
+	strcat(sql, "AND sm2.clave = 'MOTREPO' ");
+	strcat(sql, "AND sm2.cod_mac = c.motivo_repo ");
+	strcat(sql, "AND sa2.clave = 'ACREPO' ");
+	strcat(sql, "AND sa2.cod_mac = c.accion_rehab ");
+	
+if(giTipoCorrida==1){
+   strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
+}   
+	strcat(sql, "ORDER BY 2 ASC ");   
+   
+	$PREPARE selRepos FROM $sql;
+	
+	$DECLARE curRepo CURSOR WITH HOLD FOR selRepos;   
+   
    /******** Cursor Extensión Plazo  ****************/
 	strcpy(sql, "SELECT c.numero_cliente, ");
 	strcat(sql, "TO_CHAR(c.fecha_solicitud, '%Y-%m-%dT%H:%M:00.000Z'), ");
-	strcat(sql, "c.cod_motivo, ");
+	strcat(sql, "sm3.cod_sf1, "); /* codigo motivo */
    strcat(sql, "c.motivo, ");
 	strcat(sql, "c.rol, ");
 	strcat(sql, "CASE ");
 	strcat(sql, "	WHEN c.fecha_anterior + c.dias > TODAY THEN 'Active' ");
 	strcat(sql, "  ELSE 'Completed' ");
 	strcat(sql, "END estado, ");
-	strcat(sql, "c.dias ");
-	strcat(sql, "FROM corplazo c, cliente l ");
+	strcat(sql, "c.dias, ");
+	strcat(sql, "TO_CHAR(c.fecha_solicitud, '%Y%m%d') ");
+	strcat(sql, "FROM corplazo c, cliente l, sf_transforma sm3 ");
 if(giTipoCorrida==1){
    strcat(sql, ", migra_sf ma ");
 }   
 	strcat(sql, "WHERE c.numero_cliente = l.numero_cliente ");
    strcat(sql, "AND l.estado_cliente = 0 ");
+   strcat(sql, "AND sm3.clave= 'MOTPRORO' ");
+   strcat(sql, "AND sm3.cod_mac = c.cod_motivo ");
+   
    if(giTipoCorrida==3){
       strcat(sql, "AND c.fecha_solicitud BETWEEN ? AND ? ");
    }else{
@@ -454,7 +534,6 @@ if(giTipoCorrida==1){
 if(giTipoCorrida==1){
    strcat(sql, "AND ma.numero_cliente = c.numero_cliente ");
 }   
-   
 	strcat(sql, "ORDER BY 2 ASC ");
    
 	$PREPARE selExtent FROM $sql;
@@ -577,6 +656,50 @@ $ClsCorte *reg;
 	return 1;	
 }
 
+short LeoRepo(reg)
+$ClsCorte *reg;
+{
+	InicializaCorte(reg);
+
+	$FETCH curRepo INTO
+      :reg->numero_cliente,
+      :reg->fecha_corte,
+      :reg->fecha_reposicion,
+      :reg->saldo_exigible,
+      :reg->motivo_corte,
+      :reg->motivo_repo,
+      :reg->accion_corte,
+      :reg->accion_rehab,
+      :reg->funcionario_corte,
+      :reg->funcionario_repo,
+      :reg->fecha_ini_evento,
+      :reg->fecha_sol_repo,
+      :reg->sit_encon,
+      :reg->sit_rehab,
+      :reg->desc_motivo_corte,
+      :reg->corr_corte,
+      :reg->corr_repo;
+	
+    if ( SQLCODE != 0 ){
+    	if(SQLCODE == 100){
+			return 0;
+		}else{
+			printf("Error al leer Cursor de Cortes !!!\nProceso Abortado.\n");
+			exit(1);	
+		}
+    }			
+
+   alltrim(reg->fecha_corte, ' ');
+   alltrim(reg->fecha_reposicion, ' ');
+   alltrim(reg->fecha_ini_evento, ' ');
+   alltrim(reg->fecha_sol_repo, ' ');
+   alltrim(reg->funcionario_corte, ' ');
+   alltrim(reg->funcionario_repo, ' ');
+   alltrim(reg->desc_motivo_corte, ' ');
+               
+	return 1;	
+}
+
 void InicializaCorte(reg)
 $ClsCorte	*reg;
 {
@@ -612,6 +735,7 @@ $ClsExtent	*reg;
    memset(reg->rol, '\0', sizeof(reg->rol));
    memset(reg->estado, '\0', sizeof(reg->estado));
    rsetnull(CINTTYPE, (char *) &(reg->dias));
+   memset(reg->sFechaSol, '\0', sizeof(reg->sFechaSol));
 
 }
 
@@ -629,7 +753,8 @@ $ClsExtent *reg;
       :reg->motivo,
       :reg->rol,
       :reg->estado,
-      :reg->dias;
+      :reg->dias,
+      :reg->sFechaSol;
    
    if(SQLCODE != 0){
       return 0;
@@ -650,7 +775,8 @@ char           sTipo[2];
 int            index;
 {
 	char	sLinea[1000];	
-
+   int   iRcv;
+   
 	memset(sLinea, '\0', sizeof(sLinea));
 
    switch(sTipo[0]){
@@ -682,7 +808,8 @@ int            index;
          /* Motivo */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.motivo_corte);
          /* Estado */
-         strcat(sLinea, "\"Completed\";");
+         /* strcat(sLinea, "\"Completed\";"); */
+         strcat(sLinea, "\"21\";");
          /* Dias (Vacio) */
          strcat(sLinea, "\"\"");
          
@@ -716,7 +843,8 @@ int            index;
          /* Motivo */
          sprintf(sLinea, "%s\"%s\";", sLinea, regCor.motivo_repo);
          /* Estado */
-         strcat(sLinea, "\"Completed\";");
+         /* strcat(sLinea, "\"Completed\";"); */
+         strcat(sLinea, "\"30\";");
          /* Dias (vacio) */
          strcat(sLinea, "\"\"");
    
@@ -739,7 +867,8 @@ int            index;
          /* Fecha evento */
          strcat(sLinea, "\"\";");
          /* External Id */
-         sprintf(sLinea, "%s\"%ld%04dPRORFOPARG\";", sLinea, regEx.numero_cliente, index);
+         /*sprintf(sLinea, "%s\"%ld%04dPRORFOPARG\";", sLinea, regEx.numero_cliente, index);*/
+         sprintf(sLinea, "%s\"%ld%sPRORFOPARG\";", sLinea, regEx.numero_cliente, regEx.sFechaSol);
          /* Situación encontrada */
          strcat(sLinea, "\"\";");
          /* Suministro */
@@ -749,7 +878,8 @@ int            index;
          /* Motivo */
          sprintf(sLinea, "%s\"%s\";", sLinea, regEx.cod_motivo);
          /* Estado */
-         sprintf(sLinea, "%s\"%s\";", sLinea, regEx.estado);
+         /* sprintf(sLinea, "%s\"%s\";", sLinea, regEx.estado); */
+         strcat(sLinea, "\"Approved\";");
          /* Dias */
          sprintf(sLinea, "%s\"%d\";", sLinea, regEx.dias);
          
@@ -760,7 +890,12 @@ int            index;
 
 	strcat(sLinea, "\n");
 	
-	fprintf(fp, sLinea);	
+	iRcv=fprintf(fp, sLinea);
+   if(iRcv<0){
+      printf("Error al grabar FieldOperation\n");
+      exit(1);
+   }
+   	
 
 	
 	return 1;

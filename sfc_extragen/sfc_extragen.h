@@ -92,6 +92,10 @@ $typedef struct{
    long  minist_repart;
    char  papa_t23[11];
    
+   char  sCodPropiedad[60];
+   char	sTipoInstalacion[60];
+   char	sTipoConexion[60];
+   char	sTension[60];
 }ClsClientes;
 
 $typedef struct{
