@@ -1,0 +1,38 @@
+PROGRAM = sfc_device_inicial.exe
+
+OBJECTS = sfc_device_inicial.o 
+
+OBJS_LIB = sqlerror.o ustring.o macmath.o
+
+OTROS =
+
+LXFLAGS = -lsynmail -lmail
+
+%If "$(SYSTEM)" == "AIX/RS-6000"
+.include /usr/pvcs/etc/build.def
+%Else
+.include /pvcs/etc/build.def
+%EndIf
+
+#UPDATE#
+
+sfc_device_inicial.o : sfc_device_inicial.ec   \
+              sfc_device_inicial.h           \
+              codigos.h                    \
+              sqlerror.h                   \
+              lotes.h                      \
+              pardud.h                     \
+              tabla_errores.h              \
+              ustring.h					   \
+              macmath.h                    \
+              synmail.h
+
+sqlerror.o : sqlerror.ec                   \
+             sqlerror.h
+
+ustring.o : ustring.c                      \
+            ustring.h
+
+macmath.o : macmath.c 
+
+#ENDUPDATE#
